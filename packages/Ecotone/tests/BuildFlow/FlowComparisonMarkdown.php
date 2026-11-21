@@ -78,10 +78,14 @@ final class FlowComparisonMarkdown
     {
         $lines = [];
         foreach ($groups as $group) {
-            $processes = $group['change']->execution === [] ? array_map(fn (array $process): array => ['change' => FlowScenarioChange::UNCHANGED], $group['change']->after->execution) : $group['change']->execution;
+            $change = $group['change'];
+            $processes = $change->execution === [] ? array_fill(0, count($change->after->execution), ['change' => FlowScenarioChange::UNCHANGED]) : $change->execution;
             $changed = count(array_filter($processes, fn (array $process): bool => $process['change'] !== FlowScenarioChange::UNCHANGED));
+            $what = $changed > 0
+                ? $changed . ' of ' . count($processes) . ' process' . (count($processes) === 1 ? '' : 'es') . ' changed'
+                : implode(' and ', array_filter([$change->wiring->hasChanges() ? 'wiring' : '', $change->hasTraceChanges() ? 'traced spans' : ''])) . ' only';
             foreach ($group['scenarios'] as $scenario) {
-                $lines[] = '- `' . $scenario . '`: ' . $changed . ' of ' . count($processes) . ' process' . (count($processes) === 1 ? '' : 'es') . ' changed';
+                $lines[] = '- ' . self::code($scenario) . ': ' . $what;
             }
         }
 
@@ -111,7 +115,7 @@ final class FlowComparisonMarkdown
             $earlier = $beforeByTitle[$process['process']] ?? null;
             if ($earlier === null) {
                 $rows = array_map(fn (array $step): array => ['mark' => '+', 'status' => 'new', 'depth' => $step['depth'], 'label' => $step['label'], 'hints' => self::shownHintsOf($step)], $process['steps']);
-                $blocks[] = $heading . ' · runs only now · ' . self::stepCount(count($process['steps'])) . "\n`" . $process['process'] . '`' . $stepsOf($number, $rows, true);
+                $blocks[] = $heading . ' · runs only now · ' . FlowStepTree::steps(count($process['steps'])) . "\n" . self::code($process['process']) . $stepsOf(number: $number, rows: $rows, changed: true);
                 continue;
             }
             $rows = self::rowsOfDiff(before: $earlier, after: $process, beforeTitles: array_column($before, 'process'), afterTitles: $afterTitles);
@@ -123,13 +127,13 @@ final class FlowComparisonMarkdown
                 self::counted(count: $counts['rehinted'] ?? 0, one: 'step with other hints', many: 'steps with other hints'),
                 self::counted(count: $counts['moved'] ?? 0, one: 'step moved', many: 'steps moved'),
             ]));
-            $stepCount = count($earlier['steps']) === count($process['steps']) ? self::stepCount(count($process['steps'])) : count($earlier['steps']) . ' → ' . count($process['steps']) . ' steps';
+            $stepCount = count($earlier['steps']) === count($process['steps']) ? FlowStepTree::steps(count($process['steps'])) : count($earlier['steps']) . ' → ' . count($process['steps']) . ' steps';
             if ($status === '') {
-                $blocks[] = $heading . ' · unchanged · ' . $stepCount . "\n`" . $process['process'] . '`' . $stepsOf($number, $rows, false);
+                $blocks[] = $heading . ' · unchanged · ' . $stepCount . "\n" . self::code($process['process']) . $stepsOf(number: $number, rows: $rows, changed: false);
                 continue;
             }
             $note = self::noteOfChangedSteps($rows) ?? $notes[$process['process']] ?? null;
-            $blocks[] = $heading . ' · ' . $status . ' · ' . $stepCount . "\n`" . $process['process'] . '`' . ($note !== null ? "\n" . $note : '') . $stepsOf($number, $rows, true);
+            $blocks[] = $heading . ' · ' . $status . ' · ' . $stepCount . "\n" . self::code($process['process']) . ($note !== null ? "\n" . $note : '') . $stepsOf(number: $number, rows: $rows, changed: true);
         }
         $noLongerRunning = [];
         $lastStillRunning = -1;
@@ -139,7 +143,7 @@ final class FlowComparisonMarkdown
                 continue;
             }
             $rows = array_map(fn (array $step): array => ['mark' => '-', 'status' => 'gone', 'depth' => $step['depth'], 'label' => $step['label'], 'hints' => self::shownHintsOf($step)], $process['steps']);
-            $noLongerRunning[$lastStillRunning][] = '**' . (isset($process['sentBy']) ? 'Sub-flow' : 'Flow') . ' · process ' . ($position + 1) . ' of ' . count($before) . ' before** · no longer runs · ' . self::stepCount(count($process['steps'])) . "\n`" . $process['process'] . '`' . $stepsOf($position + 1, $rows, true, ' before');
+            $noLongerRunning[$lastStillRunning][] = '**' . (isset($process['sentBy']) ? 'Sub-flow' : 'Flow') . ' · process ' . ($position + 1) . ' of ' . count($before) . ' before** · no longer runs · ' . FlowStepTree::steps(count($process['steps'])) . "\n" . self::code($process['process']) . $stepsOf(number: $position + 1, rows: $rows, changed: true, side: ' before');
         }
 
         $inRunOrder = $noLongerRunning[-1] ?? [];
@@ -147,7 +151,7 @@ final class FlowComparisonMarkdown
             array_push($inRunOrder, $block, ...($noLongerRunning[$position] ?? []));
         }
 
-        return "#### What ran, process by process\n\n" . implode("\n\n", $inRunOrder) . "\n\n";
+        return "#### What ran, process by process\n\n🟢 a fold holding something new or changed, open; 🔴 only gone steps; `+` new, `-` gone; each bar is one level deeper.\n\n" . implode("\n\n", $inRunOrder) . "\n\n";
     }
 
     /**
@@ -202,11 +206,12 @@ final class FlowComparisonMarkdown
             if ($replaced !== null) {
                 $paired[$replaced] = true;
             }
-            $news[] = '`' . $row['label'] . '`' . ($replaced !== null ? ' in place of `' . $rows[$replaced]['label'] . '`' : '');
+            $news[] = self::code($row['label']) . ($replaced !== null ? ' in place of ' . self::code($rows[$replaced]['label']) : '');
         }
         $gone = array_diff_key($gone, $paired);
         $moved = array_keys(array_filter($rows, fn (array $row): bool => isset($row['depthBefore']) && $row['depthBefore'] !== $row['depth']));
         $movedUnder = [];
+        $movedCount = [];
         foreach ($moved as $position) {
             if (in_array($afterParent[$position], $moved, true)) {
                 continue;
@@ -215,20 +220,45 @@ final class FlowComparisonMarkdown
             while ($anchor !== null && $rows[$anchor]['status'] !== 'new') {
                 $anchor = $afterParent[$anchor];
             }
-            $under = $anchor !== null ? 'the new `' . $rows[$anchor]['label'] . '`' : ($afterParent[$position] !== null ? '`' . $rows[$afterParent[$position]]['label'] . '`' : 'no other step');
-            $movedUnder[$under][$row = $rows[$position]['label']] = ($movedUnder[$under][$row] ?? 0) + 1;
+            $under = $anchor !== null ? 'the new ' . self::code($rows[$anchor]['label']) : ($afterParent[$position] !== null ? self::code($rows[$afterParent[$position]]['label']) : 'no other step');
+            $label = $rows[$position]['label'];
+            $movedUnder[$under][$label] = ($movedUnder[$under][$label] ?? 0) + 1;
+            $movedCount[$under] = ($movedCount[$under] ?? 0) + count(array_filter($moved, fn (int $inside): bool => $inside >= $position && self::isUnder(rows: $rows, step: $inside, top: $position)));
         }
         $sentences = array_filter([
             $news === [] ? '' : 'New: ' . self::listed($news) . '.',
-            $gone === [] ? '' : 'Gone: ' . self::listed(array_map(fn (string $label): string => '`' . $label . '`', array_values($gone))) . '.',
+            $gone === [] ? '' : 'Gone: ' . self::listed(array_map(fn (string $label): string => self::code($label), array_values($gone))) . '.',
             ...array_map(
-                fn (string $under, array $tops): string => count($moved) . ' of its steps (' . implode(', ', array_map(fn (string $label, int $times): string => ($times > 1 ? $times . ' × ' : '') . '`' . $label . '`', array_keys($tops), $tops)) . ') now run under ' . $under . '.',
+                fn (string $under, array $tops): string => $movedCount[$under] . ' of its steps (' . implode(', ', array_map(fn (string $label, int $times): string => ($times > 1 ? $times . ' × ' : '') . self::code($label), array_keys($tops), $tops)) . ') now run under ' . $under . '.',
                 array_keys($movedUnder),
                 $movedUnder,
             ),
         ]);
 
         return $sentences === [] ? null : implode(' ', $sentences);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     */
+    private static function isUnder(array $rows, int $step, int $top): bool
+    {
+        for ($position = $top + 1; $position <= $step; $position++) {
+            if ($rows[$position]['depth'] <= $rows[$top]['depth']) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static function code(string $text): string
+    {
+        preg_match_all('/`+/', $text, $runs);
+        $fence = str_repeat('`', max([0, ...array_map('strlen', $runs[0])]) + 1);
+        $padding = str_starts_with($text, '`') || str_ends_with($text, '`') ? ' ' : '';
+
+        return $fence . $padding . $text . $padding . $fence;
     }
 
     /**
@@ -244,12 +274,6 @@ final class FlowComparisonMarkdown
         return $count === 0 ? '' : $count . ' ' . ($count === 1 ? $one : $many);
     }
 
-    private static function stepCount(int $count): string
-    {
-        return $count . ($count === 1 ? ' step' : ' steps');
-    }
-
-
     /**
      * @param array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>} $step
      * @return list<array{key: string, value: string}>
@@ -264,7 +288,7 @@ final class FlowComparisonMarkdown
      * @param array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>} $after
      * @param list<string> $beforeTitles
      * @param list<string> $afterTitles
-     * @return list<array{mark: string, status: string, depth: int, label: string, hints: list<array{key: string, value: string}>, hintsBefore?: list<array{key: string, value: string}>}>
+     * @return list<array{mark: string, status: string, depth: int, depthBefore?: int, label: string, hints: list<array{key: string, value: string}>, hintsBefore?: list<array{key: string, value: string}>}>
      */
     private static function rowsOfDiff(array $before, array $after, array $beforeTitles, array $afterTitles): array
     {
@@ -299,9 +323,6 @@ final class FlowComparisonMarkdown
 
         return $rows;
     }
-
-
-
 
     private static function whatRan(FlowScenarioChange $change): string
     {
@@ -518,9 +539,9 @@ final class FlowComparisonMarkdown
     private static function headingOf(array $scenarios, array $varyingNames): string
     {
         if (count($scenarios) === 1) {
-            return "### `{$scenarios[0]}`\n\n";
+            return '### ' . self::code($scenarios[0]) . "\n\n";
         }
-        $names = array_map(fn (string $scenario): string => "`{$scenario}`", $scenarios);
+        $names = array_map(fn (string $scenario): string => self::code($scenario), $scenarios);
         $shownFor = $varyingNames === [] ? '' : " Shown for `{$varyingNames[0]}`; the same holds with "
             . implode(' or ', array_map(fn (string $name): string => "`{$name}`", array_slice($varyingNames, 1))) . ' in its place.';
 

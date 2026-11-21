@@ -12,7 +12,7 @@ final class FlowStepTree
     private const DEEPEST_QUOTE = 6;
     private const STEPS_FOLDED_BY_SIZE = 6;
     private const UNCHANGED_STEPS_FOLDED = 4;
-    private const ICONS = [
+    public const ICONS = [
         'release collected message to' => '📨', 'entrypoint sends to' => '🚪', 'after successful send' => '🪝', 'take from channel' => '📬',
         'put on channel' => '📥', 'part report to' => '🧩', 'publish-subscribe' => '📣', 'direct channel' => '➡️', 'no hand-over' => '↩️',
         'before send' => '🪝', 'after send' => '🪝', 'after receive' => '🪝', 'before receive' => '🪝', 'forward to' => '🔀', 'route to' => '🔀',
@@ -23,6 +23,7 @@ final class FlowStepTree
     private const SENDS = ['send', 'release collected message to'];
     private const CALLS = ['gateway', 'entrypoint sends to', 'forward to', 'save', 'deliver'];
     private const WRAPPING = ['around', 'span'];
+    private const CHANGES = ['new', 'gone', 'rehinted'];
 
     /** @var list<int> */
     private array $end = [];
@@ -37,7 +38,7 @@ final class FlowStepTree
     private int $roots = 0;
 
     /**
-     * @param list<array{mark: string, status: string, depth: int, label: string, hints: list<array{key: string, value: string}>, hintsBefore?: list<array{key: string, value: string}>}> $rows
+     * @param list<array{mark: string, status: string, depth: int, depthBefore?: int, label: string, hints: list<array{key: string, value: string}>, hintsBefore?: list<array{key: string, value: string}>}> $rows
      */
     private function __construct(private array $rows)
     {
@@ -61,14 +62,14 @@ final class FlowStepTree
             }
             $this->end[$position] = $end;
             $statuses = array_map(fn (array $row): string => $row['status'], array_slice($rows, $position, $end - $position));
-            $changed = array_values(array_filter($statuses, fn (string $status): bool => in_array($status, ['new', 'gone', 'rehinted'], true)));
+            $changed = array_values(array_filter($statuses, fn (string $status): bool => in_array($status, self::CHANGES, true)));
             $this->changedUnder[$position] = $changed !== [];
             $this->onlyGoneUnder[$position] = $changed !== [] && array_unique($changed) === ['gone'];
         }
     }
 
     /**
-     * @param list<array{mark: string, status: string, depth: int, label: string, hints: list<array{key: string, value: string}>, hintsBefore?: list<array{key: string, value: string}>}> $rows
+     * @param list<array{mark: string, status: string, depth: int, depthBefore?: int, label: string, hints: list<array{key: string, value: string}>, hintsBefore?: list<array{key: string, value: string}>}> $rows
      */
     public static function of(array $rows, bool $foldsUnchangedRuns): string
     {
@@ -80,7 +81,7 @@ final class FlowStepTree
         return self::rendered($tree->level(from: 0, to: count($rows), base: min(array_column($rows, 'depth')), quotes: 0, foldingRuns: $foldsUnchangedRuns));
     }
 
-    public static function iconOf(string $label): string
+    private static function iconOf(string $label): string
     {
         $kind = self::kindOf($label);
 
@@ -133,25 +134,27 @@ final class FlowStepTree
             $inside = $this->end[$position] - $position - 1;
             $chain = $this->wrappingChainOf($position);
             if (in_array($kind, self::SENDS, true) && $inside > 0) {
-                $items[] = ['html', $this->foldOfSteps(position: $position, foldingRuns: $foldingRuns, summary: htmlspecialchars(self::withIcon($label)) . ' · ' . self::steps($inside) . ' of channel interceptors', quotes: $quotes)];
+                $items[] = ['html', $this->foldOfSteps(position: $position, base: $base, foldingRuns: $foldingRuns, summary: htmlspecialchars(self::withIcon($label)) . ' · ' . self::steps($inside) . ' of channel interceptors', quotes: $quotes)];
             } elseif (in_array($kind, self::CALLS, true) && $inside > 0) {
-                $items[] = ['html', $this->foldOfSteps(position: $position, foldingRuns: $foldingRuns, summary: '<code>' . htmlspecialchars(self::withIcon($label)) . '</code> · ' . self::steps($inside) . ' inside', quotes: $quotes)];
+                $items[] = ['html', $this->foldOfSteps(position: $position, base: $base, foldingRuns: $foldingRuns, summary: '<code>' . htmlspecialchars(self::withIcon($label)) . '</code> · ' . self::steps($inside) . ' inside', quotes: $quotes)];
             } elseif ($kind === 'around' && $chain !== null) {
                 $last = $chain[count($chain) - 1];
                 $wrapped = $this->childrenOf($last);
-                $changed = array_filter($chain, fn (int $member): bool => $this->rows[$member]['status'] !== 'same' && $this->rows[$member]['status'] !== 'moved');
+                $changed = array_filter($chain, fn (int $member): bool => in_array($this->rows[$member]['status'], self::CHANGES, true));
                 $listed = [];
                 foreach ($chain as $member) {
-                    array_push($listed, ...$this->linesOf(from: $member, to: $member + 1, base: $this->rows[$position]['depth']));
+                    array_push($listed, ...$this->linesOf(from: $member, to: $member + 1, base: $quotes < self::DEEPEST_QUOTE ? $this->rows[$position]['depth'] : $base));
                 }
-                $arounds = count(array_filter($chain, fn (int $member): bool => self::kindOf($this->rows[$member]['label']) === 'around'));
-                $summary = '🪝 ' . $arounds . ' interceptors around <code>' . (count($wrapped) === 1 ? htmlspecialchars(self::withIcon($this->rows[$wrapped[0]]['label'])) : self::steps($this->end[$last] - $last - 1)) . '</code>';
-                $items[] = ['html', self::fold(open: $changed !== [], summary: self::dotted(summary: $summary, changed: $changed !== [], onlyGone: $changed !== [] && array_unique(array_map(fn (int $member): string => $this->rows[$member]['status'], $changed)) === ['gone']), inner: self::quoted(self::fenced($listed), $quotes))];
+                $around = count($wrapped) === 1
+                    ? '<code>' . htmlspecialchars(self::withIcon($this->rows[$wrapped[0]]['label'])) . '</code>'
+                    : 'the next ' . self::steps($this->end[$last] - $last - 1) . ', up to ' . htmlspecialchars(self::withIcon($this->rows[$wrapped[count($wrapped) - 1]]['label']));
+                $summary = '🪝 ' . $this->aroundsIn($chain) . ' interceptors around ' . $around;
+                $items[] = ['html', self::fold(open: $changed !== [], summary: self::dotted(summary: $summary, status: $this->rows[$position]['status'], changed: $changed !== [], onlyGone: $changed !== [] && array_unique(array_map(fn (int $member): string => $this->rows[$member]['status'], $changed)) === ['gone']), inner: self::quoted(self::fenced($listed), $quotes))];
                 foreach ($this->level(from: $last + 1, to: $this->end[$last], base: $base + count($chain), quotes: $quotes, foldingRuns: $foldingRuns) as $item) {
                     self::addItem($items, $item);
                 }
             } elseif ($this->foldsBySize($position, $quotes)) {
-                $items[] = ['html', $this->foldOfSteps(position: $position, foldingRuns: $foldingRuns, summary: '<code>' . htmlspecialchars(self::withIcon($label)) . '</code> · ' . self::steps($inside) . ' inside', quotes: $quotes)];
+                $items[] = ['html', $this->foldOfSteps(position: $position, base: $base, foldingRuns: $foldingRuns, summary: '<code>' . htmlspecialchars(self::withIcon($label)) . '</code> · ' . self::steps($inside) . ' inside', quotes: $quotes)];
             } else {
                 self::addLines($items, $this->linesOf(from: $position, to: $position + 1, base: $base));
                 $under = $this->level(from: $position + 1, to: $this->end[$position], base: $base, quotes: $quotes, foldingRuns: $foldingRuns);
@@ -170,17 +173,18 @@ final class FlowStepTree
         return $items;
     }
 
-    private function foldOfSteps(int $position, bool $foldingRuns, string $summary, int $quotes): string
+    private function foldOfSteps(int $position, int $base, bool $foldingRuns, string $summary, int $quotes): string
     {
+        $quoted = $quotes < self::DEEPEST_QUOTE;
         $items = [];
-        self::addLines($items, array_slice($this->linesOf(from: $position, to: $position + 1, base: $this->rows[$position]['depth']), 1));
-        foreach ($this->level(from: $position + 1, to: $this->end[$position], base: $this->rows[$position]['depth'] + 1, quotes: $quotes + 1, foldingRuns: $foldingRuns) as $item) {
+        self::addLines($items, array_slice($this->linesOf(from: $position, to: $position + 1, base: $quoted ? $this->rows[$position]['depth'] : $base), 1));
+        foreach ($this->level(from: $position + 1, to: $this->end[$position], base: $quoted ? $this->rows[$position]['depth'] + 1 : $base, quotes: $quotes + 1, foldingRuns: $foldingRuns && $this->changedUnder[$position]) as $item) {
             self::addItem($items, $item);
         }
 
         return self::fold(
             open: $this->changedUnder[$position],
-            summary: self::dotted(summary: $summary, changed: $this->changedUnder[$position], onlyGone: $this->onlyGoneUnder[$position]),
+            summary: self::dotted(summary: $summary, status: $this->rows[$position]['status'], changed: $this->changedUnder[$position], onlyGone: $this->onlyGoneUnder[$position]),
             inner: self::quoted(self::rendered($items), $quotes),
         );
     }
@@ -215,9 +219,16 @@ final class FlowStepTree
             $current++;
             $chain[] = $current;
         }
-        $arounds = count(array_filter($chain, fn (int $member): bool => self::kindOf($this->rows[$member]['label']) === 'around'));
 
-        return $arounds >= 2 ? $chain : null;
+        return $this->aroundsIn($chain) >= 2 ? $chain : null;
+    }
+
+    /**
+     * @param list<int> $chain
+     */
+    private function aroundsIn(array $chain): int
+    {
+        return count(array_filter($chain, fn (int $member): bool => self::kindOf($this->rows[$member]['label']) === 'around'));
     }
 
     /**
@@ -263,14 +274,19 @@ final class FlowStepTree
         return $lines;
     }
 
-    private static function steps(int $count): string
+    public static function steps(int $count): string
     {
         return $count . ($count === 1 ? ' step' : ' steps');
     }
 
-    private static function dotted(string $summary, bool $changed, bool $onlyGone): string
+    private static function dotted(string $summary, string $status, bool $changed, bool $onlyGone): string
     {
-        return ! $changed ? $summary : ($onlyGone ? '🔴 ' : '🟢 ') . $summary;
+        return match (true) {
+            $status === 'new' => '🟢 new · ' . $summary,
+            $status === 'gone' => '🔴 gone · ' . $summary,
+            ! $changed => $summary,
+            default => ($onlyGone ? '🔴 ' : '🟢 ') . $summary,
+        };
     }
 
     public static function fold(bool $open, string $summary, string $inner): string

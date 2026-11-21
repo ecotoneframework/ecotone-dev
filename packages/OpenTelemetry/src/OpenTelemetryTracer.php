@@ -47,12 +47,12 @@ final class OpenTelemetryTracer implements Tracer
 
         $this->currentSpan()?->childStarted();
 
-        return $this->start($spanBuilder, $name, $kind, $attributes, $remoteParent ?? $this->currentSpan()?->context());
+        return $this->start(spanBuilder: $spanBuilder, name: $name, kind: $kind, attributes: $attributes, parentContext: $remoteParent ?? $this->currentSpan()?->context());
     }
 
     public function startRootSpan(string $name, SpanKind $kind, array $attributes = []): ActiveSpan
     {
-        return $this->start($this->spanBuilderFor(name: $name, kind: $kind, attributes: $attributes)->setParent(false), $name, $kind, $attributes, null);
+        return $this->start(spanBuilder: $this->spanBuilderFor(name: $name, kind: $kind, attributes: $attributes)->setParent(false), name: $name, kind: $kind, attributes: $attributes, parentContext: null);
     }
 
     public function startDetachedSpan(string $name, SpanKind $kind, array $attributes, ?SpanContext $parent, DatePoint $startedAt): ActiveSpan

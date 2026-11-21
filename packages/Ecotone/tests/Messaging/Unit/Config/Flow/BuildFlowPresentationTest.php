@@ -160,6 +160,16 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertStringStartsWith("## Message flow: what changed\n\n1 of 1 scenario changes its message path.\n\n- `Placing an order`: 1 of 2 processes changed\n\n", $markdown);
     }
 
+    public function test_a_scenario_whose_processes_run_as_before_is_listed_by_what_changed_instead(): void
+    {
+        $this->recordAnOrderThatGainsAnAudit('Placing an order');
+        $this->replaceExecutionWithTheOneBefore();
+
+        $markdown = $this->presentation('build');
+
+        self::assertStringContainsString("\n- `Placing an order`: wiring and traced spans only\n", $markdown);
+    }
+
     public function test_the_build_presentation_lists_a_process_that_no_longer_runs_with_its_number_before_and_its_tree_removed(): void
     {
         $synchronous = new class () {
@@ -242,7 +252,7 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertStringContainsString('**Sub-flow · process 2 of 3 before** · no longer runs', $markdown);
     }
 
-    public function test_the_build_presentation_shows_a_changed_step_with_its_hint_in_the_open_tree_of_its_process_and_folds_the_unchanged_runs(): void
+    public function test_the_build_presentation_shows_a_changed_step_with_its_hint_in_the_open_tree_of_its_process_and_folds_what_did_not_change_closed(): void
     {
         $this->recordAnOrderThatGainsAnAudit('Placing an order');
 
@@ -250,7 +260,7 @@ final class BuildFlowPresentationTest extends TestCase
 
         self::assertStringContainsString("<details open>\n<summary>Steps of process 1</summary>", $markdown);
         self::assertMatchesRegularExpression('/^\+ ((?:  )*)🔀 route to audit\.target, whenOrderWasPlaced\.target\n\+ \1  ↳ chosen by: name order\.placed$/m', $markdown);
-        self::assertMatchesRegularExpression('/^<summary>… \d+ unchanged steps<\/summary>$/m', $markdown);
+        self::assertMatchesRegularExpression('/^<details>\n<summary>(?!🟢|🔴)[^\n]*<\/summary>$/m', $markdown);
     }
 
     public function test_the_build_presentation_puts_what_ran_before_the_message_path_and_the_collapsed_wiring(): void
@@ -487,5 +497,13 @@ final class BuildFlowPresentationTest extends TestCase
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+
+    private function replaceExecutionWithTheOneBefore(): void
+    {
+        $read = fn (string $side): array => json_decode((string) file_get_contents($this->location . '/' . $side . '/placing-an-order.json'), true, flags: JSON_THROW_ON_ERROR);
+        $after = $read('after');
+        $after['execution'] = $read('before')['execution'];
+        file_put_contents($this->location . '/after/placing-an-order.json', json_encode($after, JSON_THROW_ON_ERROR));
     }
 }

@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
+use Test\Ecotone\BuildFlow\FlowStepTree;
 
 /**
  * licence Apache-2.0
@@ -155,6 +156,50 @@ final class BuildFlowStepTreeTest extends TestCase
         self::assertBalancedWithBlankLinesAround($whatRan);
     }
 
+    public function test_past_six_quotes_the_steps_keep_their_indentation_from_the_last_quote(): void
+    {
+        $steps = [];
+        for ($depth = 1; $depth <= 9; $depth++) {
+            $steps[] = [$depth, 'forward to channel' . $depth];
+        }
+        $steps[] = [10, 'handler deepest'];
+
+        $whatRan = $this->whatRan(before: [self::process('deep', $steps)], after: [self::process('deep', [...$steps, [11, 'handler added']])]);
+
+        self::assertStringContainsString("```diff\n        ⚙️ handler deepest\n+         ⚙️ handler added\n```", $whatRan);
+    }
+
+    public function test_two_interceptor_runs_in_a_row_each_name_the_last_step_they_wrap(): void
+    {
+        $steps = [[1, 'receive backfill'], [2, 'around A::first'], [3, 'around B::second'], [4, 'around C::third'], [5, 'around D::fourth'], [6, 'handler executeBatch'], [6, 'release collected message to backfill'], [4, 'acknowledge']];
+
+        $whatRan = $this->whatRan(before: [self::process('batch', $steps)], after: [self::process('batch', [...$steps, [2, 'handler added']])]);
+
+        self::assertStringContainsString('<summary>🪝 2 interceptors around the next 5 steps, up to ✅ acknowledge</summary>', $whatRan);
+        self::assertStringContainsString('<summary>🪝 2 interceptors around the next 2 steps, up to 📨 release collected message to backfill</summary>', $whatRan);
+    }
+
+    public function test_a_fold_of_a_step_that_is_itself_new_says_new_and_one_of_a_gone_step_says_gone(): void
+    {
+        $send = [[2, 'send backfill'], [3, 'put on channel backfill']];
+
+        $added = $this->whatRan(before: [self::process('batch', [[1, 'receive backfill'], [2, 'acknowledge']])], after: [self::process('batch', [[1, 'receive backfill'], ...$send, [2, 'acknowledge']])]);
+        $removed = $this->whatRan(before: [self::process('batch', [[1, 'receive backfill'], ...$send, [2, 'acknowledge']])], after: [self::process('batch', [[1, 'receive backfill'], [2, 'acknowledge']])]);
+
+        self::assertStringContainsString("<details open>\n<summary>🟢 new · 📨 send backfill · 1 step of channel interceptors</summary>", $added);
+        self::assertStringContainsString("<details open>\n<summary>🔴 gone · 📨 send backfill · 1 step of channel interceptors</summary>", $removed);
+    }
+
+    public function test_a_fold_where_nothing_changed_does_not_fold_its_unchanged_steps_again(): void
+    {
+        $send = [[2, 'send backfill'], ...array_map(fn (int $number): array => [3, 'before send Interceptor' . $number . '::preSend'], range(1, 5))];
+
+        $whatRan = $this->whatRan(before: [self::process('batch', [[1, 'receive backfill'], ...$send])], after: [self::process('batch', [[1, 'receive backfill'], ...$send, [2, 'acknowledge']])]);
+
+        self::assertStringContainsString('<summary>📨 send backfill · 5 steps of channel interceptors</summary>', $whatRan);
+        self::assertStringNotContainsString('… 5 unchanged steps', $whatRan);
+    }
+
     public function test_a_process_repeating_another_shows_its_own_tree(): void
     {
         $steps = [[1, 'receive backfill'], [2, 'handler gather'], [2, 'acknowledge']];
@@ -171,6 +216,50 @@ final class BuildFlowStepTreeTest extends TestCase
         $whatRan = $this->whatRan(before: [self::changedBefore(), self::process('notifying', [[1, 'receive notifications'], [2, 'handler notify']])], after: [self::changedAfter()]);
 
         self::assertStringContainsString("<details open>\n<summary>Steps of process 2 before</summary>\n\n```diff\n- 📬 receive notifications\n-   ⚙️ handler notify\n```\n\n</details>", $whatRan);
+    }
+
+    public function test_what_ran_opens_with_one_legend_line(): void
+    {
+        $whatRan = $this->whatRan(before: [self::changedBefore()], after: [self::changedAfter()]);
+
+        self::assertStringStartsWith("#### What ran, process by process\n\n🟢 a fold holding something new or changed, open; 🔴 only gone steps; `+` new, `-` gone; each bar is one level deeper.\n\n**Flow · process 1 of 1**", $whatRan);
+    }
+
+    public function test_a_backtick_in_a_title_or_a_label_does_not_split_its_inline_code(): void
+    {
+        $whatRan = $this->whatRan(before: [self::process('send `odd`', [[1, 'receive q']])], after: [self::process('send `odd`', [[1, 'receive q'], [2, 'handler `odd`']])]);
+
+        self::assertStringContainsString("\n`` send `odd` ``\nNew: `` handler `odd` ``.\n", $whatRan);
+    }
+
+    public function test_steps_moved_under_two_new_steps_are_counted_per_new_step(): void
+    {
+        $before = [[1, 'handler prepare'], [2, 'entrypoint sends to first'], [3, 'direct channel first'], [2, 'entrypoint sends to second'], [3, 'direct channel second']];
+        $after = [[1, 'handler prepare'], [2, 'dispatch first'], [3, 'entrypoint sends to first'], [4, 'direct channel first'], [2, 'dispatch second'], [3, 'entrypoint sends to second'], [4, 'direct channel second']];
+
+        $whatRan = $this->whatRan(before: [self::process('preparing', $before)], after: [self::process('preparing', $after)]);
+
+        self::assertStringContainsString('2 of its steps (`entrypoint sends to first`) now run under the new `dispatch first`. 2 of its steps (`entrypoint sends to second`) now run under the new `dispatch second`.', $whatRan);
+    }
+
+    public function test_the_glossary_names_every_icon_the_tree_draws_and_the_steps_it_draws_it_for(): void
+    {
+        $glossary = (string) file_get_contents(__DIR__ . '/../../../../../../../.agents/skills/framework-dev-environment/references/workflow.md');
+        preg_match('/^\| the icons \| (.*) \|$/m', $glossary, $row);
+        self::assertNotEmpty($row);
+        $documented = [];
+        foreach (explode('; ', explode('. ', $row[1])[0]) as $entry) {
+            [$icon, $kinds] = explode(' ', $entry, 2);
+            preg_match_all('/`([^`]+)`/', $kinds, $named);
+            foreach ($named[1] as $kind) {
+                $documented[$kind] = $icon;
+            }
+        }
+        ksort($documented);
+        $drawn = FlowStepTree::ICONS;
+        ksort($drawn);
+
+        self::assertSame($drawn, $documented);
     }
 
     public function test_every_fence_and_html_block_is_balanced_and_has_a_blank_line_around_it(): void

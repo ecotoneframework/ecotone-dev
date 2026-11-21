@@ -346,8 +346,7 @@ final class BuildFlowExecutionTest extends TestCase
         self::assertStringNotContainsString('the span shows only', $now);
         self::assertStringNotContainsString('from the wiring', $now);
         self::assertSame(1, substr_count($now, 'sends a part report'));
-        self::assertStringContainsString('opens a gathering group of 2 parts', $now);
-        self::assertStringContainsString('2 gatherer runs take the part reports in', $now);
+        self::assertStringContainsString(' Also new: a gathering group of 2 parts opens, and 2 gatherer runs take the part reports in.', $now);
     }
 
     public function test_a_flow_with_a_routing_key_that_is_not_valid_utf8_is_recorded(): void
@@ -442,7 +441,7 @@ final class BuildFlowExecutionTest extends TestCase
 
     public function test_every_step_of_every_catalogue_scenario_is_a_label_of_at_most_90_characters_with_hints_from_one_vocabulary(): void
     {
-        $vocabulary = ['chosen by', 'returns', 'outcome', 'failure', 'found', 'routing slip', 'kept', 'headers added', 'headers removed', 'headers changed', 'headers read', 'payload', 'sent by', 'taken by', 'stopped', 'collected', 'runs in', 'work in', 'range', 'identifiers', 'propagating', 'received with', 'retry', 'group', 'service'];
+        $vocabulary = ['chosen by', 'returns', 'outcome', 'failure', 'found', 'routing slip', 'kept', 'headers added', 'headers removed', 'headers changed', 'headers read', 'payload', 'sent by', 'taken by', 'stopped', 'collected', 'runs in', 'started in', 'starts', 'range', 'identifiers', 'propagating', 'received with', 'retry', 'group', 'service'];
         $labels = [];
         $keys = [];
         $values = [];
@@ -553,7 +552,6 @@ final class BuildFlowExecutionTest extends TestCase
         $sender = fn (int $consumer): array => ['process' => 'send command order.place', 'steps' => [['depth' => 1, 'label' => 'send q', 'hints' => [['key' => 'taken by', 'value' => 'process ' . $consumer . ', a separate consumer run', 'shownInLines' => true]]]]];
         $gatherer = fn (int $sender): array => ['process' => 'receive q, GatheringMessageHandler::handle (part 1 of 1)', 'steps' => [['depth' => 1, 'label' => 'receive q', 'hints' => [
             ['key' => 'sent by', 'value' => 'process ' . $sender . ', the part report for part 1 of 1', 'shownInLines' => true],
-            ['key' => 'work in', 'value' => 'process ' . $sender . ', part 1 of 1', 'shownInLines' => true],
         ]]]];
         $this->replaceExecution('before', [$sender(2), $gatherer(1)]);
         $this->replaceExecution('after', [['process' => 'initialize', 'steps' => [['depth' => 1, 'label' => 'handler class@anonymous::init', 'hints' => []]]], $sender(3), $gatherer(2)]);

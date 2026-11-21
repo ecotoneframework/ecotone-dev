@@ -517,7 +517,7 @@ final class FlowScenarioChange
 
         return [
             'before' => 'Before: ' . ($removed === [] ? $unchangedSide('past') : $after . ', ' . implode('; ', $removed)) . '.',
-            'now' => 'Now: ' . ($added === [] ? $unchangedSide('present') : $after . ', ' . implode('; ', $added)) . '.' . $this->whatRanAlso(),
+            'now' => 'Now: ' . ($added === [] ? $unchangedSide('present') : $after . ', ' . implode('; ', $added)) . '.' . $this->alsoNew(),
         ];
     }
 
@@ -582,13 +582,13 @@ final class FlowScenarioChange
         return $phrases;
     }
 
-    private function whatRanAlso(): string
+    private function alsoNew(): string
     {
         $facts = [];
         foreach ($this->execution as $process) {
             foreach ($process['steps'] ?? [] as $entry) {
                 if ($entry['change'] === self::ADDED && preg_match('/^open gathering group of (\S+) parts$/', trim((string) ($entry['step'] ?? '')), $group) === 1) {
-                    $facts['group'] = 'opens a gathering group of ' . $group[1] . ' parts';
+                    $facts['group'] = 'a gathering group of ' . $group[1] . ' parts opens';
                 }
             }
         }
@@ -597,7 +597,7 @@ final class FlowScenarioChange
             $facts['gatherers'] = $gatherers . ' gatherer run' . ($gatherers === 1 ? ' takes' : 's take') . ' the part reports in';
         }
 
-        return $facts === [] ? '' : ' What ran also: it ' . implode(', and ', $facts) . '.';
+        return $facts === [] ? '' : ' Also new: ' . implode(', and ', $facts) . '.';
     }
 
     /**

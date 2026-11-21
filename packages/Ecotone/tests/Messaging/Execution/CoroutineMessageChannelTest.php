@@ -6,8 +6,11 @@ namespace Test\Ecotone\Messaging\Execution;
 
 use Closure;
 use DateTimeImmutable;
+use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\DelayedRetry;
@@ -16,8 +19,10 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\OnConsumerStop;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Priority;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Attribute\TimeToLive;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
@@ -773,6 +778,124 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(['queue'], $handler->stopped);
     }
 
+    public function test_a_failed_asynchronous_sender_starts_no_handler(): void
+    {
+        $handler = new class () {
+            public array $handled = [];
+
+            #[Asynchronous('senders')]
+            #[CommandHandler('send', endpointId: 'send.endpoint')]
+            public function send(string $payload, #[Reference] CommandBus $bus): void
+            {
+                $bus->sendWithRouting('handle', $payload);
+                throw new RuntimeException('sender failed');
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), SimpleMessageChannelBuilder::createQueueChannel('senders'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone->sendCommandWithRouting('send', 'payload');
+
+        $failure = null;
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone, &$failure): void {
+            try {
+                $ecotone->run('senders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+            } catch (RuntimeException $exception) {
+                $failure = $exception->getMessage();
+            }
+        });
+
+        $this->assertSame('sender failed', $failure);
+        $this->assertSame([], $handler->handled);
+    }
+
+    public function test_an_aggregate_command_handler_runs_on_the_channel(): void
+    {
+        $aggregate = new #[Aggregate] class () {
+            #[Identifier]
+            public string $orderId = '';
+            public bool $shipped = false;
+
+            #[CommandHandler('order.place')]
+            public static function place(string $orderId): self
+            {
+                $order = new self();
+                $order->orderId = $orderId;
+
+                return $order;
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('order.ship', endpointId: 'order.ship.endpoint')]
+            public function ship(): void
+            {
+                $this->shipped = true;
+            }
+
+            #[QueryHandler('order.is_shipped')]
+            public function is_shipped(): bool
+            {
+                return $this->shipped;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$aggregate::class], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone->sendCommandWithRouting('order.place', 'order-1');
+        $shippedWhenTheSenderReturned = null;
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone, &$shippedWhenTheSenderReturned): void {
+            $ecotone->sendCommandWithRouting('order.ship', metadata: ['aggregate.id' => 'order-1']);
+            $shippedWhenTheSenderReturned = $ecotone->sendQueryWithRouting('order.is_shipped', metadata: ['aggregate.id' => 'order-1']);
+        });
+
+        $this->assertFalse($shippedWhenTheSenderReturned);
+        $this->assertTrue($ecotone->sendQueryWithRouting('order.is_shipped', metadata: ['aggregate.id' => 'order-1']));
+    }
+
+    public function test_a_saga_event_handler_runs_on_the_channel(): void
+    {
+        $saga = new #[Saga] class () {
+            #[Identifier]
+            public string $orderId = '';
+            public array $steps = [];
+
+            #[Asynchronous('async')]
+            #[EventHandler(endpointId: 'fulfilment.start.endpoint')]
+            public static function start(CoroutineChannelOrderWasPlaced $event): self
+            {
+                $saga = new self();
+                $saga->orderId = $event->orderId;
+                $saga->steps[] = 'started';
+
+                return $saga;
+            }
+
+            #[Asynchronous('async')]
+            #[EventHandler(endpointId: 'fulfilment.pay.endpoint')]
+            public function pay(CoroutineChannelOrderWasPaid $event): void
+            {
+                $this->steps[] = 'paid';
+            }
+
+            #[QueryHandler('fulfilment.steps')]
+            public function steps(): array
+            {
+                return $this->steps;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$saga::class], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->publishEvent(new CoroutineChannelOrderWasPlaced('order-1')));
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->publishEvent(new CoroutineChannelOrderWasPaid('order-1')));
+
+        $this->assertSame(['started', 'paid'], $ecotone->sendQueryWithRouting('fulfilment.steps', metadata: ['aggregate.id' => 'order-1']));
+    }
+
     public function test_a_handler_can_send_to_its_own_channel_with_one_coroutine(): void
     {
         $handler = new class () {
@@ -938,6 +1061,20 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         return EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), ...$extensions], licenceKey: LicenceTesting::VALID_LICENCE);
+    }
+}
+
+final class CoroutineChannelOrderWasPlaced
+{
+    public function __construct(public readonly string $orderId)
+    {
+    }
+}
+
+final class CoroutineChannelOrderWasPaid
+{
+    public function __construct(public readonly string $orderId)
+    {
     }
 }
 

@@ -43,7 +43,7 @@ final class CoroutineMessageChannelConsumerRegistration implements CompilerPass
         foreach ($this->channelNames as $channelName) {
             $pollingMetadata = (string) new PollingMetadataReference($channelName);
             if ($builder->has($pollingMetadata)) {
-                $builder->replace($pollingMetadata, new Definition(PollingMetadata::class, [$builder->getDefinition($pollingMetadata)], [CoroutineMessageChannelConsumer::class, 'withoutSignalHandling']));
+                $builder->replace($pollingMetadata, new Definition(className: PollingMetadata::class, arguments: [$builder->getDefinition($pollingMetadata)], factory: [CoroutineMessageChannelConsumer::class, 'withoutSignalHandling']));
             }
             $reference = (string) new EndpointRunnerReference($channelName);
             if ($builder->has($reference)) {

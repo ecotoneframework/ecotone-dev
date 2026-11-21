@@ -14,7 +14,7 @@ Test names below are in `packages/Ecotone/tests/Messaging/Execution/CoroutineMes
 | --- | --- |
 | Handlers execute in the sending process | `test_handler_runs_on_a_coroutine_of_the_sending_process` |
 | Successful outer boundary releases after Ecotone commits | Dbal `CoroutineMessageChannelTest::test_handler_starts_after_the_sender_commits_and_sees_its_data`, command_bus, gateway, asynchronous, console and event datasets; corresponding `_on_postgresql` test |
-| Failed senders start nothing | `test_a_failed_sender_starts_no_handler`, `test_failed_console_command_starts_no_handler`, `test_console_command_holds_messages_until_it_returns`, `test_failed_gateway_discards_messages_and_successful_gateway_releases_them` |
+| Failed senders start nothing | `test_a_failed_sender_starts_no_handler`, `test_a_failed_asynchronous_sender_starts_no_handler`, `test_failed_console_command_starts_no_handler`, `test_console_command_holds_messages_until_it_returns`, `test_failed_gateway_discards_messages_and_successful_gateway_releases_them` |
 | Each execution owns its held messages | Dbal `test_interleaved_senders_release_only_the_successful_senders_message` |
 | Retried attempts discard failed attempts | `test_a_retried_sender_discards_messages_from_its_failed_attempt`, `test_retried_outer_command_discards_messages_from_its_failed_nested_call` |
 | Caught inner failures share the outer transaction outcome | Dbal `test_caught_inner_failure_commits_its_rows_and_releases_both_commands_messages_with_the_outer_command` |
@@ -33,11 +33,38 @@ Test names below are in `packages/Ecotone/tests/Messaging/Execution/CoroutineMes
 | Outside a coroutine is refused with recovery and rollback guidance, including fibers | `test_sending_outside_a_coroutine_is_refused`, `test_a_sender_on_a_fiber_outside_a_coroutine_is_refused` |
 | Bootstrap requires Enterprise licence and runtime extension; positive concurrency; extension-free environment replacement | `CoroutineMessageChannelRefusedTest`, including `test_a_production_coroutine_channel_can_be_replaced_with_a_queue_in_tests` |
 | Separate consumer execution and polling concurrency are refused | `test_starting_a_consumer_is_refused`, `test_console_consumer_start_is_refused`, `test_polling_concurrency_is_refused_at_bootstrap` |
-| Consumer stop/handled/time/execution/memory limits are unsupported | `test_polling_consumer_limits_are_refused_at_bootstrap` |
+| Consumer stop/handled/time/execution/memory limits, finish-when-no-messages, schedule settings (cron, fixed rate, initial delay, trigger, task executor, messages per poll), a disabled error channel, a connection retry template and a polled channel name are refused; `withSignalInterceptors()` cannot be told from its default, which follows `ext-pcntl` | `test_polling_consumer_limits_are_refused_at_bootstrap` |
+| A message released while the last consumer coroutine ends is still handled: a coroutine keeps its slot until it sees the queue empty | Proved red-first at 69baba3a5 on both runtimes through a yielding `#[OnConsumerStop]` handler (`var/r5-red-bh17-*.log`); that seam is closed by the next row, so no userland test can open the window any more |
+| The channel has no consumer process: `#[OnConsumerStop]` handlers are not called for it, and still are for polling consumers beside it | `test_consumer_stop_handlers_are_not_called_when_the_channel_is_drained`, `test_consumer_stop_handlers_are_still_called_for_a_polling_consumer_beside_the_channel` |
+| Aggregates and sagas handle on the channel | `test_an_aggregate_command_handler_runs_on_the_channel`, `test_a_saga_event_handler_runs_on_the_channel` |
+| Listing the channel with another channel in one `#[Asynchronous]` is refused in either order | `test_a_handler_chaining_the_channel_with_another_channel_is_refused_at_bootstrap` |
 | Priority and TimeToLive are refused on methods and classes | `test_unsupported_delivery_attributes_are_refused_at_bootstrap` |
 | Configurable pool wait reaches Symfony's connection pool | Symfony `CoroutineConnectionPoolTest::test_symfony_zero_pool_wait_refuses_a_second_coroutine_at_once`; `SymfonyConnectionCopiesTest::test_create_for_connection_refuses_a_negative_pool_wait` |
 
 Loss on crash/restart and no shutdown guarantee are explicit exclusions: there is no durable write and no process-kill acceptance test. A manually managed external transaction is not the release boundary. Future resolution, caller execution of unstarted queries and refusing Future gateways on other channels are deferred to wave 2, with no tests claimed here.
+
+## Engine runs
+
+MySQL and PostgreSQL are the engines of the coroutine CI job. MariaDB (11.4.13, the compose service
+`database-mariadb`) was run by hand at a30dd3e64, with MariaDB in place of MySQL:
+
+```
+docker compose exec -T -e DATABASE_DSN='mysql://ecotone:secret@database-mariadb:3306/ecotone?serverVersion=11.4.5-MariaDB' \
+  -e SECONDARY_DATABASE_DSN='pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16' swoole \
+  vendor/bin/phpunit --no-coverage --fail-on-skipped --exclude-group openswoole \
+  packages/Dbal/tests/Integration/CoroutineMessageChannelTest.php packages/Dbal/tests/Integration/CoroutineExecutionsTest.php
+```
+
+| Runtime | Engine | Result |
+| --- | --- | --- |
+| Swoole | MariaDB 11.4.13 (+ PostgreSQL 16) | OK (33 tests, 63 assertions) |
+| OpenSwoole (`openswoole`, `--exclude-group swoole`) | MariaDB 11.4.13 | OK (24 tests, 52 assertions) |
+| Swoole | MySQL 8.0 (+ PostgreSQL 16), the compose defaults | part of the coroutine list: OK (119 tests, 222 assertions) |
+
+Both files hold the release-after-commit tests and the pool-wait tests
+(`test_coroutine_waits_for_a_connection_for_as_long_as_the_pool_is_configured_to`,
+`test_coroutine_is_refused_at_once_when_the_pool_is_configured_not_to_wait`,
+`test_coroutine_on_copies_of_an_application_connection_is_refused_at_once_when_they_are_configured_not_to_wait`).
 
 ## Configuration decisions retained for maintainer review
 

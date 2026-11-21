@@ -85,7 +85,7 @@
             {"depth":10,"label":"around DeliveryConfirmationInterceptor::await"},
             {"depth":11,"label":"around CollectorSenderInterceptor::send for tickets"},
             {"depth":12,"label":"bridge Bridge::handle","hints":[{"key":"returns","value":"a message of string","shownInLines":false}]},
-            {"depth":12,"label":"forward to ticket.create","hints":[{"key":"chosen by","value":"routing slip, now empty","shownInLines":true},{"key":"payload","value":"string","shownInLines":false}]},
+            {"depth":12,"label":"forward to ticket.create","hints":[{"key":"chosen by","value":"routing slip, its last entry","shownInLines":true},{"key":"payload","value":"string","shownInLines":false}]},
             {"depth":13,"label":"direct channel ticket.create"},
             {"depth":14,"label":"around MessageHandlerLogger::aroundMessageHandler"},
             {"depth":15,"label":"around TracingInterceptor::traceHandlerEndpoint"},

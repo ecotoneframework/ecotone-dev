@@ -130,7 +130,7 @@
             {"depth":10,"label":"around DeliveryConfirmationInterceptor::await"},
             {"depth":11,"label":"around CollectorSenderInterceptor::send for distributed_channel"},
             {"depth":12,"label":"bridge Bridge::handle","hints":[{"key":"returns","value":"a message of string","shownInLines":false}]},
-            {"depth":12,"label":"forward to ecotone.distributed.invoke","hints":[{"key":"chosen by","value":"routing slip, now empty","shownInLines":true},{"key":"payload","value":"string","shownInLines":false}]},
+            {"depth":12,"label":"forward to ecotone.distributed.invoke","hints":[{"key":"chosen by","value":"routing slip, its last entry","shownInLines":true},{"key":"payload","value":"string","shownInLines":false}]},
             {"depth":13,"label":"direct channel ecotone.distributed.invoke"},
             {"depth":14,"label":"handler DistributedMessageHandler::handle","hints":[{"key":"returns","value":"nothing","shownInLines":false}]},
             {"depth":15,"label":"gateway CommandBus::sendWithRouting","hints":[{"key":"returns","value":"nothing","shownInLines":false}]},

@@ -112,7 +112,7 @@
             {"depth":10,"label":"around DeliveryConfirmationInterceptor::await"},
             {"depth":11,"label":"around CollectorSenderInterceptor::send for orders"},
             {"depth":12,"label":"bridge Bridge::handle","hints":[{"key":"returns","value":"a message of string","shownInLines":false}]},
-            {"depth":12,"label":"forward to order.placing.target.execute","hints":[{"key":"chosen by","value":"routing slip, now empty","shownInLines":true},{"key":"payload","value":"string","shownInLines":false}]},
+            {"depth":12,"label":"forward to order.placing.target.execute","hints":[{"key":"chosen by","value":"routing slip, its last entry","shownInLines":true},{"key":"payload","value":"string","shownInLines":false}]},
             {"depth":13,"label":"direct channel order.placing.target.execute"},
             {"depth":14,"label":"around MessageHandlerLogger::aroundCommandHandler"},
             {"depth":15,"label":"around TracingInterceptor::traceHandlerEndpoint"},

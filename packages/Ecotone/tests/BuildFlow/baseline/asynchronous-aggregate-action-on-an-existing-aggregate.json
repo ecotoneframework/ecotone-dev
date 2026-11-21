@@ -200,7 +200,7 @@
             {"depth":10,"label":"around DeliveryConfirmationInterceptor::await"},
             {"depth":11,"label":"around CollectorSenderInterceptor::send for orders"},
             {"depth":12,"label":"bridge Bridge::handle","hints":[{"key":"returns","value":"a message of string","shownInLines":false}]},
-            {"depth":12,"label":"forward to order.cancelling.target-connection.execute","hints":[{"key":"chosen by","value":"routing slip, now empty","shownInLines":true},{"key":"payload","value":"string","shownInLines":false}]},
+            {"depth":12,"label":"forward to order.cancelling.target-connection.execute","hints":[{"key":"chosen by","value":"routing slip, its last entry","shownInLines":true},{"key":"payload","value":"string","shownInLines":false}]},
             {"depth":13,"label":"direct channel order.cancelling.target-connection.execute"},
             {"depth":14,"label":"chained HeaderEnricher::transform","hints":[{"key":"returns","value":"a message of string","shownInLines":false}]},
             {"depth":14,"label":"resolve the aggregate identifier","hints":[{"key":"identifiers","value":"{\"orderId\":\"1\"}","shownInLines":false}]},

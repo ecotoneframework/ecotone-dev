@@ -18,7 +18,7 @@ Test names below are in `packages/Ecotone/tests/Messaging/Execution/CoroutineMes
 | Each execution owns its held messages | Dbal `test_interleaved_senders_release_only_the_successful_senders_message` |
 | Retried attempts discard failed attempts | `test_a_retried_sender_discards_messages_from_its_failed_attempt`, `test_retried_outer_command_discards_messages_from_its_failed_nested_call` |
 | Caught inner failures share the outer transaction outcome | Dbal `test_caught_inner_failure_commits_its_rows_and_releases_both_commands_messages_with_the_outer_command` |
-| A bare send releases immediately | `test_a_send_without_a_boundary_is_released_at_once` |
+| No supported userland entry bypasses release boundaries | Checked CommandBus, EventBus and QueryBus methods (all carry MessageGateway), custom MessageGateway methods, ConsoleCommand and AsynchronousRunningEndpoint. Every supported userland entry point is a boundary. The internal immediate-release fallback is not claimed as userland-tested; the direct channel test was removed after G16. |
 | Sending does not wait for a handler | `test_command_bus_returns_before_even_a_non_yielding_handler_finishes` |
 | Per-channel limit defaults to 10, waiting messages start FIFO | `test_concurrency_is_limited_and_waiting_messages_start_in_order` |
 | Payload objects are passed without serialisation; ServiceContext registration | `test_class_routed_objects_keep_their_identity_with_service_context_registration` |

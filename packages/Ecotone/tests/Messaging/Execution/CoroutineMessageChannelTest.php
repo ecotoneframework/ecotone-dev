@@ -27,7 +27,6 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\DatePoint;
@@ -36,7 +35,6 @@ use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\CoroutineTesting;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Test\StaticMessageBuilder;
 use Fiber;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RequiresMethod;
@@ -621,33 +619,6 @@ final class CoroutineMessageChannelTest extends TestCase
         );
 
         $this->assertSame(['sibling', 'payload'], $handler->handled);
-    }
-
-    public function test_a_send_without_a_boundary_is_released_at_once(): void
-    {
-        $handler = new class () {
-            public array $handled = [];
-
-            #[Asynchronous('async')]
-            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
-            public function handle(string $payload): void
-            {
-                $this->accept($payload);
-            }
-
-            #[InternalHandler('bare.handler')]
-            public function accept(string $payload): void
-            {
-                $this->handled[] = $payload;
-            }
-        };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
-        $channel = $ecotone->getServiceFromContainer(ConfiguredMessagingSystem::class)->getMessageChannelByName('async');
-        $message = StaticMessageBuilder::withPayload('bare send')->setHeader(MessageHeaders::ROUTING_SLIP, 'bare.handler')->build();
-
-        CoroutineTesting::runAtOnce(static fn () => $channel->send($message));
-
-        $this->assertSame(['bare send'], $handler->handled);
     }
 
     public function test_a_handler_can_send_to_its_own_channel_with_one_coroutine(): void

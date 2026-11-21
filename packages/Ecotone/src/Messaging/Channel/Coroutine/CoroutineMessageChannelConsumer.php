@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\Coroutine;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
@@ -37,6 +38,11 @@ final class CoroutineMessageChannelConsumer implements EndpointRunner
     public function runEndpointWithExecutionPollingMetadata(?ExecutionPollingMetadata $executionPollingMetadata = null): void
     {
         throw ConfigurationException::create("Coroutine message channel `{$this->channelName}` is consumed in the process that sent the message, so ecotone:run and ConfiguredMessagingSystem::run() cannot start a separate consumer for it. Send commands or publish events to handlers marked #[Asynchronous('{$this->channelName}')]; they start automatically in the sending process. Set concurrency with CoroutineMessageChannelBuilder::withCoroutines(), or register a queue channel under `{$this->channelName}` to consume it with ecotone:run.");
+    }
+
+    public static function withoutSignalHandling(PollingMetadata $pollingMetadata): PollingMetadata
+    {
+        return $pollingMetadata->withSignalInterceptors(false);
     }
 
     public function createConsumer(): ConsumerLifecycle

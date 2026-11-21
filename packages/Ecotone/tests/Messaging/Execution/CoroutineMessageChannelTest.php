@@ -46,6 +46,7 @@ use Ecotone\Test\LicenceTesting;
 use Fiber;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RequiresMethod;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
 use Psr\Log\AbstractLogger;
@@ -925,6 +926,40 @@ final class CoroutineMessageChannelTest extends TestCase
                 }
             }, "'async', 'queue'"],
         ];
+    }
+
+    #[RequiresPhpExtension('pcntl')]
+    #[RequiresPhpExtension('posix')]
+    public function test_a_termination_signal_during_a_handler_reaches_the_handler_the_application_installed(): void
+    {
+        $handler = new class () {
+            public array $handled = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                posix_kill(posix_getpid(), SIGTERM);
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $signalsReceivedByTheApplication = 0;
+        $asyncSignalsBefore = pcntl_async_signals(true);
+        $handlerBefore = pcntl_signal_get_handler(SIGTERM);
+        pcntl_signal(SIGTERM, static function () use (&$signalsReceivedByTheApplication): void {
+            $signalsReceivedByTheApplication++;
+        });
+
+        try {
+            CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
+        } finally {
+            pcntl_signal(SIGTERM, $handlerBefore);
+            pcntl_async_signals($asyncSignalsBefore);
+        }
+
+        $this->assertSame(['payload'], $handler->handled);
+        $this->assertSame(1, $signalsReceivedByTheApplication);
     }
 
     public function test_a_handler_can_send_to_its_own_channel_with_one_coroutine(): void

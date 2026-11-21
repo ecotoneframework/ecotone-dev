@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\Coroutine;
 
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
+use Ecotone\Messaging\Config\Container\PollingMetadataReference;
 
 /**
  * licence Enterprise
@@ -39,6 +41,10 @@ final class CoroutineMessageChannelConsumerRegistration implements CompilerPass
             $builder->register(CoroutineMessageChannelSleep::SERVICE_ID, new Definition(CoroutineMessageChannelSleep::class));
         }
         foreach ($this->channelNames as $channelName) {
+            $pollingMetadata = (string) new PollingMetadataReference($channelName);
+            if ($builder->has($pollingMetadata)) {
+                $builder->replace($pollingMetadata, new Definition(PollingMetadata::class, [$builder->getDefinition($pollingMetadata)], [CoroutineMessageChannelConsumer::class, 'withoutSignalHandling']));
+            }
             $reference = (string) new EndpointRunnerReference($channelName);
             if ($builder->has($reference)) {
                 $builder->replace($reference, new Definition(CoroutineMessageChannelConsumer::class, [$channelName, $builder->getDefinition($reference)]));

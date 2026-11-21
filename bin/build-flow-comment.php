@@ -106,7 +106,7 @@ function withExplanation(string $preamble, string $headSha, string $baseSha, str
     $explanation = ($comparedWith === 'base-commit'
             ? "Each scenario of the flow scenario catalogue ran on this pull request at `{$head}`, merged into its base, and on the base commit `{$base}`; below is what changed between the two. "
             : "Each scenario of the flow scenario catalogue ran on this pull request at `{$head}`, merged into its base, and was compared with the baseline this pull request commits, because its base `{$base}` predates the tooling. ")
-        . 'To see it locally, run `docker compose exec -T app php bin/build-flow.php compare --presentation=build`; it compares against the committed baseline. '
+        . 'To see it locally, run `docker compose exec -T app php bin/build-flow.php compare --presentation=build`; it compares against the committed baseline, which lags main until main\'s CI has committed the baseline of the latest merge. '
         . ($comparedWith === 'base-commit' ? "Leave `packages/Ecotone/tests/BuildFlow/baseline` alone in this pull request; main's CI commits it after the merge. " : '')
         . "The terms are explained in [Reading the flow comparison]({$repository}/blob/{$headSha}/.agents/skills/framework-dev-environment/references/workflow.md#reading-the-flow-comparison).\n\n";
 
@@ -158,6 +158,10 @@ function commentOf(string $preamble, array $scenarios, string $runUrl): string
         break;
     }
     $leftOut = count($scenarios) - count($shown);
+    foreach (array_slice($scenarios, count($shown)) as $scenario) {
+        $name = preg_match('/\A### (.*)$/m', $scenario, $heading) === 1 ? $heading[1] : null;
+        $preamble = $name === null ? $preamble : (string) preg_replace('/^(- ' . preg_quote($name, '/') . ': .*)$/m', '$1 · left out of this comment', $preamble, 1);
+    }
 
     return COMMENT_MARKER . "\n" . $preamble . implode('', $shown) . leftOutNote(leftOut: $leftOut, all: count($scenarios), runUrl: $runUrl);
 }
@@ -165,16 +169,16 @@ function commentOf(string $preamble, array $scenarios, string $runUrl): string
 function withUnchangedStepsLeftOut(string $scenario, int $room, string $runUrl): string
 {
     $name = preg_match('/\A### (.*)$/m', $scenario, $heading) === 1 ? $heading[1] : 'this scenario';
-    $left = ['processes' => 0, 'runs' => 0];
+    $left = ['processes' => 0, 'unchangedSteps' => 0];
     $emptied = $scenario;
-    foreach (['processes' => '/^<details>\n<summary>(Steps of process \d+(?: before)?)<\/summary>$/', 'runs' => '/^<details>\n<summary>(… \d+ unchanged steps)<\/summary>$/'] as $kind => $summary) {
-        if (lengthOf($emptied . noteOfTheEmptied(name: $name, processes: $left['processes'], runs: $left['runs'], runUrl: $runUrl)) <= $room) {
+    foreach (['processes' => '/^<details>\n<summary>(Steps of process \d+(?: before)?)<\/summary>$/', 'unchangedSteps' => '/^<details>\n<summary>(… \d+ unchanged steps)<\/summary>$/'] as $folds => $summary) {
+        if (lengthOf($emptied . noteOfTheEmptied(name: $name, processes: $left['processes'], unchangedSteps: $left['unchangedSteps'], runUrl: $runUrl)) <= $room) {
             break;
         }
-        $emptied = withFoldsEmptied(markdown: $emptied, summary: $summary, count: $left[$kind]);
+        $emptied = withFoldsEmptied(markdown: $emptied, summary: $summary, count: $left[$folds]);
     }
 
-    return $left === ['processes' => 0, 'runs' => 0] ? $scenario : rtrim($emptied, "\n") . "\n" . noteOfTheEmptied(name: $name, processes: $left['processes'], runs: $left['runs'], runUrl: $runUrl);
+    return $left === ['processes' => 0, 'unchangedSteps' => 0] ? $scenario : rtrim($emptied, "\n") . "\n" . noteOfTheEmptied(name: $name, processes: $left['processes'], unchangedSteps: $left['unchangedSteps'], runUrl: $runUrl);
 }
 
 function withFoldsEmptied(string $markdown, string $summary, int &$count): string
@@ -207,11 +211,11 @@ function withFoldsEmptied(string $markdown, string $summary, int &$count): strin
     return implode("\n", $kept);
 }
 
-function noteOfTheEmptied(string $name, int $processes, int $runs, string $runUrl): string
+function noteOfTheEmptied(string $name, int $processes, int $unchangedSteps, string $runUrl): string
 {
     $what = implode(' and ', array_filter([
         $processes === 0 ? '' : $processes . ' unchanged process' . ($processes === 1 ? '' : 'es'),
-        $runs === 0 ? '' : $runs . ' run' . ($runs === 1 ? '' : 's') . ' of unchanged steps',
+        $unchangedSteps === 0 ? '' : $unchangedSteps . ' fold' . ($unchangedSteps === 1 ? '' : 's') . ' of unchanged steps',
     ]));
 
     return $what === '' ? '' : "\nThe steps of {$what} of {$name} are left out to stay within GitHub's 65,536 character limit for a comment; they are in the `" . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n";
@@ -219,28 +223,28 @@ function noteOfTheEmptied(string $name, int $processes, int $runs, string $runUr
 
 function headWithinOf(string $scenario, int $room, string $runUrl): ?string
 {
-    $parts = preg_split('/(?=\n\*\*(?:Flow|Sub-flow) · process \d+ of \d+(?: before)?\*\*|\n#### The message\'s path\n|\n<details><summary>Marked wiring)/', $scenario);
-    if (! is_array($parts) || count($parts) < 2) {
+    $sections = preg_split('/(?=\n\*\*(?:Flow|Sub-flow) · process \d+ of \d+(?: before)?\*\*|\n#### The message\'s path\n|\n<details><summary>Marked wiring)/', $scenario);
+    if (! is_array($sections) || count($sections) < 2) {
         return null;
     }
     $name = preg_match('/\A### (.*)$/m', $scenario, $heading) === 1 ? $heading[1] : 'this scenario';
     $kept = '';
-    foreach ($parts as $position => $part) {
-        $rest = isset($parts[$position + 1]) ? noteOfTheRest(name: $name, part: $parts[$position + 1], runUrl: $runUrl) : '';
-        if (lengthOf($kept . $part . $rest) > $room) {
-            return $position === 0 || lengthOf($kept . noteOfTheRest(name: $name, part: $part, runUrl: $runUrl)) > $room ? null : $kept . noteOfTheRest(name: $name, part: $part, runUrl: $runUrl);
+    foreach ($sections as $position => $section) {
+        $rest = isset($sections[$position + 1]) ? noteOfTheRest(name: $name, section: $sections[$position + 1], runUrl: $runUrl) : '';
+        if (lengthOf($kept . $section . $rest) > $room) {
+            return $position === 0 || lengthOf($kept . noteOfTheRest(name: $name, section: $section, runUrl: $runUrl)) > $room ? null : $kept . noteOfTheRest(name: $name, section: $section, runUrl: $runUrl);
         }
-        $kept .= $part;
+        $kept .= $section;
     }
 
     return null;
 }
 
-function noteOfTheRest(string $name, string $part, string $runUrl): string
+function noteOfTheRest(string $name, string $section, string $runUrl): string
 {
     $from = match (true) {
-        preg_match('/\A\n\*\*(?:Flow|Sub-flow) · process (\d+) of/', $part, $process) === 1 => 'from process ' . $process[1] . ' of what ran on',
-        str_starts_with($part, "\n#### The message's path") => 'from its message path on',
+        preg_match('/\A\n\*\*(?:Flow|Sub-flow) · process (\d+) of/', $section, $process) === 1 => 'from process ' . $process[1] . ' of what ran on',
+        str_starts_with($section, "\n#### The message's path") => 'from its message path on',
         default => 'from its wiring on',
     };
 
@@ -249,7 +253,7 @@ function noteOfTheRest(string $name, string $part, string $runUrl): string
 
 function leftOutNote(int $leftOut, int $all, string $runUrl): string
 {
-    return $leftOut <= 0 ? '' : "\n---\n\n{$leftOut} of {$all} changed scenarios are left out to stay within GitHub's 65,536 character limit for a comment. The full comparison is in the `" . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n";
+    return $leftOut <= 0 ? '' : "\n---\n\n{$leftOut} of {$all} changed scenarios " . ($leftOut === 1 ? 'is' : 'are') . " left out to stay within GitHub's 65,536 character limit for a comment. The full comparison is in the `" . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n";
 }
 
 function withRenderableDiagrams(string $scenario, string $runUrl): string

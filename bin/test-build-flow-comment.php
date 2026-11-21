@@ -87,6 +87,16 @@ $cases = [
             [structureProblemOf($comment['body']) === null, 'balanced, with blank lines around blocks: ' . structureProblemOf($comment['body'])],
         ]);
     },
+    'one scenario left out is said in the singular and marked in the list of changed scenarios' => function (): ?string {
+        $list = "- `first`: 1 of 1 process changed\n- `second`: 1 of 1 process changed\n\n";
+        $comparison = "## Message flow: what changed\n\n2 of 94 scenarios change their message path.\n\n" . $list . implode("\n", [scenario('first', str_repeat('x', 40_000)), scenario('second', str_repeat('z', 40_000))]);
+        $comment = read(run($comparison)['output']);
+
+        return expectAll([
+            [str_contains($comment['body'], '1 of 2 changed scenarios is left out'), 'singular: ' . substr($comment['body'], -400)],
+            [str_contains($comment['body'], "- `first`: 1 of 1 process changed\n- `second`: 1 of 1 process changed · left out of this comment\n"), 'the left-out scenario is marked in the list'],
+        ]);
+    },
     'a scenario alone over the limit empties the folds of its unchanged processes first and says so' => function (): ?string {
         $unchanged = str_repeat("\n\n" . processBlock(number: 2, of: 31, tree: str_repeat('u', 2_500), changed: false), 30);
         $result = run(comparison(pathScenario('large', str_repeat('y', 100), processBlock(number: 1, of: 31, tree: 'kept change', changed: true) . $unchanged)));
@@ -113,7 +123,7 @@ $cases = [
             [! str_contains($comment['body'], str_repeat('r', 2_500)), 'the unchanged steps are emptied'],
             [substr_count($comment['body'], "<details>\n<summary>… 12 unchanged steps, in the run's artifact</summary>") === 30, 'their folds keep their summary'],
             [str_contains($comment['body'], 'kept change'), 'the changed steps stay'],
-            [str_contains($comment['body'], 'The steps of 1 unchanged process and 30 runs of unchanged steps of `large` are left out'), 'says what was left out: ' . substr($comment['body'], -600)],
+            [str_contains($comment['body'], 'The steps of 1 unchanged process and 30 folds of unchanged steps of `large` are left out'), 'says what was left out: ' . substr($comment['body'], -600)],
             [structureProblemOf($comment['body']) === null, 'balanced, with blank lines around blocks: ' . structureProblemOf($comment['body'])],
         ]);
     },
@@ -145,7 +155,7 @@ $cases = [
         return expectAll([
             [str_contains($comment['body'], 'ran on this pull request at `aaaaaaa`, merged into its base, and on the base commit `bbbbbbb`'), 'names the head, the merge and the base commit: ' . substr($comment['body'], 0, 400)],
             [str_contains($comment['body'], '`docker compose exec -T app php bin/build-flow.php compare --presentation=build`'), 'gives the local command in the container form'],
-            [str_contains($comment['body'], 'it compares against the committed baseline'), 'says what the local command compares against'],
+            [str_contains($comment['body'], 'it compares against the committed baseline, which lags main until main\'s CI has committed the baseline of the latest merge'), 'says what the local command compares against and that it can lag'],
             [str_contains($comment['body'], 'Leave `packages/Ecotone/tests/BuildFlow/baseline` alone in this pull request; main\'s CI commits it after the merge.'), 'tells the contributor to leave the baseline alone'],
             [str_contains($comment['body'], 'https://github.com/ecotoneframework/ecotone-dev/blob/' . str_repeat('a', 40) . '/.agents/skills/framework-dev-environment/references/workflow.md#reading-the-flow-comparison'), 'links the glossary at the head sha'],
             [strpos($comment['body'], 'aaaaaaa') < strpos($comment['body'], '### `order placed`'), 'the explanation comes before the scenarios'],

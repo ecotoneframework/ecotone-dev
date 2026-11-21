@@ -34,7 +34,9 @@ a rule that needs judgement goes into a skill. When adding a check, register its
 
 ### A2. Otherwise improve the skill whose *Applies when* covers it, or create one
 Add the rule to the existing skill for that kind of work; create a new skill only when no *Applies when* matches.
-Never add it to `AGENTS.md` (200-character limit) and never to `docs/`.
+Never add it to `AGENTS.md` (200-character limit) and never to `docs/`. A rule is reviewed only when the review
+list of `framework-pull-request` cites it, so in the same change add the requirement that states it there (or cite
+it under *Rules no review decides* with the reason).
 - **Expected:** a judgement rule lands in the matching `.agents/skills/framework-*/SKILL.md` (or a new skill), not
   in `AGENTS.md` or `docs/`.
 - **Verified by:** `eval:new-rule-enforcement`, `check:agent-skills`
@@ -72,7 +74,7 @@ service"), never by naming the rule, so the case also proves the skill is found 
 
 | Id | Command | Enforces |
 |---|---|---|
-| `agent-skills` | `php bin/check-agent-skills.php` (its own tests: `php bin/test-check-agent-skills.php`) | AGENTS.md size and pointer, symlinks, skill format, rule headings, graders per rule, links and anchors, backticked paths, marketplace list, public skill class references resolve |
+| `agent-skills` | `php bin/check-agent-skills.php` (its own tests: `php bin/test-check-agent-skills.php`) | AGENTS.md size and pointer, symlinks, skill format, rule headings, graders per rule, links and anchors, backticked paths, every rule cited in the review list and every citation there a real rule, marketplace list, public skill class references resolve |
 | `licence-header` | `php bin/check-licence.php` | licence header on every `src` file |
 | `suite-parity` | `php bin/check-suite-parity.php` | root and per-package phpunit configs agree |
 | `monorepo-shards` | `php bin/check-monorepo-shards.php` | every test suite of `phpunit.xml.dist` belongs to exactly one shard of `.github/monorepo-shards.json` |

@@ -256,6 +256,8 @@ jobs:
 
     # Swoole is compiled with --enable-swoole-pgsql and --enable-swoole-sqlite, which a packaged build may leave out:
     # they are what lets a coroutine wait on a PostgreSQL or SQLite query, and the Swoole tests prove exactly that.
+    # The source comes from PECL, retried, and from the same release tag on GitHub when PECL keeps failing: one
+    # HTTP 500 from pecl.php.net failed this job before any test ran.
     - name: Compile Swoole with PostgreSQL and SQLite coroutine support
       if: matrix.runtime.extension == 'swoole'
       env:
@@ -263,8 +265,12 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends libpq-dev libsqlite3-dev libssl-dev libbrotli-dev libc-ares-dev libcurl4-openssl-dev
-        curl -fsSL "https://pecl.php.net/get/swoole-${SWOOLE_VERSION}.tgz" | tar xz -C "$RUNNER_TEMP"
-        cd "$RUNNER_TEMP/swoole-${SWOOLE_VERSION}"
+        download_swoole() { curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -o "$RUNNER_TEMP/swoole.tgz" "$1"; }
+        download_swoole "https://pecl.php.net/get/swoole-${SWOOLE_VERSION}.tgz" \
+          || download_swoole "https://github.com/swoole/swoole-src/archive/refs/tags/v${SWOOLE_VERSION}.tar.gz"
+        mkdir "$RUNNER_TEMP/swoole"
+        tar xzf "$RUNNER_TEMP/swoole.tgz" -C "$RUNNER_TEMP/swoole" --strip-components=1
+        cd "$RUNNER_TEMP/swoole"
         phpize
         ./configure --enable-sockets --enable-openssl --enable-mysqlnd --enable-swoole-curl --enable-cares --enable-brotli --enable-swoole-pgsql --enable-swoole-sqlite
         make -j"$(nproc)"

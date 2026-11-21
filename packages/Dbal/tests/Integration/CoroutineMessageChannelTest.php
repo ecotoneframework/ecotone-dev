@@ -169,6 +169,7 @@ final class CoroutineMessageChannelTest extends TestCase
 
         $this->assertSame([[false, 1]], $handler->observed);
     }
+
     public function test_failed_message_goes_to_dbal_dead_letter_and_replays_outside_a_coroutine(): void
     {
         $handler = new class () {

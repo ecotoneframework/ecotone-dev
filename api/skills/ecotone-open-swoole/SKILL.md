@@ -2,8 +2,8 @@
 name: ecotone-open-swoole
 description: >-
   Runs Ecotone on OpenSwoole or Swoole: an HTTP server that keeps the
-  application booted, message consumers on coroutines
-  (ecotone:run --coroutines), a database connection per coroutine from a
+  application booted, coroutine message channels whose handlers run in the
+  sending HTTP worker, message consumers on coroutines (ecotone:run --coroutines), a database connection per coroutine from a
   connection pool, #[CurrentConnection], RabbitMQ and OpenTelemetry under
   coroutines. Use when running an Ecotone application or consumer on
   OpenSwoole, Swoole or Laravel Octane with Swoole, handling several
@@ -169,7 +169,7 @@ process, and spans of messages handled at once are attached to each other's trac
 
 ## 7. Asynchronous handlers in the sending process
 
-For work that may be lost when the worker stops, register an Enterprise coroutine channel:
+For best-effort work in the sending HTTP worker, register an Enterprise coroutine message channel:
 
 ```php
 use Ecotone\Api\Attribute\Asynchronous;
@@ -177,45 +177,97 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 
-final class Notifications
+final class NotificationChannels
 {
     #[ServiceContext]
     public function notificationsChannel(): CoroutineMessageChannelBuilder
     {
         return CoroutineMessageChannelBuilder::create('notifications')->withCoroutines(4);
     }
+}
+
+final class Notifications
+{
+    public function __construct(private NotificationProvider $provider)
+    {
+    }
 
     #[Asynchronous('notifications')]
     #[CommandHandler(endpointId: 'notifications.send')]
     public function send(SendNotification $command): void
     {
+        $this->provider->send($command);
     }
 }
 ```
 
-The sending execution holds its messages until its outermost command bus, asynchronous endpoint or gateway call
-succeeds and its transaction commits. A failed sender starts no handler. The caller does not wait for the handlers
-to finish; they run on coroutines of that same PHP process. A channel runs up to 10 handlers at once by default; `withCoroutines(4)`
-sets its limit to four, and the rest wait in order in memory. Objects pass as they are, without serialization.
+The sender writes through the connection of Ecotone's transaction and sends the notification through the public bus:
 
-This needs an Ecotone Enterprise licence and the `swoole` or `openswoole` extension with coroutines enabled.
-The sender uses the public command bus, `Ecotone\Api\Gateway\CommandBus`, to send its notification command
-inside the handler that writes the order. Send from a coroutine, such as an HTTP request with `enable_coroutine` enabled (§5); a send outside a coroutine is refused. A dead-letter replay
-outside a coroutine runs the handler synchronously in place.
+```php
+use Doctrine\DBAL\Connection;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Dbal\Attribute\CurrentConnection;
+use Ecotone\Api\Gateway\CommandBus;
+
+final class Orders
+{
+    #[CommandHandler]
+    public function place(PlaceOrder $command, #[CurrentConnection] Connection $connection, #[Reference] CommandBus $bus): void
+    {
+        $connection->insert('orders', ['id' => $command->orderId]);
+        $bus->send(new SendNotification($command->orderId));
+    }
+}
+```
+
+Messages are held until the outermost command bus, asynchronous endpoint, gateway or console command succeeds and
+Ecotone's transaction commits. A failed sender releases no work. A transaction opened manually around the bus call
+is not waited for; keep the order's writes inside Ecotone's transaction. Once released, handlers start when the
+sending coroutine next yields to the event loop or ends. The caller does not wait for them to finish.
+
+A channel runs up to 10 handlers at once by default. `withCoroutines(4)` sets its limit to four; the rest wait in
+order in memory. Objects pass as they are, without serialization. Set concurrency on the channel builder. Its
+handlers start in the sending process, so there is no separate `ecotone:run` consumer and `PollingMetadata` consumer
+limits are refused. `#[Priority]` and `#[TimeToLive]` are refused for this channel.
+
+Size each worker's connection pool for simultaneous requests plus the limit of every coroutine message channel in
+that process, and any polling consumer coroutines. For 12 requests and this channel's limit of 4, use at least 16:
+
+```php
+use Ecotone\Api\Dbal\DbalConnectionFactory;
+
+new DbalConnectionFactory([
+    'dsn' => 'mysql://user:secret@database/app',
+    'connection_pool_size' => 16,
+]);
+```
+
+The default pool of 10 cannot cover that workload. Multiply the pool size by worker processes when checking the
+database's connection budget. For an exhausted pool, lower `CoroutineMessageChannelBuilder::withCoroutines()`, raise
+the pool size, or adjust `connection_pool_wait_seconds` as in §2.
+
+This requires Ecotone Enterprise and the `swoole` or `openswoole` extension with coroutines enabled. Send from a
+coroutine, such as an HTTP request with `enable_coroutine=true` (§5). A console command, a polling consumer without
+`--coroutines`, or a server with coroutines disabled is refused when it sends; an uncaught failure rolls back the
+sender's Ecotone transaction. A dead-letter replay outside a coroutine runs synchronously in place.
 
 Error channels, instant retries, delayed retries and dead letter use the ordinary asynchronous consumer pipeline.
-Without an error channel, the exception and message headers are logged and the message is dropped. `#[Delayed]`
-and delayed retries wait on a timer in the process. Database handlers take their connection with `#[CurrentConnection]`
-as in §4.
+Without an error channel, the channel and endpoint are logged with the exception and message headers, then the
+message is dropped. Configure an error channel connected to durable storage to retain failures. `#[Delayed]` and
+delayed retries wait on native coroutine timers, including when sleep hooks are disabled.
 
-Do not start this channel with `ecotone:run`, or set its concurrency through `PollingMetadata`: it is consumed by the
-process that sent the message. Set concurrency on `CoroutineMessageChannelBuilder` instead. Pending messages and
-timers are lost on a crash or restart. Worker shutdown is not coordinated with pending work, so there is no draining
-or completion guarantee. Use a durable broker or database channel when the work must survive the worker.
+For application tests on PHP without the extension, replace the production channel registration with
+`Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel('notifications')`. Send the command,
+then call `$flow->run('notifications')` on the flow test support. This covers application routing and handlers;
+use Swoole/OpenSwoole integration tests for the in-process scheduling guarantee.
+
+Messages and timers are lost on a crash or restart. Worker shutdown has no draining or completion guarantee.
+Use a durable broker or database channel for work that must survive the worker.
 
 ## Rules
 
-### 1. Several messages at once in one consumer is `--coroutines`, not a handwritten coroutine loop
+### 1. A standalone polling consumer uses `--coroutines`
 `ecotone:run <channel> --coroutines=N` or `PollingMetadata::create('<channel>')->withCoroutines(N)` starts the
 coroutines, enables the runtime hooks, stops every coroutine on a failure or a termination signal, and refuses to
 start without the extension.
@@ -247,8 +299,27 @@ The `amqp` extension stops every coroutine while it waits for the broker.
 - **Expected:** a RabbitMQ channel consumed on coroutines uses `Ecotone\Api\Amqp\AmqpLibConnectionFactory`, registered as a service and passed to the channel as `amqpConnectionReferenceName: AmqpLibConnectionFactory::class`, not `Ecotone\Api\Amqp\AmqpExtConnectionFactory`.
 - **Verified by:** `eval:consume-on-coroutines`
 
-### 6. In-process asynchronous work uses a coroutine channel
-A handler that should start after its sender commits and run in the same PHP process uses
-`CoroutineMessageChannelBuilder`, registered through `#[ServiceContext]`, with `#[Asynchronous]` on the handler.
-- **Expected:** the answer registers `Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder::create()` through `#[ServiceContext]`, uses `#[Asynchronous]`, sets any concurrency on that builder, and explicitly states both prerequisites (Ecotone Enterprise and the swoole/openswoole extension with coroutines enabled), even when they are already configured in the question. It states the in-memory loss on restart, uses `Ecotone\Api\Gateway\CommandBus` if showing the sender, starts no separate consumer for the channel, and does not propose a handwritten coroutine dispatcher.
+### 6. Handlers in the sending worker use CoroutineMessageChannelBuilder
+Register the channel through `#[ServiceContext]`, mark the handler `#[Asynchronous]`, and send through the public command bus.
+- **Expected:** the answer registers `Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder::create()` through `#[ServiceContext]`, uses `#[Asynchronous]` with the same channel, sets concurrency on the builder, and shows a sender using `Ecotone\Api\Gateway\CommandBus`; the coroutine message channel starts its handlers without a separate consumer or handwritten dispatcher.
+- **Verified by:** `eval:send-in-process`
+
+### 7. Release waits for Ecotone's transaction and execution boundary
+Work is released after the outermost successful command bus, asynchronous endpoint, gateway or console command and Ecotone's transaction. It starts when the sending coroutine next yields or ends. A transaction opened manually around the bus is outside that guarantee.
+- **Expected:** the answer names Ecotone's transaction, says a failed sender starts no handler, explains the next-yield-or-end start time, and explicitly says a transaction opened manually around the bus is not waited for.
+- **Verified by:** `eval:send-in-process`
+
+### 8. Pools cover requests plus all coroutine message channel limits
+Every request and running handler can need its own connection. Sum simultaneous requests, each channel's limit and any polling consumer coroutines in the same worker.
+- **Expected:** the answer sizes `connection_pool_size` (or `withConnectionPoolSize()`) to at least that sum and explains that additional channels add their limits; it then checks workers times pool size against the database budget.
+- **Verified by:** `eval:send-in-process`
+
+### 9. State the runtime and licence prerequisites
+The channel needs Enterprise and a coroutine runtime in the PHP process sending the message.
+- **Expected:** the answer explicitly states both Ecotone Enterprise and the `swoole` or `openswoole` extension with coroutines enabled, including when the question already provides them.
+- **Verified by:** `eval:send-in-process`
+
+### 10. The sending worker's memory is the delivery guarantee
+Pending messages and timers are lost when the process stops. Worker shutdown is not coordinated with this work.
+- **Expected:** the answer states in-process memory storage, loss on crash or restart, and no draining or completion guarantee at shutdown; durable work is assigned a durable channel.
 - **Verified by:** `eval:send-in-process`

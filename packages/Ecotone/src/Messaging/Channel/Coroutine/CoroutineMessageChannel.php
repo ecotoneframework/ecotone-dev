@@ -14,7 +14,6 @@ use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConsumerCoroutines;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -111,7 +110,7 @@ final class CoroutineMessageChannel extends QueueChannel
 
     private function consumer(): CoroutineMessageChannelConsumer
     {
-        return $this->container->get((string) new EndpointRunnerReference($this->name));
+        return $this->container->get(CoroutineMessageChannelConsumer::SERVICE_ID_PREFIX . $this->name);
     }
 
     private function schedule(Closure $work): void

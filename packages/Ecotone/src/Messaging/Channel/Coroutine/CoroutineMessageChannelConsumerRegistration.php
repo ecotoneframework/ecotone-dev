@@ -47,7 +47,7 @@ final class CoroutineMessageChannelConsumerRegistration implements CompilerPass
             }
             $reference = (string) new EndpointRunnerReference($channelName);
             if ($builder->has($reference)) {
-                $builder->replace($reference, new Definition(CoroutineMessageChannelConsumer::class, [$channelName, $builder->getDefinition($reference)]));
+                $builder->replace($reference, $builder->register(CoroutineMessageChannelConsumer::SERVICE_ID_PREFIX . $channelName, new Definition(CoroutineMessageChannelConsumer::class, [$channelName, $builder->getDefinition($reference)])));
             }
         }
     }

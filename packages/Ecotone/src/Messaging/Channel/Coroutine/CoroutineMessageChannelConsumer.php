@@ -31,6 +31,8 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\InterceptedConsumerRunner;
  */
 final class CoroutineMessageChannelConsumer implements EndpointRunner
 {
+    public const SERVICE_ID_PREFIX = 'ecotone.coroutine_message_channel.consumer.';
+
     public function __construct(private string $channelName, private InterceptedConsumerRunner $runner)
     {
     }

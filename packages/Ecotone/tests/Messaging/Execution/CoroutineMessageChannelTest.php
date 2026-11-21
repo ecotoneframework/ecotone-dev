@@ -40,6 +40,8 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\CoroutineTesting;
 use Ecotone\Test\LicenceTesting;
@@ -87,6 +89,29 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertNotSame($sender, $handler->handled[0][1]);
         $this->assertSame(getmypid(), $handler->handled[0][2]);
     }
+    public function test_handler_on_the_channel_is_recorded_when_framework_tracing_records_the_execution(): void
+    {
+        $handler = new class () {
+            public array $handled = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
+
+        $this->assertSame(['payload'], $handler->handled);
+        $recorded = array_map(trim(...), $ecotone->popExecutionRecording()->lines);
+        $this->assertContains('process 1: send command handle', $recorded);
+        $this->assertContains('sub-flow process 2: receive async, class@anonymous::handle', $recorded);
+        $this->assertContains('handler class@anonymous::handle', $recorded);
+    }
+
     public function test_a_failed_sender_starts_no_handler(): void
     {
         $handler = new class () {

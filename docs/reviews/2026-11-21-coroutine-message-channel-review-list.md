@@ -847,3 +847,23 @@ Runs at 2d1290a08, alone on the stack, one at a time:
   var/rv8-refused-app.log
 - I did not repeat the full Dbal suite: the implementer's solo run was green (1617, var/r6-dbal.log).
 
+
+## Whole range re-reviewed at b0c74d831, after the merge of main at 5ec5f01aa
+
+The four sessions decided the review list as merged (BH22 is new) against `git diff origin/main...HEAD`.
+
+| Session | Not apply | Covered | Missing |
+|---|---|---|---|
+| Guidelines | 12 | 38 | 0 |
+| Breaking changes | 5 | 3 | 0 |
+| Developer experience | 0 | 10 | 0 |
+| Behaviour | 1 (BH20) | 21 | 0 |
+
+BH22 — covered by its stated reason: the channel refuses to boot without the `swoole` or `openswoole` extension and a
+flow scenario runs on plain PHP, so the channel has no scenario and the pull request says so.
+
+Behaviour runs at b0c74d831, one at a time: COROUTINE_TESTS on swoole OK (125 tests) and on openswoole OK (116 tests),
+the new framework-tracing test alone on both, `bin/test-agent-skills ecotone-open-swoole` 1.00 / 1.00.
+
+Outside the list: a missing blank line before the new test method in `CoroutineMessageChannelTest.php`, fixed in the
+commit that records this re-review.

@@ -89,6 +89,7 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertNotSame($sender, $handler->handled[0][1]);
         $this->assertSame(getmypid(), $handler->handled[0][2]);
     }
+
     public function test_handler_on_the_channel_is_recorded_when_framework_tracing_records_the_execution(): void
     {
         $handler = new class () {

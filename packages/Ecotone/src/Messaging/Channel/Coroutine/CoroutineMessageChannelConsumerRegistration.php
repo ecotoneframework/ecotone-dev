@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\Coroutine;
 
+use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -35,6 +36,9 @@ final class CoroutineMessageChannelConsumerRegistration implements CompilerPass
 
     public function process(ContainerBuilder $builder): void
     {
+        if (! $builder->has(SleepInterface::class)) {
+            $builder->register(SleepInterface::class, new Definition(CoroutineMessageChannelSleep::class));
+        }
         foreach ($this->channelNames as $channelName) {
             $reference = (string) new EndpointRunnerReference($channelName);
             if ($builder->has($reference)) {

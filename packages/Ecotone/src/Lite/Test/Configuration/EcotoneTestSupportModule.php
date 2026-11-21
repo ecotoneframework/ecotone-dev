@@ -20,6 +20,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\Precedence;
@@ -178,6 +179,9 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
             ],
             factory: [Clock::class, 'createWithFallback']
         ));
+        if ($testConfiguration->timeAt !== null) {
+            $messagingConfiguration->registerServiceDefinition(SleepInterface::class, new Reference(EcotoneClockInterface::class));
+        }
         $messagingConfiguration->registerServiceDefinition(PinnedTestClockInterceptor::class, new Definition(PinnedTestClockInterceptor::class, [new Reference(EcotoneClockInterface::class)]));
         $messagingConfiguration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
             PinnedTestClockInterceptor::class,

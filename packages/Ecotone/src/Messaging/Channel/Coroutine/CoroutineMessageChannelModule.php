@@ -162,6 +162,12 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
         $configuration->registerServiceDefinition(CoroutineMessageFailureLogger::class, new Definition(CoroutineMessageFailureLogger::class, [$channelNames, new Reference(LoggingGateway::class)]));
         $configuration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
             referenceName: CoroutineMessageFailureLogger::class,
+            interfaceToCall: $registry->getFor(CoroutineMessageFailureLogger::class, 'recordFailedEndpoint'),
+            precedence: Precedence::DEFAULT_PRECEDENCE,
+            pointcut: CommandHandler::class . '||' . EventHandler::class . '||' . InternalHandler::class,
+        ));
+        $configuration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
+            referenceName: CoroutineMessageFailureLogger::class,
             interfaceToCall: $registry->getFor(CoroutineMessageFailureLogger::class, 'log'),
             precedence: Precedence::EXCEPTION_LOGGING_PRECEDENCE,
             pointcut: AsynchronousRunningEndpoint::class,

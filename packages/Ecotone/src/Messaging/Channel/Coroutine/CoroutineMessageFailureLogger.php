@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\Coroutine;
 
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Messaging\Attribute\EndpointId;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
@@ -34,16 +36,36 @@ final class CoroutineMessageFailureLogger
     {
     }
 
+    public function recordFailedEndpoint(MethodInvocation $invocation, EndpointId $endpoint): mixed
+    {
+        try {
+            return $invocation->proceed();
+        } catch (Throwable $exception) {
+            $this->failure()->endpointId = $endpoint->endpointId;
+            throw $exception;
+        }
+    }
+
     public function log(MethodInvocation $invocation, Message $message): mixed
     {
+        $failure = $this->failure();
+        $failure->endpointId = '';
         try {
             return $invocation->proceed();
         } catch (Throwable $exception) {
             $channelName = $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) ? $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME) : '';
             if (in_array(needle: $channelName, haystack: $this->channelNames, strict: true)) {
-                $this->logger->error('Coroutine message failed and was dropped.', ['headers' => $message->getHeaders()->headers(), 'exception' => $exception]);
+                $endpointId = $failure->endpointId !== '' ? $failure->endpointId : $channelName;
+                $this->logger->error("Coroutine message channel `{$channelName}` dropped a message after endpoint `{$endpointId}` failed. Configure #[Asynchronous('{$channelName}', asynchronousExecution: [new ErrorChannel('failures')])] or PollingMetadata::create('{$channelName}')->withErrorChannelName('failures') to keep failed messages in a durable queue or dead letter.", ['headers' => $message->getHeaders()->headers(), 'exception' => $exception, 'channel' => $channelName, 'endpoint_id' => $endpointId]);
             }
             throw $exception;
+        } finally {
+            $failure->endpointId = '';
         }
+    }
+
+    private function failure(): CoroutineMessageChannelFailure
+    {
+        return ExecutionScope::stateOf($this, static fn () => new CoroutineMessageChannelFailure());
     }
 }

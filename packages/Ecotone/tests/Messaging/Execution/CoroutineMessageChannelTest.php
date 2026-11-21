@@ -182,11 +182,13 @@ final class CoroutineMessageChannelTest extends TestCase
     {
         $logger = new class () extends AbstractLogger {
             public array $errors = [];
+            public array $messages = [];
 
             public function log($level, Stringable|string $message, array $context = []): void
             {
                 if (isset($context['exception'])) {
                     $this->errors[] = $context;
+                    $this->messages[] = (string) $message;
                 }
             }
         };
@@ -210,6 +212,7 @@ final class CoroutineMessageChannelTest extends TestCase
             $ecotone->sendCommandWithRouting('handle', 'accepted');
         });
 
+        $this->assertContains("Coroutine message channel `async` dropped a message after endpoint `handle.endpoint` failed. Configure #[Asynchronous('async', asynchronousExecution: [new ErrorChannel('failures')])] or PollingMetadata::create('async')->withErrorChannelName('failures') to keep failed messages in a durable queue or dead letter.", $logger->messages);
         $this->assertSame(['accepted'], $handler->handled);
         $this->assertNotEmpty($logger->errors);
         $this->assertStringContainsString('failed-tenant', json_encode($logger->errors));
@@ -735,6 +738,59 @@ final class CoroutineMessageChannelTest extends TestCase
                 public function handle(string $payload): void {}
             }, 'TimeToLive', 'messages in this queue do not expire.'],
         ];
+    }
+
+
+    public function test_failure_logs_keep_each_coroutines_endpoint_and_headers(): void
+    {
+        $logger = new class extends AbstractLogger {
+            public array $records = [];
+            private int $failures = 0;
+            private Coroutine\Channel $release;
+
+            public function __construct()
+            {
+                $this->release = new Coroutine\Channel();
+            }
+
+            public function log($level, Stringable|string $message, array $context = []): void
+            {
+                if (isset($context['endpoint_id'])) {
+                    $this->records[$context['headers']['tenant']] = $context['endpoint_id'];
+                } elseif ($level === 'critical' && isset($context['exception'])) {
+                    $this->failures++;
+                    if ($this->failures === 2) {
+                        $this->release->close();
+                    } else {
+                        $this->release->pop();
+                    }
+                }
+            }
+        };
+        $handler = new class {
+            #[Asynchronous('async')]
+            #[CommandHandler('first', endpointId: 'first.endpoint')]
+            public function first(string $payload): void
+            {
+                throw new RuntimeException('first failed');
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('second', endpointId: 'second.endpoint')]
+            public function second(string $payload): void
+            {
+                throw new RuntimeException('second failed');
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, 'logger' => $logger], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(2), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
+            $ecotone->sendCommandWithRouting('first', 'payload', metadata: ['tenant' => 'a']);
+            $ecotone->sendCommandWithRouting('second', 'payload', metadata: ['tenant' => 'b']);
+        });
+
+        ksort($logger->records);
+        $this->assertSame(['a' => 'first.endpoint', 'b' => 'second.endpoint'], $logger->records);
     }
 
     public static function concurrency_limits(): array

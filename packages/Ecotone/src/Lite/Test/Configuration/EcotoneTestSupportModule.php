@@ -14,7 +14,6 @@ use Ecotone\Api\Console\ConsoleWriter;
 use Ecotone\Api\Console\InMemoryConsoleWriter;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
-use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -35,7 +34,6 @@ use Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary;
 use Ecotone\Lite\Test\DatabaseTablesSetUp;
 use Ecotone\Lite\Test\DatabaseTablesSetUpReference;
 use Ecotone\Lite\Test\WithoutDatabaseTables;
-use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannelSleep;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -180,9 +178,6 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
             ],
             factory: [Clock::class, 'createWithFallback']
         ));
-        if ($testConfiguration->timeAt !== null && ExtensionObjectResolver::resolve(CoroutineMessageChannelBuilder::class, $extensionObjects) !== []) {
-            $messagingConfiguration->registerServiceDefinition(CoroutineMessageChannelSleep::SERVICE_ID, new Reference(EcotoneClockInterface::class));
-        }
         $messagingConfiguration->registerServiceDefinition(PinnedTestClockInterceptor::class, new Definition(PinnedTestClockInterceptor::class, [new Reference(EcotoneClockInterface::class)]));
         $messagingConfiguration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
             PinnedTestClockInterceptor::class,

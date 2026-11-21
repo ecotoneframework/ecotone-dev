@@ -18,7 +18,9 @@ use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeInterceptorBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -78,6 +80,14 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
         $this->refuseUnsupportedDeliveryAttributes($handlers, $interfaceToCallRegistry);
         $this->registerFailureLogging(configuration: $messagingConfiguration, registry: $interfaceToCallRegistry, channelNames: $channelNames, handlers: $handlers);
         $this->registerConsumers($messagingConfiguration, $channelNames);
+        $this->waitOnThePinnedTestClock($messagingConfiguration, $extensionObjects);
+    }
+
+    private function waitOnThePinnedTestClock(Configuration $configuration, array $extensions): void
+    {
+        if (ExtensionObjectResolver::resolveUnique(TestConfiguration::class, $extensions, TestConfiguration::createWithDefaults())->timeAt !== null) {
+            $configuration->registerServiceDefinition(CoroutineMessageChannelSleep::SERVICE_ID, new Reference(EcotoneClockInterface::class));
+        }
     }
 
     private function validateChannels(Configuration $configuration, array $extensions, array $channels): void

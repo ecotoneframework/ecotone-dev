@@ -49,7 +49,7 @@ final class CoroutineConnectionPoolTest extends TestCase
                 return $this->connection;
             }
         };
-        $handler = new class {
+        $handler = new class () {
             public Coroutine\Channel $holding;
             public Coroutine\Channel $release;
             public array $handled = [];

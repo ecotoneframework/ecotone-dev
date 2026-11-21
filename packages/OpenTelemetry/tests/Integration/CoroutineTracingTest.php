@@ -9,9 +9,8 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
-use Ecotone\Test\LicenceTesting;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
@@ -20,6 +19,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration;
 use Ecotone\Test\CoroutineTesting;
+use Ecotone\Test\LicenceTesting;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ContextStorage;
@@ -149,7 +149,7 @@ final class CoroutineTracingTest extends TracingTestCase
     public function test_coroutine_message_channel_continues_each_senders_trace(): void
     {
         $exporter = new InMemoryExporter(new ArrayObject());
-        $handler = new class {
+        $handler = new class () {
             #[Asynchronous('async')]
             #[CommandHandler('handle', endpointId: 'coroutine.trace.endpoint')]
             public function handle(string $payload): void

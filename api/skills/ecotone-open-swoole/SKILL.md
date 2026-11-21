@@ -255,16 +255,21 @@ the pool size, or adjust `connection_pool_wait_seconds` as in §2.
 This requires Ecotone Enterprise and the `swoole` or `openswoole` extension with coroutines enabled. Send from a
 coroutine: enable `enable_coroutine=true` for HTTP requests (§5), start a sending polling consumer with
 `ecotone:run <source-channel> --coroutines=N`, or execute a sending console command inside a coroutine. A send
-outside a coroutine is refused; an uncaught failure rolls back the sender's Ecotone transaction. A dead-letter replay outside a coroutine runs synchronously in place.
+outside a coroutine is refused; an uncaught failure rolls back the sender's Ecotone transaction. A dead-letter
+replay outside a coroutine runs synchronously in place.
 
 Error channels, instant retries, delayed retries and dead letter use the ordinary asynchronous consumer pipeline.
 Without an error channel, the channel and endpoint are logged with the exception and message headers, then the
 message is dropped. Configure an error channel connected to durable storage to retain failures. `#[Delayed]` and
-delayed retries wait on native coroutine timers, including when sleep hooks are disabled.
+delayed retries wait on native coroutine timers, including when sleep hooks are disabled. Delays wait real time
+unless the flow test clock is pinned (`bootstrapFlowTesting(initialTime: ...)`); replacing the application's clock
+service alone does not shorten them.
 
-For application tests on PHP without the extension, put
-`#[Ecotone\Api\Attribute\Environment(['prod'])]` on the production `#[ServiceContext]` method returning the
-coroutine message channel. Bootstrap the test in the `test` environment and register only the queue for that name:
+For application tests on PHP without the extension, list every environment that runs on Swoole or OpenSwoole on
+the `#[ServiceContext]` method returning the coroutine message channel and leave out only the test environment:
+`#[Ecotone\Api\Attribute\Environment(['prod', 'dev'])]`, or with Laravel's names `['production', 'local']`. Limiting
+it to `['prod']` would also remove the channel from an application run on Swoole locally. Bootstrap the test in
+the `test` environment and register only the queue for that name:
 
 ```php
 $flow = Ecotone\Api\Lite\EcotoneLite::bootstrapFlowTesting(
@@ -344,8 +349,10 @@ Pending messages and timers are lost when the process stops. Worker shutdown is 
 - **Verified by:** `eval:send-in-process`
 
 ### 11. Extension-free tests exclude the production channel registration
-Put `#[Environment(['prod'])]` on the production `#[ServiceContext]` method, bootstrap tests in `test`, and register a queue channel under the same name.
-- **Expected:** the answer excludes the production builder by environment, registers `SimpleMessageChannelBuilder::createQueueChannel()` once in the test bootstrap, and calls `run('<channel>')` on the flow test support after sending.
+List every environment that runs on Swoole or OpenSwoole on the `#[ServiceContext]` method returning the builder,
+for example `#[Environment(['prod', 'dev'])]` or Laravel's `#[Environment(['production', 'local'])]`, and leave out
+only the test environment. Bootstrap tests in `test` and register a queue channel under the same name.
+- **Expected:** the answer lists the runtime environments on the production builder's method and leaves out only the test environment, registers `SimpleMessageChannelBuilder::createQueueChannel()` once in the test bootstrap, and calls `run('<channel>')` on the flow test support after sending.
 - **Verified by:** `eval:send-in-process`
 
 ### 12. Console commands release only when they return

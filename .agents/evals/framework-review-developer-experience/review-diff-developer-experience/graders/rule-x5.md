@@ -1,4 +1,4 @@
 ---
 type: llm
 ---
-PASS if the report flags the names as unclear to an end user — at least two of: the abbreviated class RtyCfg, the abbreviated parameters maxAtt / initMs / mult, the negated boolean noDlq — and proposes readable replacements. FAIL if naming is not raised.
+PASS if the report flags the names as unclear to an end user — at least two of: the abbreviated class RtyCfg, the abbreviated parameters maxAtt / initMs / mult, the negated boolean noDlq — and proposes readable replacements. FAIL if naming is not raised. The reviewer cannot open the repository or search it in this case: a report that says so, or that calls some decisions provisional for that reason, is judged on its content exactly as any other and still passes.

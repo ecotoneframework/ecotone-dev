@@ -10,6 +10,9 @@ const AGENTS_MD_MAX_CHARACTERS = 200;
 const AGENTS_MD_POINTER = '.agents/skills/framework-orientation';
 const SKILL_DESCRIPTION_MAX_CHARACTERS = 1024;
 const RULE_HEADING = '/^### ([A-Z]?[0-9]+[a-z]?)\. (\S[^\n]*)$/';
+const REVIEW_LIST = 'references/review-list.md';
+const REVIEW_SKILL_PREFIX = 'framework-review-';
+const REVIEW_LIST_CITATION = '/`(framework-[a-z-]+) ([A-Z]?[0-9]+[a-z]?)`/';
 
 const DETERMINISTIC_CHECKS = [
     'agent-skills' => '.github/workflows/agent-skills.yml: php bin/check-agent-skills.php',
@@ -50,6 +53,7 @@ foreach (SKILL_ROOTS as $audience => $paths) {
     }
     checkEvalCases($root, $root . '/' . $paths['evals'], $graderReferences, $violations);
 }
+checkReviewList($root, $violations);
 checkMarketplace($root, $violations);
 checkPublicSkillImports($root, $violations);
 
@@ -317,6 +321,54 @@ function checkEvalCases(string $root, string $evalsDirectory, array $graderRefer
             if (! isset($graderReferences[$skillName][$caseName][basename($grader)])) {
                 $violations[] = relativePath($root, $grader) . " grades a rule that does not cite `eval:{$caseName}`.\nThe rule was renumbered or removed. Rename the grader to the rule's current id, or delete it.";
             }
+        }
+    }
+}
+
+function checkReviewList(string $root, array &$violations): void
+{
+    $skillsDirectory = $root . '/' . SKILL_ROOTS['framework']['skills'];
+    $rules = [];
+    foreach (glob($skillsDirectory . '/*/SKILL.md') ?: [] as $skillFile) {
+        $skillName = basename(dirname($skillFile));
+        if (str_starts_with($skillName, REVIEW_SKILL_PREFIX)) {
+            continue;
+        }
+        foreach (explode("\n", file_get_contents($skillFile)) as $line) {
+            if (preg_match(RULE_HEADING, $line, $heading)) {
+                $rules["{$skillName} {$heading[1]}"] = $heading[2];
+            }
+        }
+    }
+
+    $lists = glob($skillsDirectory . '/*/' . REVIEW_LIST) ?: [];
+    if ($lists === [] && $rules === []) {
+        return;
+    }
+    if (count($lists) !== 1) {
+        $expected = SKILL_ROOTS['framework']['skills'] . '/<skill>/' . REVIEW_LIST;
+        $found = $lists === [] ? 'none' : implode(', ', array_map(fn (string $list) => relativePath($root, $list), $lists));
+        $violations[] = "Exactly one review list is expected at {$expected}, found: {$found}.\nThe pre-PR reviews decide only what the review list holds, and this check proves every rule is cited in it, so without the one list no rule is checked. Keep the list at that path (restore it, or move it back if it was renamed), and merge a second list into the first.";
+
+        return;
+    }
+    $list = $lists[0];
+    $relative = relativePath($root, $list);
+
+    preg_match_all(REVIEW_LIST_CITATION, file_get_contents($list), $citations, PREG_SET_ORDER);
+    $cited = [];
+    foreach ($citations as [, $skillName, $id]) {
+        $cited["{$skillName} {$id}"] = true;
+    }
+
+    foreach ($rules as $rule => $title) {
+        if (! isset($cited[$rule])) {
+            $violations[] = "Rule {$rule} ({$title}) is not in the review list.\nThe pre-PR reviews decide only what {$relative} lists, so a rule missing from it is never reviewed. Cite it as `{$rule}` in the 'Skill and rule' column of the requirement that states it (add a requirement when none does), or in the table 'Rules no review decides' with the reason.";
+        }
+    }
+    foreach (array_keys($cited) as $rule) {
+        if (! isset($rules[$rule])) {
+            $violations[] = "{$relative} cites `{$rule}`, which is not a rule of any framework skill.\nA requirement points the implementing session at the rule to follow, so a renamed or removed rule leaves it pointing nowhere. Cite the rule's current skill and id, or remove the citation with the requirement it belonged to.";
         }
     }
 }

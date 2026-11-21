@@ -5,7 +5,8 @@
 #   bin/test-agent-skills                       skills changed against main (committed, staged and unstaged)
 #   bin/test-agent-skills framework-testing     the named skills (framework-* or ecotone-*)
 #   bin/test-agent-skills --all                 every skill
-# Environment: RUNS (default 1), THRESHOLD (default 0.8), BASE (default origin/main), EVAL_ARGS (extra flags).
+# Environment: RUNS (default 1), THRESHOLD (default 0.8), BASE (default origin/main), JUDGE_MODEL (default opus,
+# the model that grades the answers), EVAL_ARGS (extra flags).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -13,6 +14,7 @@ cd "$(dirname "$0")/.."
 RUNS="${RUNS:-1}"
 THRESHOLD="${THRESHOLD:-0.8}"
 BASE="${BASE:-origin/main}"
+JUDGE_MODEL="${JUDGE_MODEL:-opus}"
 
 if ! command -v claude >/dev/null 2>&1; then
     echo "claude CLI not found. Skill evals run real agent sessions through 'claude plugin eval'; install Claude Code (https://code.claude.com) and log in, then rerun." >&2
@@ -60,7 +62,7 @@ run_suite() {
     echo "Evaluating $plugin_root skills: $*"
     # shellcheck disable=SC2086
     claude plugin eval "$plugin_root" --tag "$@" \
-        --runs "$RUNS" --threshold "$THRESHOLD" \
+        --runs "$RUNS" --threshold "$THRESHOLD" --judge-model "$JUDGE_MODEL" \
         --output-dir "$results/$(date -u +%Y-%m-%dT%H-%M-%SZ)" \
         --ablation none --trust-plugin --no-publish ${EVAL_ARGS:-} || status=$?
 }

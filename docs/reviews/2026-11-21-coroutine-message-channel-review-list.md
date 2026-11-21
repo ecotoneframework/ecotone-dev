@@ -722,3 +722,128 @@ dataset proves after commit. I accept that, given the coordinator's brief. — s
   touch it. This is a timing-sensitive test of its own and needs a separate fix; it is not counted against BH1-BH21.
   The Pulse failures of my two earlier runs are gone, which fits them having overlapped with the implementer's runs.
 - pcntl probe, swoole container: var/rv7-pcntl-swoole.log (see BH14).
+
+# Guidelines review: second re-check
+
+## Re-check at 2d1290a08
+
+Missing at 082a7e5a6, decided again:
+
+GL27 — covered — `withSignalInterceptors()` is now decided: the channel's internal consumer is always built without
+      Ecotone's signal handling (`CoroutineMessageChannelConsumerRegistration.php:44-47`,
+      `CoroutineMessageChannelConsumer::withoutSignalHandling()`), proved by
+      `test_a_termination_signal_during_a_handler_reaches_the_handler_the_application_installed` (pcntl, in
+      `COROUTINE_TESTS`); a requested `true` that differs from the default is refused
+      (`CoroutineMessageChannelModule.php:138`) with its message asserted in
+      `CoroutineMessageChannelRefusedTest::test_signal_handling_requested_for_the_channel_is_refused`. That test can only
+      run on PHP without pcntl, so it skips in every container and in CI; the implementer ran it red and green by hand
+      (`var/r6-red-signal-refusal.log`, `var/r6-green-signal-refusal.log`). A `true` equal to the pcntl default is not
+      applied, and nothing can tell it from the default, so it is no second reading
+GL42 — covered — the consumer-end loop is an implementation note that claims no guarantee (spec, "Implementation
+      notes"); the new signal-handling row names its two tests, both in the tree
+
+Requirements the new commits touch:
+
+GL15 — missing — `packages/Ecotone/src/Messaging/Channel/Coroutine/CoroutineMessageChannelConsumerRegistration.php:46`
+      — the new `new Definition(PollingMetadata::class, [$builder->getDefinition($pollingMetadata)], [CoroutineMessageChannelConsumer::class, 'withoutSignalHandling'])`
+      passes three positional arguments (`src` already uses `factory:` for this constructor in three places) — name them:
+      `className:`, `arguments:`, `factory:` — skill: framework-service-design 18. Deterministic-check candidate (G5),
+      as in round 1
+GL3, GL4 — covered — the signal test sends a real SIGTERM to its own process, which is the subject and cannot be
+      pinned, restores the process's handler and async-signal flag in `finally`, and is snake_case and comment-free
+GL9, GL11, GL13 — covered — `withoutSignalHandling()` returns a new `PollingMetadata` and changes nothing; it is a
+      `Definition` factory on the compile path
+GL23, GL24, GL26 — covered — the new refusal names the setting, the reason and the way out, runs in `prepare()`, and
+      its text is asserted (see GL27 for where that test runs)
+GL37 — covered — only Enterprise files changed; open core untouched
+GL45, GL46 — covered — the skill sentence sits in `ecotone-open-swoole` §7; `bin/test-agent-skills ecotone-open-swoole`
+      after it: both cases 1.00 over 2 runs (`var/r6-skill.log`)
+The other requirements keep their status of the 082a7e5a6 re-check.
+
+# Breaking changes review: second re-check
+
+## Second re-check at 2d1290a08 (range 082a7e5a6..HEAD, 5 commits)
+
+PASSED. No requirement was `missing`, and none changes status.
+
+- `Api/`, `upgrade-2.0.md`, console commands: untouched (BC3, BC4, BC5 and BC6 stay as decided). The new
+  `CoroutineMessageChannelConsumer::withoutSignalHandling()` is a static method on an internal final `src/` class,
+  used as a container factory.
+- Turning off signal handling for the channel's consumer
+  (CoroutineMessageChannelConsumerRegistration.php:44-47) replaces only the `PollingMetadataReference` of a
+  coroutine channel's own name. The compiler pass is added only when a coroutine channel is registered
+  (CoroutineMessageChannelModule.php:73-74, :227), so signal handling of every other consumer, including
+  `ecotone:run` with ext-pcntl, is unchanged (BC7 stays not-apply).
+- The `withSignalInterceptors` refusal (CoroutineMessageChannelModule.php:138) checks only a `PollingMetadata` whose
+  endpoint id is the channel's name. It is new behaviour of an opt-in feature in a major, not a BC item. Its
+  pcntl-dependent condition and the test that CI never runs are for the behaviour and DX reviews.
+- BC1, BC2, BC8: nothing persisted or shared changes.
+- The maintainer's pending items are unchanged and still not counted.
+
+Counts: not-apply 5 (BC1, BC2, BC5, BC7, BC8) / covered 3 (BC3, BC4, BC6) / missing 0.
+
+# Developer experience review: second re-check
+
+## Second re-check at 2d1290a08 (082a7e5a6..HEAD, 5 commits)
+
+Nothing was missing, and no status changes:
+
+- bf3721e80: the channel's internal consumer is built with `withSignalInterceptors(false)`
+  (`CoroutineMessageChannelConsumerRegistration.php:44-47`), so Ecotone no longer installs its termination listener
+  inside the HTTP worker. Good for the user: signals stay with the Swoole server that owns the worker, and the skill
+  says so (66e6599f1, `SKILL.md:239-240`). No new name or option.
+- 06489da8a: `PollingMetadata::withSignalInterceptors(true)` for the channel is refused, with the reason and the way
+  out, where it differs from the default (PHP without pcntl) (`CoroutineMessageChannelModule.php:138`). On PHP with
+  pcntl the same explicit `true` equals the default and is overridden without a refusal. That is a limitation of
+  `PollingMetadata` (a plain bool, the explicit value cannot be told from the default), the case is unlikely
+  (nobody asks a channel with no consumer process for signal handling), and the skill sentence states the behaviour,
+  so I do not count it under DX7. That the refusal's test is skipped in every container and in CI is a testing
+  question for the behaviour and guidelines sessions, not this section.
+- 2d1290a08, 6271e4032: docs only (spec note, review list record).
+
+Counts: not-apply 0, covered 10, missing 0.
+
+# Behaviour review: second re-check
+
+## Second re-check at 2d1290a08
+
+BH14 — covered — the channel's internal consumer gets `withSignalInterceptors(false)`: the compiler pass rewrites the
+channel's `PollingMetadataReference` through `CoroutineMessageChannelConsumer::withoutSignalHandling()`,
+`CoroutineMessageChannelConsumerRegistration.php:44-47`. Test:
+`CoroutineMessageChannelTest::test_a_termination_signal_during_a_handler_reaches_the_handler_the_application_installed`
+(`#[RequiresPhpExtension('pcntl')]` and `('posix')`), red first on both runtimes (var/r6-red-signal-swoole.log,
+var/r6-red-signal-openswoole.log). Its file is in `COROUTINE_TESTS`, so `--fail-on-skipped` makes the CI job fail if
+pcntl is missing there. I repeated the probe in a real HTTP worker, where a channel handler waits 2 s and SIGTERM goes
+to the worker:
+- Swoole (var/rv8-pcntl-swoole.log): the worker now ends during a burst, as it does in the baseline and after a burst.
+  At 082a7e5a6 it stayed alive and kept serving (var/rv7-pcntl-swoole.log).
+- OpenSwoole (var/rv8-pcntl-openswoole.log): all three cases log `workerStop` and the manager restarts the worker,
+  which answers the next request. Not probed before the fix.
+
+Both probes were stopped; no `php /tmp/sigprobe.php` process is left in either container. The rest of BH14 is as
+decided at 082a7e5a6.
+
+BH9 — still covered, with a note. `withSignalInterceptors(true)` is refused only on PHP without pcntl
+(`CoroutineMessageChannelModule.php:138`), the one case where it differs from the default. Its message test
+`CoroutineMessageChannelRefusedTest::test_signal_handling_requested_for_the_channel_is_refused` skips itself wherever
+pcntl is loaded, which is every container and CI. Its red and green runs were done by hand with pcntl left out
+(var/r6-red-signal-refusal.log, var/r6-green-signal-refusal.log). With pcntl loaded, an explicit `true` cannot be told
+from the default and is overridden without a message; the skill says the channel never handles process signals. The
+behaviour is right everywhere, and the refusal that CI never exercises only changes a message, so I do not block.
+This refusal comes from GL27, so the guidelines review owns whether a test that never runs in CI is acceptable.
+
+BH17 — still covered: the spec now records the consumer-end loop as an implementation note with no claimed test. That
+matches my decision at 082a7e5a6 (closed by construction, red first at 69baba3a5, no userland seam).
+
+BH21 — still covered: the new signal test sits in a file already listed in `COROUTINE_TESTS`.
+
+BH13 — still covered: the skill gained one sentence (66e6599f1) and no rule changed; var/r6-skill.log is the
+implementer's run.
+
+Runs at 2d1290a08, alone on the stack, one at a time:
+- swoole, CI command, COROUTINE_TESTS: OK (120 tests, 224 assertions), var/rv8-swoole.log
+- openswoole, CI command, COROUTINE_TESTS: OK (111 tests, 213 assertions), var/rv8-openswoole.log
+- app, CoroutineMessageChannelRefusedTest: 5 tests, 8 assertions, 1 skipped (the pcntl-dependent refusal),
+  var/rv8-refused-app.log
+- I did not repeat the full Dbal suite: the implementer's solo run was green (1617, var/r6-dbal.log).
+

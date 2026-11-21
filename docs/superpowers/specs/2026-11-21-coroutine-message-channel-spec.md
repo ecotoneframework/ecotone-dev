@@ -14,7 +14,7 @@ Test names below are in `packages/Ecotone/tests/Messaging/Execution/CoroutineMes
 | --- | --- |
 | Handlers execute in the sending process | `test_handler_runs_on_a_coroutine_of_the_sending_process` |
 | Successful outer boundary releases after Ecotone commits | Dbal `CoroutineMessageChannelTest::test_handler_starts_after_the_sender_commits_and_sees_its_data`, command_bus, gateway, asynchronous, console and event datasets; corresponding `_on_postgresql` test |
-| Failed senders start nothing | `test_a_failed_sender_starts_no_handler`, `test_failed_console_command_starts_no_handler`, `test_failed_gateway_discards_messages_and_successful_gateway_releases_them` |
+| Failed senders start nothing | `test_a_failed_sender_starts_no_handler`, `test_failed_console_command_starts_no_handler`, `test_console_command_holds_messages_until_it_returns`, `test_failed_gateway_discards_messages_and_successful_gateway_releases_them` |
 | Each execution owns its held messages | Dbal `test_interleaved_senders_release_only_the_successful_senders_message` |
 | Retried attempts discard failed attempts | `test_a_retried_sender_discards_messages_from_its_failed_attempt`, `test_retried_outer_command_discards_messages_from_its_failed_nested_call` |
 | Caught inner failures share the outer transaction outcome | Dbal `test_caught_inner_failure_commits_its_rows_and_releases_both_commands_messages_with_the_outer_command` |
@@ -23,7 +23,7 @@ Test names below are in `packages/Ecotone/tests/Messaging/Execution/CoroutineMes
 | Per-channel limit defaults to 10, waiting messages start FIFO | `test_concurrency_is_limited_and_waiting_messages_start_in_order` |
 | Payload objects are passed without serialisation; ServiceContext registration | `test_class_routed_objects_keep_their_identity_with_service_context_registration` |
 | Without an error channel final failures log channel, endpoint and headers and drop; other messages continue | `test_failed_messages_are_logged_with_headers_and_dropped_while_others_continue`, `test_failure_logs_keep_each_coroutines_endpoint_and_headers` |
-| Ordinary error channel and instant retry pipeline | `test_handler_scoped_error_channel_receives_the_failure_and_headers`, `test_instant_retry_runs_in_the_ordinary_asynchronous_consumer` |
+| Ordinary error channel and instant retry pipeline | `test_handler_scoped_error_channel_receives_the_failure_and_headers`, `test_polling_metadata_error_channel_receives_the_failure_and_headers`, `test_instant_retry_runs_in_the_ordinary_asynchronous_consumer` |
 | Delays and delayed retries use in-process timers | `test_delayed_message_waits_on_a_coroutine_timer`, `test_delay_header_accepts_durations_and_an_absolute_time`, `test_delayed_retry_returns_to_the_coroutine_channel_after_its_delay`, `test_delayed_message_with_hooks_off_does_not_stall_a_sibling_coroutine` |
 | DBAL dead letter and synchronous replay outside a coroutine | Dbal `test_failed_message_goes_to_dbal_dead_letter_and_replays_outside_a_coroutine` |
 | Independent headers and transactions | Dbal `test_concurrent_messages_keep_their_own_headers_and_transaction` |
@@ -31,7 +31,7 @@ Test names below are in `packages/Ecotone/tests/Messaging/Execution/CoroutineMes
 | Sending to the same channel with limit one completes | `test_a_handler_can_send_to_its_own_channel_with_one_coroutine` |
 | Traces retain the sender context | OpenTelemetry `CoroutineTracingTest::test_coroutine_message_channel_continues_each_senders_trace` |
 | Outside a coroutine is refused with recovery and rollback guidance, including fibers | `test_sending_outside_a_coroutine_is_refused`, `test_a_sender_on_a_fiber_outside_a_coroutine_is_refused` |
-| Bootstrap requires Enterprise licence and runtime extension; positive concurrency | `CoroutineMessageChannelRefusedTest` |
+| Bootstrap requires Enterprise licence and runtime extension; positive concurrency; extension-free environment replacement | `CoroutineMessageChannelRefusedTest`, including `test_a_production_coroutine_channel_can_be_replaced_with_a_queue_in_tests` |
 | Separate consumer execution and polling concurrency are refused | `test_starting_a_consumer_is_refused`, `test_console_consumer_start_is_refused`, `test_polling_concurrency_is_refused_at_bootstrap` |
 | Consumer stop/handled/time/execution/memory limits are unsupported | `test_polling_consumer_limits_are_refused_at_bootstrap` |
 | Priority and TimeToLive are refused on methods and classes | `test_unsupported_delivery_attributes_are_refused_at_bootstrap` |

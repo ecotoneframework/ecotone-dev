@@ -35,7 +35,7 @@ final class CoroutineMessageChannelRefusedTest extends TestCase
             $this->markTestSkipped();
         }
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Coroutine message channel `async` requires the swoole or openswoole extension. Install either extension for the PHP running the application. In tests without it, put #[Environment([\'prod\'])] on the #[ServiceContext] method returning this builder, bootstrapFlowTesting(environment: \'test\', extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel(\'async\')]), then call the flow test support\'s run(\'async\').');
+        $this->expectExceptionMessage('Coroutine message channel `async` requires the swoole or openswoole extension. Install either extension for the PHP running the application. For tests on PHP without it, list every environment that runs on Swoole or OpenSwoole on the #[ServiceContext] method returning this builder and leave out only the test environment, for example #[Environment([\'prod\', \'dev\'])] (Laravel names them \'production\' and \'local\'). In the test environment register a queue channel under the same name and drive it from the test: bootstrapFlowTesting(environment: \'test\', extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel(\'async\')]), then the flow test support\'s run(\'async\').');
 
         EcotoneLite::bootstrapFlowTesting(extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
     }
@@ -54,7 +54,7 @@ final class CoroutineMessageChannelRefusedTest extends TestCase
             public array $handled = [];
 
             #[ServiceContext]
-            #[Environment(['prod'])]
+            #[Environment(['prod', 'dev'])]
             public function channel(): CoroutineMessageChannelBuilder
             {
                 return CoroutineMessageChannelBuilder::create('async');

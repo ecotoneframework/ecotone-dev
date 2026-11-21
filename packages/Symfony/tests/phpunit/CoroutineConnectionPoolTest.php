@@ -99,6 +99,7 @@ final class CoroutineConnectionPoolTest extends TestCase
 
         $this->assertInstanceOf(ConnectionPoolExhausted::class, $failure);
         $this->assertStringContainsString('and the pool is set not to wait for one (a wait of 0 seconds)', $failure->getMessage());
+        $this->assertStringContainsString('lower CoroutineMessageChannelBuilder::withCoroutines()', $failure->getMessage());
         $this->assertSame(['holder'], $handler->handled);
     }
 }

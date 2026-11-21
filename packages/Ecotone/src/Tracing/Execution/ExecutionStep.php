@@ -29,6 +29,7 @@ final class ExecutionStep
         public readonly ?ExecutionStep $parentStep,
         public readonly ?SpanContext $parentContext,
         public readonly DatePoint $startedAt,
+        public readonly int $lastCoroutineStartedBefore,
     ) {
     }
 }

@@ -7,6 +7,7 @@ namespace Test\Ecotone\Tracing;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
@@ -15,10 +16,11 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
-use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\RecordedStep;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\CoroutineTesting;
+use Ecotone\Test\ExecutionRecordingShapes;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use RuntimeException;
 use Swoole\Coroutine;
@@ -82,6 +84,66 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
             self::assertStringStartsWith('handler class@anonymous::place', $processes[$sentBy->processNumber - 1]->steps[$sentBy->stepNumber - 1]->label);
         }
         self::assertNotSame($processes[$publishing[0]]->sentBy->processNumber, $processes[$publishing[1]]->sentBy->processNumber);
+        $first = $processes[$publishing[0]];
+        $startingStep = $processes[$first->sentBy->processNumber - 1]->steps[$first->sentBy->stepNumber - 1];
+        self::assertContains('started in: a coroutine process ' . $first->sentBy->processNumber . ' started', array_map(fn ($hint): string => $hint->key . ': ' . $hint->value, $first->steps[0]->hints));
+        self::assertContains('starts: process ' . ($publishing[0] + 1) . ', in a coroutine', array_map(fn ($hint): string => $hint->key . ': ' . $hint->value, $startingStep->hints));
+    }
+
+    public function test_a_coroutine_that_outlives_its_handler_is_a_sub_flow_of_the_step_open_when_it_started_not_of_a_later_one(): void
+    {
+        $orders = new class () {
+            #[CommandHandler('outlivesInto', outputChannelName: 'next')]
+            public function outlivesInto(array $command, EventBus $eventBus): array
+            {
+                Coroutine::create(static function () use ($eventBus): void {
+                    usleep(10_000);
+                    $eventBus->publishWithRouting('order.placed', []);
+                });
+
+                return $command;
+            }
+
+            #[InternalHandler(inputChannelName: 'next')]
+            public function next(array $command): void
+            {
+                usleep(40_000);
+            }
+
+            #[EventHandler('order.placed', endpointId: 'order.notifier')]
+            public function notify(): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: []);
+
+        CoroutineTesting::runAtOnce(fn () => $ecotone->sendCommandWithRouting('outlivesInto', []));
+        $processes = $ecotone->popExecutionRecording()->processes;
+
+        [$published] = array_values(array_filter($processes, fn ($process): bool => str_starts_with($process->title, 'send event order.placed')));
+        self::assertNotNull($published->sentBy);
+        $steps = $processes[$published->sentBy->processNumber - 1]->steps;
+        $linked = $published->sentBy->stepNumber - 1;
+        $handler = array_key_first(array_filter($steps, fn ($step): bool => $step->label === 'handler class@anonymous::outlivesInto'));
+        self::assertIsInt($handler);
+        self::assertTrue($linked === $handler || self::isAncestorOf(steps: $steps, ancestor: $linked, of: $handler));
+    }
+
+    /**
+     * @param list<RecordedStep> $steps
+     */
+    private static function isAncestorOf(array $steps, int $ancestor, int $of): bool
+    {
+        if ($ancestor >= $of || $steps[$ancestor]->depth >= $steps[$of]->depth) {
+            return false;
+        }
+        for ($between = $ancestor + 1; $between < $of; $between++) {
+            if ($steps[$between]->depth <= $steps[$ancestor]->depth) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -100,55 +162,14 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
         $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines($coroutines));
 
         return [
-            'processes' => self::processesOf($ecotone),
-            'traces' => self::traceShapesOf($recorder->recordedSpans()),
+            'processes' => ExecutionRecordingShapes::processesInAnyOrderOf($ecotone->popExecutionRecording()),
+            'traces' => ExecutionRecordingShapes::traceShapesInAnyOrderOf($recorder->recordedSpans()),
             'outcome' => [
                 'shipped' => $ecotone->sendQueryWithRouting('shipment.shipped'),
                 'attempts' => $ecotone->sendQueryWithRouting('shipment.attempts'),
             ],
             'mostShippedAtOnce' => $ecotone->sendQueryWithRouting('shipment.mostShippedAtOnce'),
         ];
-    }
-
-    /**
-     * @return list<array{string, list<array{int, string, list<string>}>}>
-     */
-    private static function processesOf(FlowTestSupport $ecotone): array
-    {
-        $processes = [];
-        foreach ($ecotone->popExecutionRecording()->processes as $process) {
-            $processes[] = [
-                (string) preg_replace('/ \((?:part )?\d+ of \d+\)$/', '', $process->title),
-                array_map(fn ($step): array => [$step->depth, $step->label, array_map(fn ($hint): string => $hint->key . ': ' . preg_replace('/process \d+/', 'process #', $hint->value), $step->hints)], $process->steps),
-            ];
-        }
-        usort($processes, fn (array $first, array $second): int => serialize($first) <=> serialize($second));
-
-        return $processes;
-    }
-
-    /**
-     * @param list<Span> $spans
-     * @return list<list<array{string, ?string, string}>>
-     */
-    private static function traceShapesOf(array $spans): array
-    {
-        $byId = [];
-        foreach ($spans as $span) {
-            $byId[$span->spanId] = $span;
-        }
-        $traces = [];
-        foreach ($spans as $span) {
-            $traces[$span->traceId][] = [$span->name, isset($byId[(string) $span->parentSpanId]) ? $byId[(string) $span->parentSpanId]->name : null, $span->status->name];
-        }
-        $shapes = array_map(function (array $trace): array {
-            sort($trace);
-
-            return $trace;
-        }, array_values($traces));
-        usort($shapes, fn (array $first, array $second): int => serialize($first) <=> serialize($second));
-
-        return $shapes;
     }
 
     private function shipments(InMemorySpanRecorder $recorder): FlowTestSupport

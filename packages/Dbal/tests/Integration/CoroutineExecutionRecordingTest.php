@@ -18,9 +18,9 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
-use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
+use Ecotone\Test\ExecutionRecordingShapes;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use RuntimeException;
 use Swoole\Coroutine;
@@ -64,55 +64,14 @@ final class CoroutineExecutionRecordingTest extends DbalMessagingTestCase
         $ecotone->run('recorded_shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         return [
-            'processes' => self::processesOf($ecotone),
-            'traces' => self::traceShapesOf($recorder->recordedSpans()),
+            'processes' => ExecutionRecordingShapes::processesInAnyOrderOf($ecotone->popExecutionRecording()),
+            'traces' => ExecutionRecordingShapes::traceShapesInAnyOrderOf($recorder->recordedSpans()),
             'outcome' => [
                 'shipped' => $ecotone->sendQueryWithRouting('shipment.shipped'),
                 'deadLetters' => $ecotone->getGateway(DeadLetterGateway::class)->count(),
             ],
             'mostShippedAtOnce' => $ecotone->sendQueryWithRouting('shipment.mostShippedAtOnce'),
         ];
-    }
-
-    /**
-     * @return list<array{string, list<array{int, string, list<string>}>}>
-     */
-    private static function processesOf(FlowTestSupport $ecotone): array
-    {
-        $processes = [];
-        foreach ($ecotone->popExecutionRecording()->processes as $process) {
-            $processes[] = [
-                (string) preg_replace('/ \((?:part )?\d+ of \d+\)$/', '', $process->title),
-                array_map(fn ($step): array => [$step->depth, $step->label, array_map(fn ($hint): string => $hint->key . ': ' . preg_replace('/process \d+/', 'process #', $hint->value), $step->hints)], $process->steps),
-            ];
-        }
-        usort($processes, fn (array $first, array $second): int => serialize($first) <=> serialize($second));
-
-        return $processes;
-    }
-
-    /**
-     * @param list<Span> $spans
-     * @return list<list<array{string, ?string, string}>>
-     */
-    private static function traceShapesOf(array $spans): array
-    {
-        $byId = [];
-        foreach ($spans as $span) {
-            $byId[$span->spanId] = $span;
-        }
-        $traces = [];
-        foreach ($spans as $span) {
-            $traces[$span->traceId][] = [$span->name, isset($byId[(string) $span->parentSpanId]) ? $byId[(string) $span->parentSpanId]->name : null, $span->status->name];
-        }
-        $shapes = array_map(function (array $trace): array {
-            sort($trace);
-
-            return $trace;
-        }, array_values($traces));
-        usort($shapes, fn (array $first, array $second): int => serialize($first) <=> serialize($second));
-
-        return $shapes;
     }
 
     private function shipments(InMemorySpanRecorder $recorder, int $coroutines): FlowTestSupport

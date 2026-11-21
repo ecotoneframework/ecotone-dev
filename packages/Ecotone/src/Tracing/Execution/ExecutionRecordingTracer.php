@@ -137,6 +137,7 @@ final class ExecutionRecordingTracer implements Tracer
             parentStep: null,
             parentContext: $remoteParent,
             startedAt: $this->clock->now(),
+            lastCoroutineStartedBefore: ExecutionScope::lastStartedCoroutineId(),
         );
         $this->state()->openSteps[] = $entry;
 
@@ -177,6 +178,7 @@ final class ExecutionRecordingTracer implements Tracer
             parentStep: $parentStep,
             parentContext: $parentStep === null ? $current?->context() : null,
             startedAt: $this->clock->now(),
+            lastCoroutineStartedBefore: ExecutionScope::lastStartedCoroutineId(),
         );
         if (! $shownOnlyWhenSomethingRunsInside && ($parentStep === null || $parentStep->span !== null)) {
             $this->spanOf($step);

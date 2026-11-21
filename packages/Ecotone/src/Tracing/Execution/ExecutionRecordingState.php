@@ -40,12 +40,13 @@ final class ExecutionRecordingState implements CopiedToChildExecution
 
     public function copyForChildExecution(int $childCoroutineId): ?object
     {
-        $innermostOpenStep = $this->openSteps[count($this->openSteps) - 1] ?? null;
-        if ($innermostOpenStep === null || $childCoroutineId <= $this->lastCoroutineStartedBeforeTheOpenEntry) {
+        $openWhenTheChildStarted = array_values(array_filter($this->openSteps, fn (ExecutionStep $step): bool => $step->lastCoroutineStartedBefore < $childCoroutineId));
+        $innermost = $openWhenTheChildStarted[count($openWhenTheChildStarted) - 1] ?? null;
+        if ($innermost === null || $childCoroutineId <= $this->lastCoroutineStartedBeforeTheOpenEntry) {
             return null;
         }
         $copy = new self();
-        $copy->orderOfTheStepThatStartedThisCoroutine = (int) $innermostOpenStep->attributes[SpanAttribute::EXECUTION_ORDER];
+        $copy->orderOfTheStepThatStartedThisCoroutine = (int) $innermost->attributes[SpanAttribute::EXECUTION_ORDER];
 
         return $copy;
     }

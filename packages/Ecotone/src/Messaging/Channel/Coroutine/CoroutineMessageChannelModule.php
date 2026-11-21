@@ -56,17 +56,13 @@ use Ecotone\Messaging\Support\LicensingException;
  */
 final class CoroutineMessageChannelModule extends NoExternalConfigurationModule implements AnnotationModule
 {
-    private function __construct(private readonly array $handlers)
+    private function __construct(private readonly AnnotationFinder $annotationFinder)
     {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self(array_merge(
-            $annotationRegistrationService->findAnnotatedMethods(CommandHandler::class),
-            $annotationRegistrationService->findAnnotatedMethods(EventHandler::class),
-            $annotationRegistrationService->findAnnotatedMethods(InternalHandler::class),
-        ));
+        return new self($annotationRegistrationService);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -78,8 +74,9 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
         $this->validateChannels(configuration: $messagingConfiguration, extensions: $extensionObjects, channels: $channels);
         $this->registerRelease($messagingConfiguration, $interfaceToCallRegistry);
         $channelNames = array_map(static fn (CoroutineMessageChannelBuilder $channel) => $channel->messageChannelName, $channels);
-        $this->refuseUnsupportedDeliveryAttributes(channelNames: $channelNames, extensions: $extensionObjects, registry: $interfaceToCallRegistry);
-        $this->registerFailureLogging(configuration: $messagingConfiguration, registry: $interfaceToCallRegistry, channelNames: $channelNames);
+        $handlers = $this->coroutineHandlers($channelNames, $extensionObjects);
+        $this->refuseUnsupportedDeliveryAttributes($handlers, $interfaceToCallRegistry);
+        $this->registerFailureLogging(configuration: $messagingConfiguration, registry: $interfaceToCallRegistry, channelNames: $channelNames, handlers: $handlers);
         $this->registerConsumers($messagingConfiguration, $channelNames);
     }
 
@@ -125,17 +122,30 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
         }
     }
 
-    private function refuseUnsupportedDeliveryAttributes(array $channelNames, array $extensions, InterfaceToCallRegistry $registry): void
+    private function coroutineHandlers(array $channelNames, array $extensions): array
     {
         $endpointChannels = [];
         foreach (ExtensionObjectResolver::resolve(AsynchronousModule::class, $extensions) as $module) {
             $endpointChannels = array_merge($endpointChannels, $module->resolveChannels($extensions));
         }
-        foreach ($this->handlers as $handler) {
+        $handlers = array_merge(
+            $this->annotationFinder->findAnnotatedMethods(CommandHandler::class),
+            $this->annotationFinder->findAnnotatedMethods(EventHandler::class),
+            $this->annotationFinder->findAnnotatedMethods(InternalHandler::class),
+        );
+        $coroutineHandlers = [];
+        foreach ($handlers as $handler) {
             $channels = array_intersect($endpointChannels[$handler->getAnnotationForMethod()->getEndpointId()] ?? [], $channelNames);
-            if ($channels === []) {
-                continue;
+            if ($channels !== []) {
+                $coroutineHandlers[] = [$handler, $channels];
             }
+        }
+        return $coroutineHandlers;
+    }
+
+    private function refuseUnsupportedDeliveryAttributes(array $handlers, InterfaceToCallRegistry $registry): void
+    {
+        foreach ($handlers as [$handler, $channels]) {
             $interface = $registry->getFor($handler->getClassName(), $handler->getMethodName());
             foreach ([Priority::class => ['Priority', 'messages are handled in FIFO order.'], TimeToLive::class => ['TimeToLive', 'messages in this queue do not expire.']] as $attributeClass => [$attribute, $reason]) {
                 if ($interface->hasAnnotation($attributeClass)) {
@@ -160,15 +170,18 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
         ));
     }
 
-    private function registerFailureLogging(Configuration $configuration, InterfaceToCallRegistry $registry, array $channelNames): void
+    private function registerFailureLogging(Configuration $configuration, InterfaceToCallRegistry $registry, array $channelNames, array $handlers): void
     {
         $configuration->registerServiceDefinition(CoroutineMessageChannelFailureLogger::class, new Definition(CoroutineMessageChannelFailureLogger::class, [$channelNames, new Reference(LoggingGateway::class)]));
-        $configuration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
-            referenceName: CoroutineMessageChannelFailureLogger::class,
-            interfaceToCall: $registry->getFor(CoroutineMessageChannelFailureLogger::class, 'recordFailedEndpoint'),
-            precedence: Precedence::DEFAULT_PRECEDENCE,
-            pointcut: CommandHandler::class . '||' . EventHandler::class . '||' . InternalHandler::class,
-        ));
+        if ($handlers !== []) {
+            $pointcuts = array_map(static fn (array $entry) => $entry[0]->getClassName() . '::' . $entry[0]->getMethodName(), $handlers);
+            $configuration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
+                referenceName: CoroutineMessageChannelFailureLogger::class,
+                interfaceToCall: $registry->getFor(CoroutineMessageChannelFailureLogger::class, 'recordFailedEndpoint'),
+                precedence: Precedence::DEFAULT_PRECEDENCE,
+                pointcut: implode('||', array_unique($pointcuts)),
+            ));
+        }
         $configuration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
             referenceName: CoroutineMessageChannelFailureLogger::class,
             interfaceToCall: $registry->getFor(CoroutineMessageChannelFailureLogger::class, 'log'),

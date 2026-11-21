@@ -15,7 +15,10 @@ description: >-
 # Feature and behaviour review
 
 You are one of four independent reviews (see `framework-pull-request` rule P3). You judge only whether the change
-does what it claims and whether the tests prove it.
+does what it claims and whether the tests prove it. You review against the
+[Behaviour section of the review list](../framework-pull-request/references/review-list.md#behaviour): you decide every
+requirement there (the BH ids), and the rules below say how to judge them: V1 for BH1, V2 for BH2, V3 for BH3 and
+BH4, V4 for BH5 to BH11, V5 for BH12, V7 for BH13, V8 for BH14, V9 for BH15 to BH21.
 
 ## Applies when
 
@@ -27,7 +30,9 @@ does what it claims and whether the tests prove it.
 
 ### V1. Restate the problem, then check the change solves it
 Write the problem in the reporter's terms and the observable outcome that would prove it solved. Trace the diff
-from the entry point an application uses to that outcome.
+from the entry point an application uses to that outcome. That paragraph is the reasoning, not the decision: BH1
+still gets its own status line with the others (rule V6), `missing` when the trace depends on something the diff or
+a test does not show, and then BH1 is among the ids of the `NOT PASSED` line.
 - **Expected:** the report opens with the problem and the expected observable outcome, then says whether the
   change reaches it.
 - **Verified by:** `eval:review-diff-behaviour`
@@ -38,7 +43,7 @@ review as a session in the worktree the other reviews read, so never revert, edi
 create a worktree of your own (`git worktree add`) to do so. You may run a test on the tree as it is. Proof that a
 test was red is what the implementer handed over with the brief: its failing output against the base commit, or a
 commit that adds the test before the change it proves (`git log`). Name tests that pass either way, and when
-neither proof exists and the diff cannot show the test was red, report that as a finding asking for the red run.
+neither proof exists and the diff cannot show the test was red, decide BH2 `missing` and ask for the red run.
 - **Expected:** the report names the test(s) proving each claim and flags any claim with no failing-first test.
 - **Verified by:** `eval:review-diff-behaviour`
 
@@ -46,7 +51,7 @@ neither proof exists and the diff cannot show the test was red, report that as a
 Bus send by class, routed send, gateway, console command, async consumer, the backfill/reconstruction path;
 in-memory and DBAL; PostgreSQL, MySQL, MariaDB where storage is touched (`framework-testing` rule 10a,
 `framework-storage-and-transactions` rules 9 and 16c).
-- **Expected:** untested entry points or engines are listed as findings.
+- **Expected:** untested entry points or engines are decided `missing`.
 - **Verified by:** `eval:review-diff-behaviour`
 
 ### V4. Edge cases are covered
@@ -64,10 +69,10 @@ A test using SQL on Ecotone tables, reflection, or a `src/` class proves the imp
 ### V7. Changed skills are evaluated, not only read
 CI checks a skill's format but never runs a model. When the diff touches `.agents/skills`, `api/skills`,
 `.agents/evals` or `api/evals`, run `bin/test-agent-skills` for the changed skills, on the tree as it is. Report
-each case's score and every failing grader as a finding: below the threshold is BLOCKING, and a failing grader
+each case's score and every failing grader: a case below the threshold makes BH13 `missing`, and a failing grader
 names the rule it grades. Also check every new or changed rule has a grader in a case.
 - **Expected:** for a diff that changes a skill, the report contains `bin/test-agent-skills` scores per case and
-  ranks a failing case as BLOCKING; it never defers skill evaluation to CI.
+  decides BH13 `missing` on a failing case; it never defers skill evaluation to CI.
 - **Verified by:** `eval:review-skill-change`
 
 ### V8. The change works with the features it meets, and refuses the ones it must not be combined with
@@ -130,7 +135,16 @@ neither extension is loaded, so CI runs it only when its file is listed in `CORO
   `COROUTINE_TESTS`.
 - **Verified by:** `eval:review-coroutine-compatibility`, `eval:review-coroutine-consumer`
 
-### V6. Findings are ranked and actionable
-`[BLOCKING|SHOULD-FIX|NIT] <rule id> — <file>:<line> — the scenario that fails — the test to add or the fix`.
-- **Expected:** each finding has severity, rule id, location, a concrete failing scenario and a fix.
+### V6. Every requirement is decided: not-apply, covered or missing
+Give every requirement of the section a line, as the [review
+list](../framework-pull-request/references/review-list.md#deciding-a-requirement) sets out: `<id> — not-apply —
+why`, `<id> — covered — the test by name`, or `<id> — missing — <file>:<line> — the scenario that fails — the test
+to add or the fix — skill: the skill to load to cover it`. None is left out, also the ones the change plainly does
+not touch, and a requirement that asks for a test is `covered` only by a test. Wherever a rule above says a
+finding, it means that requirement is `missing`. Open the report with the result, `PASSED` when none is `missing`,
+otherwise `NOT PASSED:` and the `missing` ids, and put the `missing` lines first: they go back to the implementing
+session to cover, and you decide them again in the re-review.
+- **Expected:** the report has a line for every requirement of the section with one of the three statuses, each
+  `missing` line naming a location, a concrete failing scenario, the test to add or the fix and the skill to load
+  to cover it, and opens with `PASSED` or `NOT PASSED` naming the `missing` ids.
 - **Verified by:** `eval:review-diff-behaviour`

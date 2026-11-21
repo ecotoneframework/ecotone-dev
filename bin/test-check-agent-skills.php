@@ -41,11 +41,17 @@ $cases = [
     'public skill with a missing fully qualified class' => [fn (string $root) => append($root, PUBLIC_SKILL, "\n```php\n#[\\Ecotone\\Api\\Attribute\\Gone]\n```\n"), 'references Ecotone\\Api\\Attribute\\Gone'],
     'marketplace missing a skill' => [fn (string $root) => mkdir($root . '/api/skills/ecotone-extra') || copy($root . '/' . PUBLIC_SKILL, $root . '/api/skills/ecotone-extra/SKILL.md'), 'marketplace.json lists skills'],
     'marketplace path that does not exist' => [fn (string $root) => edit($root, 'api/.claude-plugin/marketplace.json', './skills/ecotone-demo', './nowhere/ecotone-demo'), 'marketplace.json lists skills'],
+    'rule missing from the review list' => [fn (string $root) => edit($root, REVIEW_LIST_FILE, '`framework-demo 2`', 'the second rule'), 'Rule framework-demo 2 (Second rule) is not in the review list'],
+    'review list citing a rule that does not exist' => [fn (string $root) => append($root, REVIEW_LIST_FILE, "\n| GL3 | Gone | `framework-demo 9` |\n"), 'cites `framework-demo 9`, which is not a rule of any framework skill'],
+    'review skills are not listed in the review list' => [fn (string $root) => reviewSkill($root), null],
+    'review list missing' => [fn (string $root) => unlink($root . '/' . REVIEW_LIST_FILE), 'Exactly one review list is expected at .agents/skills/<skill>/references/review-list.md, found: none'],
+    'second review list' => [fn (string $root) => secondReviewList($root), 'found: .agents/skills/framework-demo/references/review-list.md, .agents/skills/framework-other/references/review-list.md'],
     'no framework skill at all' => [fn (string $root) => exec('rm -rf ' . escapeshellarg($root . '/.agents/skills/framework-demo') . ' ' . escapeshellarg($root . '/.agents/evals')), '.agents/skills holds no skill'],
 ];
 
 const FRAMEWORK_SKILL = '.agents/skills/framework-demo/SKILL.md';
 const PUBLIC_SKILL = 'api/skills/ecotone-demo/SKILL.md';
+const REVIEW_LIST_FILE = '.agents/skills/framework-demo/references/review-list.md';
 
 $failures = 0;
 foreach ($cases as $name => [$mutate, $expected]) {
@@ -83,6 +89,7 @@ function createValidTree(): string
 
     write($root, FRAMEWORK_SKILL, skill('framework-demo', 'eval:demo-case', '[detail](references/detail.md#details)'));
     write($root, '.agents/skills/framework-demo/references/detail.md', "# Details\n");
+    write($root, REVIEW_LIST_FILE, "# The review list\n\n| Id | Requirement | Skill and rule |\n|---|---|---|\n| GL1 | Demo | `framework-demo 1` |\n| GL2 | Second | `framework-demo 2` |\n");
     writeCase($root, '.agents/evals/framework-demo/demo-case', 'framework-demo');
 
     write($root, PUBLIC_SKILL, skill('ecotone-demo', 'eval:demo-case', "```php\nuse Ecotone\\Api\\Attribute\\CommandHandler;\n```"));
@@ -132,6 +139,17 @@ function writeCase(string $root, string $directory, string $skill): void
     write($root, $directory . '/prompt.md', "---\ndescription: \"demo\"\n---\nDemo.\n");
     write($root, $directory . '/graders/skill-loaded.md', "---\ntype: tool_used\ntool: Skill\ninput_match: '{$skill}'\n---\n");
     write($root, $directory . '/graders/rule-1.md', "---\ntype: llm\n---\nPASS if the demo happens.\n");
+}
+
+function secondReviewList(string $root): void
+{
+    write($root, '.agents/skills/framework-other/references/review-list.md', "# Another review list\n");
+}
+
+function reviewSkill(string $root): void
+{
+    write($root, '.agents/skills/framework-review-demo/SKILL.md', skill('framework-review-demo', 'eval:demo-case', ''));
+    writeCase($root, '.agents/evals/framework-review-demo/demo-case', 'framework-review-demo');
 }
 
 function copyCase(string $root, string $case): void

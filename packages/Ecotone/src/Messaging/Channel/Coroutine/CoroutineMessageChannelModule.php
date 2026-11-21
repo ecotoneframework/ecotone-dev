@@ -114,21 +114,31 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
 
     private function refuseConsumerLimits(PollingMetadata $metadata): void
     {
+        $noConsumerToStop = 'it is consumed inside the sending process, so there is no separate consumer process to stop.';
+        $noSchedule = 'it starts each message as soon as its sender succeeds, so there is no polling schedule to set.';
         $settings = [
-            'withStopOnError' => $metadata->stopOnError,
-            'withHandledMessageLimit' => $metadata->handledMessageLimit !== 0,
-            'withExecutionTimeLimitInMilliseconds' => $metadata->executionTimeLimitInMilliseconds !== 0,
-            'withExecutionAmountLimit' => $metadata->executionAmountLimit !== 0,
-            'withMemoryLimitInMegaBytes' => ! in_array(needle: $metadata->memoryLimitInMegabytes, haystack: [0, PollingMetadata::DEFAULT_MEMORY_LIMIT_MEGABYTES], strict: true),
+            'withStopOnError' => [$metadata->stopOnError, $noConsumerToStop],
+            'withHandledMessageLimit' => [$metadata->handledMessageLimit !== 0, $noConsumerToStop],
+            'withExecutionTimeLimitInMilliseconds' => [$metadata->executionTimeLimitInMilliseconds !== 0, $noConsumerToStop],
+            'withExecutionAmountLimit' => [$metadata->executionAmountLimit !== 0, $noConsumerToStop],
+            'withFinishWhenNoMessages' => [$metadata->finishWhenNoMessages, $noConsumerToStop],
+            'withMemoryLimitInMegaBytes' => [! in_array(needle: $metadata->memoryLimitInMegabytes, haystack: [0, PollingMetadata::DEFAULT_MEMORY_LIMIT_MEGABYTES], strict: true), "it is consumed inside the sending process, which is not Ecotone's to stop when memory runs high."],
+            'withCron' => [$metadata->cron !== '', $noSchedule],
+            'withCronExpression' => [$metadata->hasCronExpression(), $noSchedule],
+            'withFixedRateInMilliseconds' => [$metadata->fixedRateInMilliseconds !== PollingMetadata::DEFAULT_FIXED_RATE, $noSchedule],
+            'withFixedRateExpression' => [$metadata->hasFixedRateExpression(), $noSchedule],
+            'withInitialDelayInMilliseconds' => [$metadata->initialDelayInMilliseconds !== PollingMetadata::DEFAULT_INITIAL_DELAY, $noSchedule],
+            'withMaxMessagePerPoll' => [$metadata->maxMessagePerPoll !== PollingMetadata::DEFAULT_MAX_MESSAGES_PER_POLL, $noSchedule],
+            'withTriggerReferenceName' => [$metadata->triggerReferenceName !== '', $noSchedule],
+            'withTaskExecutorName' => [$metadata->taskExecutorName !== '', $noSchedule],
+            'withEnabledErrorChannel' => [! $metadata->isErrorChannelEnabled, 'a failed message goes to its error channel, or is logged and dropped: inside the sending process there is no consumer to stop with the failure.'],
+            'withConnectionRetryTemplate' => [$metadata->connectionRetryTemplate !== null, 'it keeps its messages in the memory of the sending process, so there is no connection to retry.'],
+            'withPolledChannelName' => [$metadata->polledChannelName !== null, 'it consumes only its own channel, in the process that sent the message.'],
         ];
-        foreach ($settings as $setting => $configured) {
-            if (! $configured) {
-                continue;
+        foreach ($settings as $setting => [$configured, $reason]) {
+            if ($configured) {
+                throw ConfigurationException::create("Coroutine message channel `{$metadata->getEndpointId()}` cannot use PollingMetadata::{$setting}(): {$reason} Remove this setting, or use a channel consumed with ecotone:run.");
             }
-            $reason = $setting === 'withMemoryLimitInMegaBytes'
-                ? "it is consumed inside the sending process, which is not Ecotone's to stop when memory runs high."
-                : 'it is consumed inside the sending process, so there is no separate consumer process to stop.';
-            throw ConfigurationException::create("Coroutine message channel `{$metadata->getEndpointId()}` cannot use PollingMetadata::{$setting}(): {$reason} Remove this setting, or use a channel consumed with ecotone:run.");
         }
     }
 

@@ -29,6 +29,7 @@ use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
@@ -930,7 +931,21 @@ final class CoroutineMessageChannelTest extends TestCase
     public static function unsupported_polling_limits(): array
     {
         $reason = 'it is consumed inside the sending process, so there is no separate consumer process to stop.';
+        $schedule = 'it starts each message as soon as its sender succeeds, so there is no polling schedule to set.';
         return [
+            [PollingMetadata::create('async')->withTestingSetup(), 'withStopOnError', $reason],
+            [PollingMetadata::create('async')->withFinishWhenNoMessages(true), 'withFinishWhenNoMessages', $reason],
+            [PollingMetadata::create('async')->withCron('* * * * *'), 'withCron', $schedule],
+            [PollingMetadata::create('async')->withCronExpression("'* * * * *'"), 'withCronExpression', $schedule],
+            [PollingMetadata::create('async')->withFixedRateInMilliseconds(5), 'withFixedRateInMilliseconds', $schedule],
+            [PollingMetadata::create('async')->withFixedRateExpression('5'), 'withFixedRateExpression', $schedule],
+            [PollingMetadata::create('async')->withInitialDelayInMilliseconds(5), 'withInitialDelayInMilliseconds', $schedule],
+            [PollingMetadata::create('async')->withMaxMessagePerPoll(5), 'withMaxMessagePerPoll', $schedule],
+            [PollingMetadata::create('async')->withTriggerReferenceName('trigger'), 'withTriggerReferenceName', $schedule],
+            [PollingMetadata::create('async')->withTaskExecutorName('executor'), 'withTaskExecutorName', $schedule],
+            [PollingMetadata::create('async')->withEnabledErrorChannel(false), 'withEnabledErrorChannel', 'a failed message goes to its error channel, or is logged and dropped: inside the sending process there is no consumer to stop with the failure.'],
+            [PollingMetadata::create('async')->withConnectionRetryTemplate(RetryTemplateBuilder::fixedBackOff(1)), 'withConnectionRetryTemplate', 'it keeps its messages in the memory of the sending process, so there is no connection to retry.'],
+            [PollingMetadata::create('async')->withPolledChannelName('other'), 'withPolledChannelName', 'it consumes only its own channel, in the process that sent the message.'],
             [PollingMetadata::create('async')->withStopOnError(true), 'withStopOnError', $reason],
             [PollingMetadata::create('async')->withHandledMessageLimit(1), 'withHandledMessageLimit', $reason],
             [PollingMetadata::create('async')->withExecutionTimeLimitInMilliseconds(1), 'withExecutionTimeLimitInMilliseconds', $reason],

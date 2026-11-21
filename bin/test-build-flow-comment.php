@@ -69,7 +69,7 @@ $cases = [
             [str_contains($comment['body'], "```mermaid\nflowchart LR\n  a --> b\n```"), 'the small diagram stays'],
         ]);
     },
-    'over the limit, a scenario keeps whole processes of what ran from the top and is cut between two of them, never inside a tree' => function (): ?string {
+    'over the limit, whole scenarios are cut from the end and the scenarios shown stay whole' => function (): ?string {
         $scenarios = [];
         for ($index = 1; $index <= 6; $index++) {
             $scenarios[] = pathScenario('scenario ' . $index, str_repeat('y', 100), processBlocks(5, str_repeat('p', 2_500)));
@@ -77,34 +77,55 @@ $cases = [
         $result = run(comparison(...$scenarios));
         $comment = read($result['output']);
         preg_match_all('/^### `scenario (\d+)`$/m', $comment['body'], $shown);
-        $last = (int) end($shown[1]);
-        $lastScenario = substr($comment['body'], (int) strpos($comment['body'], "### `scenario {$last}`"));
-        preg_match('/The rest of `scenario ' . $last . '`, from process (\d+) of what ran on, is left out/', $lastScenario, $cut);
 
         return expectAll([
             [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
             [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . utf16Length($comment['body'])],
-            [$cut !== [], 'says from which process of the last scenario what ran is left out'],
-            [$cut !== [] && substr_count($lastScenario, '<details open>') === (int) $cut[1] - 1, 'the processes before the cut are shown whole'],
-            [substr_count($comment['body'], str_repeat('p', 2_500)) === substr_count($comment['body'], '<details open>'), 'no tree cut in the middle'],
-            [substr_count($comment['body'], '<details') === substr_count($comment['body'], '</details>'), 'every <details> is closed'],
-            [! str_contains($lastScenario, "```mermaid\n"), 'the message path after the cut is left out with it'],
-            [str_contains($comment['body'], (6 - $last) . ' of 6 changed scenarios are left out'), 'says how many scenarios were left out entirely'],
+            [count($shown[1]) > 0 && substr_count($comment['body'], str_repeat('p', 2_500)) === 5 * count($shown[1]), 'every shown scenario keeps all its processes'],
+            [! str_contains($comment['body'], 'The rest of') && ! str_contains($comment['body'], "in the run's artifact"), 'no shown scenario is cut or emptied'],
+            [str_contains($comment['body'], (6 - count($shown[1])) . ' of 6 changed scenarios are left out'), 'says how many scenarios were left out'],
+            [structureProblemOf($comment['body']) === null, 'balanced, with blank lines around blocks: ' . structureProblemOf($comment['body'])],
         ]);
     },
-    'a scenario whose processes all fit is cut before its message path when the diagram does not' => function (): ?string {
-        $scenarios = [];
-        for ($index = 1; $index <= 6; $index++) {
-            $scenarios[] = pathScenario('scenario ' . $index, str_repeat("  a->>b: step\n", 900), processBlocks(1, str_repeat('p', 100)));
-        }
-        $comment = read(run(comparison(...$scenarios))['output']);
-        preg_match_all('/^### `scenario (\d+)`$/m', $comment['body'], $shown);
-        $last = (int) end($shown[1]);
+    'a scenario alone over the limit empties the folds of its unchanged processes first and says so' => function (): ?string {
+        $unchanged = str_repeat("\n\n" . processBlock(number: 2, of: 31, tree: str_repeat('u', 2_500), changed: false), 30);
+        $result = run(comparison(pathScenario('large', str_repeat('y', 100), processBlock(number: 1, of: 31, tree: 'kept change', changed: true) . $unchanged)));
+        $comment = read($result['output']);
 
         return expectAll([
-            [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters'],
-            [substr_count($comment['body'], "```mermaid\n") === substr_count($comment['body'], str_repeat("  a->>b: step\n", 900)), 'no diagram cut in the middle'],
-            [str_contains($comment['body'], "The rest of `scenario {$last}`, from its message path on, is left out") || str_contains($comment['body'], "The rest of `scenario {$last}`, from its wiring on, is left out"), 'says the message path or the wiring is left out'],
+            [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
+            [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . utf16Length($comment['body'])],
+            [! str_contains($comment['body'], str_repeat('u', 2_500)), 'the unchanged processes are emptied'],
+            [substr_count($comment['body'], "<details>\n<summary>Steps of process 2, in the run's artifact</summary>") === 30, 'their folds stay, closed, saying where the steps are'],
+            [str_contains($comment['body'], 'kept change') && str_contains($comment['body'], "```mermaid\n"), 'the changed process and the message path stay'],
+            [str_contains($comment['body'], "The steps of 30 unchanged processes of `large` are left out to stay within GitHub's 65,536 character limit"), 'says what was left out: ' . substr($comment['body'], -600)],
+            [structureProblemOf($comment['body']) === null, 'balanced, with blank lines around blocks: ' . structureProblemOf($comment['body'])],
+        ]);
+    },
+    'a scenario still over the limit then empties its folds of unchanged steps, keeping their summary' => function (): ?string {
+        $runs = str_repeat("\n\n<details>\n<summary>… 12 unchanged steps</summary>\n\n<blockquote>\n\n```diff\n  " . str_repeat('r', 2_500) . "\n```\n\n</blockquote>\n\n</details>", 30);
+        $result = run(comparison(pathScenario('large', str_repeat('y', 100), processBlock(number: 1, of: 2, tree: 'kept change', changed: true, folds: $runs) . "\n\n" . processBlock(number: 2, of: 2, tree: str_repeat('u', 100), changed: false))));
+        $comment = read($result['output']);
+
+        return expectAll([
+            [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
+            [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . utf16Length($comment['body'])],
+            [! str_contains($comment['body'], str_repeat('r', 2_500)), 'the unchanged steps are emptied'],
+            [substr_count($comment['body'], "<details>\n<summary>… 12 unchanged steps, in the run's artifact</summary>") === 30, 'their folds keep their summary'],
+            [str_contains($comment['body'], 'kept change'), 'the changed steps stay'],
+            [str_contains($comment['body'], 'The steps of 1 unchanged process and 30 runs of unchanged steps of `large` are left out'), 'says what was left out: ' . substr($comment['body'], -600)],
+            [structureProblemOf($comment['body']) === null, 'balanced, with blank lines around blocks: ' . structureProblemOf($comment['body'])],
+        ]);
+    },
+    'a scenario too large even emptied is cut between whole parts, never inside a fold' => function (): ?string {
+        $result = run(comparison(pathScenario('large', str_repeat("  a->>b: step\n", 2_000), processBlocks(5, str_repeat('p', 9_000)))));
+        $comment = read($result['output']);
+
+        return expectAll([
+            [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . utf16Length($comment['body'])],
+            [str_contains($comment['body'], 'The rest of `large`, from its message path on, is left out') || str_contains($comment['body'], 'The rest of `large`, from process'), 'says where it is cut'],
+            [substr_count($comment['body'], str_repeat('p', 9_000)) === substr_count($comment['body'], '<details open>'), 'no tree cut in the middle'],
+            [structureProblemOf($comment['body']) === null, 'balanced, with blank lines around blocks: ' . structureProblemOf($comment['body'])],
         ]);
     },
     'the build tree opens the comment and is not taken for a scenario' => function (): ?string {
@@ -278,10 +299,53 @@ function processBlocks(int $count, string $tree): string
 {
     $blocks = [];
     for ($number = 1; $number <= $count; $number++) {
-        $blocks[] = "**Flow · process {$number} of {$count}** · 1 new step · 3 → 4 steps\n`process {$number}`\n\n<details open><summary>Steps of process {$number}</summary>\n\n```diff\n+ {$tree}\n```\n\n</details>";
+        $blocks[] = processBlock(number: $number, of: $count, tree: $tree, changed: true);
     }
 
     return implode("\n\n", $blocks);
+}
+
+function processBlock(int $number, int $of, string $tree, bool $changed, string $folds = ''): string
+{
+    return "**Flow · process {$number} of {$of}** · " . ($changed ? '1 new step · 3 → 4 steps' : 'unchanged · 3 steps') . "\n`process {$number}`\n\n<details" . ($changed ? ' open' : '') . ">\n<summary>Steps of process {$number}</summary>\n\n```diff\n" . ($changed ? '+ ' : '  ') . $tree . "\n```{$folds}\n\n</details>";
+}
+
+function structureProblemOf(string $markdown): ?string
+{
+    $lines = explode("\n", $markdown);
+    $inFence = false;
+    $open = [];
+    foreach ($lines as $position => $line) {
+        $before = $lines[$position - 1] ?? '';
+        $after = $lines[$position + 1] ?? '';
+        if (str_starts_with($line, '```')) {
+            if (($inFence ? $after : $before) !== '') {
+                return "no blank line around the fence on line {$position}";
+            }
+            $inFence = ! $inFence;
+            continue;
+        }
+        if ($inFence) {
+            continue;
+        }
+        if (preg_match('/^<(details|blockquote)( open)?>(<summary>.*<\/summary>)?$/', $line, $tag) === 1) {
+            $open[] = $tag[1];
+            if ($before !== '') {
+                return "no blank line before line {$position}";
+            }
+        } elseif (preg_match('/^<\/(details|blockquote)>$/', $line, $tag) === 1) {
+            if (array_pop($open) !== $tag[1]) {
+                return "line {$position} closes what is not open";
+            }
+            if ($before !== '' || $after !== '') {
+                return "no blank line around line {$position}";
+            }
+        } elseif (str_starts_with($line, '<summary>') && $after !== '') {
+            return "no blank line after the summary on line {$position}";
+        }
+    }
+
+    return $inFence ? 'a fence is left open' : ($open === [] ? null : 'left open: ' . implode(', ', $open));
 }
 
 function utf16Length(string $text): int

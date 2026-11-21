@@ -146,7 +146,12 @@ function commentOf(string $preamble, array $scenarios, string $runUrl): string
             $length += lengthOf($scenario);
             continue;
         }
-        $head = headWithinOf(scenario: $scenario, room: GITHUB_COMMENT_LIMIT - $length - lengthOf($footer), runUrl: $runUrl);
+        if ($shown !== []) {
+            break;
+        }
+        $room = GITHUB_COMMENT_LIMIT - $length - lengthOf($footer);
+        $emptied = withUnchangedStepsLeftOut(scenario: $scenario, room: $room, runUrl: $runUrl);
+        $head = lengthOf($emptied) <= $room ? $emptied : headWithinOf(scenario: $emptied, room: $room, runUrl: $runUrl);
         if ($head !== null) {
             $shown[] = $head;
         }
@@ -155,6 +160,61 @@ function commentOf(string $preamble, array $scenarios, string $runUrl): string
     $leftOut = count($scenarios) - count($shown);
 
     return COMMENT_MARKER . "\n" . $preamble . implode('', $shown) . leftOutNote(leftOut: $leftOut, all: count($scenarios), runUrl: $runUrl);
+}
+
+function withUnchangedStepsLeftOut(string $scenario, int $room, string $runUrl): string
+{
+    $name = preg_match('/\A### (.*)$/m', $scenario, $heading) === 1 ? $heading[1] : 'this scenario';
+    $left = ['processes' => 0, 'runs' => 0];
+    $emptied = $scenario;
+    foreach (['processes' => '/^<details>\n<summary>(Steps of process \d+(?: before)?)<\/summary>$/', 'runs' => '/^<details>\n<summary>(… \d+ unchanged steps)<\/summary>$/'] as $kind => $summary) {
+        if (lengthOf($emptied . noteOfTheEmptied(name: $name, processes: $left['processes'], runs: $left['runs'], runUrl: $runUrl)) <= $room) {
+            break;
+        }
+        $emptied = withFoldsEmptied(markdown: $emptied, summary: $summary, count: $left[$kind]);
+    }
+
+    return $left === ['processes' => 0, 'runs' => 0] ? $scenario : rtrim($emptied, "\n") . "\n" . noteOfTheEmptied(name: $name, processes: $left['processes'], runs: $left['runs'], runUrl: $runUrl);
+}
+
+function withFoldsEmptied(string $markdown, string $summary, int &$count): string
+{
+    $count = 0;
+    $lines = explode("\n", $markdown);
+    $kept = [];
+    for ($position = 0; $position < count($lines); $position++) {
+        if (preg_match($summary, $lines[$position] . "\n" . ($lines[$position + 1] ?? ''), $fold) !== 1) {
+            $kept[] = $lines[$position];
+            continue;
+        }
+        $depth = 0;
+        $end = $position;
+        $inFence = false;
+        for (; $end < count($lines); $end++) {
+            if (str_starts_with($lines[$end], '```')) {
+                $inFence = ! $inFence;
+            } elseif (! $inFence && str_starts_with($lines[$end], '<details')) {
+                $depth++;
+            } elseif (! $inFence && $lines[$end] === '</details>' && --$depth === 0) {
+                break;
+            }
+        }
+        array_push($kept, '<details>', '<summary>' . $fold[1] . ", in the run's artifact</summary>", '', '</details>');
+        $count++;
+        $position = $end;
+    }
+
+    return implode("\n", $kept);
+}
+
+function noteOfTheEmptied(string $name, int $processes, int $runs, string $runUrl): string
+{
+    $what = implode(' and ', array_filter([
+        $processes === 0 ? '' : $processes . ' unchanged process' . ($processes === 1 ? '' : 'es'),
+        $runs === 0 ? '' : $runs . ' run' . ($runs === 1 ? '' : 's') . ' of unchanged steps',
+    ]));
+
+    return $what === '' ? '' : "\nThe steps of {$what} of {$name} are left out to stay within GitHub's 65,536 character limit for a comment; they are in the `" . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n";
 }
 
 function headWithinOf(string $scenario, int $room, string $runUrl): ?string

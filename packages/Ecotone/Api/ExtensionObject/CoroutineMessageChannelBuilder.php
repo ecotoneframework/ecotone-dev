@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Api\Gateway\EcotoneClockInterface;
-use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Api\Scheduling\SleepInterface;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannel;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;

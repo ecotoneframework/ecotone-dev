@@ -20,7 +20,7 @@ final class CoroutineMessageChannelRefusedTest extends TestCase
     public function test_channel_is_refused_without_an_enterprise_licence(): void
     {
         $this->expectException(LicensingException::class);
-        $this->expectExceptionMessage('Coroutine channel `async` requires an Ecotone Enterprise licence. Pass a licence key when bootstrapping Ecotone, or register another message channel builder under `async`.');
+        $this->expectExceptionMessage('Coroutine message channel `async` requires an Ecotone Enterprise licence. Supply the licenceKey: argument of EcotoneLite::bootstrap() or bootstrapFlowTesting(), or licenceKey in your framework\'s Ecotone configuration; alternatively, register another message channel builder under `async`.');
 
         EcotoneLite::bootstrapFlowTesting(extensionObjects: [CoroutineMessageChannelBuilder::create('async')]);
     }
@@ -30,7 +30,7 @@ final class CoroutineMessageChannelRefusedTest extends TestCase
             $this->markTestSkipped();
         }
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Coroutine channel `async` requires the swoole or openswoole extension. Install either extension for the PHP running the application, or register another message channel builder under `async`.');
+        $this->expectExceptionMessage('Coroutine message channel `async` requires the swoole or openswoole extension. Install either extension for the PHP running the application. In tests without it, replace this registration with SimpleMessageChannelBuilder::createQueueChannel(\'async\') and consume it with FlowTestSupport::run(\'async\'), or register another message channel builder under `async`.');
 
         EcotoneLite::bootstrapFlowTesting(extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
     }

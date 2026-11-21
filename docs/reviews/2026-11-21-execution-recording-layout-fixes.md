@@ -32,3 +32,10 @@ The layout (T1 to T9) stands.
 - N14. Named arguments, blank lines, docblock shapes, unused parameter, assignment in a key, `iconOf()` private, one
   step counter and arounds count, shared coroutine test helpers, a test keeping the glossary icon row in step with
   the code.
+
+## Follow-up
+
+- F1. The one Tracing run with 1 failure and 721 assertions: find it or bound it. Every run keeps `--log-junit` under
+  `var/flaky/`; the Tracing suite 30 times (half in random order, seeds kept) and the memory-growth test alone 50
+  times; every assertion in Tracing and the new coroutine and OpenTelemetry tests that depends on bytes, wall-clock
+  time or `usleep` ordering is listed and made deterministic, or shown unable to fail by chance.

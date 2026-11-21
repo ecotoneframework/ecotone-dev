@@ -105,3 +105,20 @@ channel tests with the CI command (54 on Swoole, 49 on OpenSwoole) and the refus
 - **V11 NIT (rest)**: an application clock swapped without pinned time still waits real time; undocumented.
 - **V12 NIT**: the spec does not say that a direct send to the channel is handed over at once and has no userland test.
 - **D17 NIT**: one skill line overruns the wrap width.
+
+## Re-verification at 4b1e06340
+
+All four sessions: no BLOCKING finding. Resolved: D16, D17, V11, V12, V13, G20, B8. The behaviour session reran the
+channel tests with the CI command (55 on Swoole, 50 on OpenSwoole), the refusal and test-clock files (14 in `app`) and
+the skill eval (both cases 1.00 on its run); it read three earlier failing eval answers and found they state what the
+rubric asks, so the lower scores of some runs come from the rubric, not from the skill. New findings:
+
+- **G21 SHOULD-FIX** `packages/Ecotone/src/Lite/Test/Configuration/EcotoneTestSupportModule.php:17,38,183-185`: the
+  open-core test support module imports the Enterprise class `CoroutineMessageChannelSleep` and branches on a
+  registered `CoroutineMessageChannelBuilder` (framework-enterprise-licensing rule 7: open core stays unchanged).
+- **V14 NIT** `api/evals/ecotone-open-swoole/send-in-process/graders/rule-10.md` (rule-9, rule-11 alike): each rubric
+  is one long sentence, which gives split votes; a list of separately checkable phrases would not.
+- **D18 NIT** the outside-a-coroutine refusal repeats the testing advice of the missing-extension refusal word for word.
+
+Left for the maintainer: the default of 10 coroutines (D1), the unbounded `maximumDelay()` and the public
+`$messageChannelName` (B3), the two public pool-wait default constants (B2 / G13).

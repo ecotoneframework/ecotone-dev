@@ -135,6 +135,7 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
             'withEnabledErrorChannel' => [! $metadata->isErrorChannelEnabled, 'a failed message goes to its error channel, or is logged and dropped: inside the sending process there is no consumer to stop with the failure.'],
             'withConnectionRetryTemplate' => [$metadata->connectionRetryTemplate !== null, 'it keeps its messages in the memory of the sending process, so there is no connection to retry.'],
             'withPolledChannelName' => [$metadata->polledChannelName !== null, 'it consumes only its own channel, in the process that sent the message.'],
+            'withSignalInterceptors' => [$metadata->withSignalInterceptors && ! extension_loaded('pcntl'), 'it is consumed inside a worker process it does not own, so it never handles process signals.'],
         ];
         foreach ($settings as $setting => [$configured, $reason]) {
             if ($configured) {

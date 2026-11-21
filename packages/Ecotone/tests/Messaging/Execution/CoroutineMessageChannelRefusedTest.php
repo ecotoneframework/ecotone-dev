@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Environment;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -38,6 +39,17 @@ final class CoroutineMessageChannelRefusedTest extends TestCase
         $this->expectExceptionMessage('Coroutine message channel `async` requires the swoole or openswoole extension. Install either extension for the PHP running the application. For tests on PHP without it, list every environment that runs on Swoole or OpenSwoole on the #[ServiceContext] method returning this builder and leave out only the test environment, for example #[Environment([\'prod\', \'dev\'])] (Laravel names them \'production\' and \'local\'). In the test environment register a queue channel under the same name and drive it from the test: bootstrapFlowTesting(environment: \'test\', extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel(\'async\')]), then the flow test support\'s run(\'async\').');
 
         EcotoneLite::bootstrapFlowTesting(extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+    }
+
+    public function test_signal_handling_requested_for_the_channel_is_refused(): void
+    {
+        if (extension_loaded('pcntl')) {
+            $this->markTestSkipped();
+        }
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Coroutine message channel `async` cannot use PollingMetadata::withSignalInterceptors(): it is consumed inside a worker process it does not own, so it never handles process signals. Remove this setting, or use a channel consumed with ecotone:run.');
+
+        EcotoneLite::bootstrapFlowTesting(extensionObjects: [CoroutineMessageChannelBuilder::create('async'), PollingMetadata::create('async')->withSignalInterceptors(true)], licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
     public function test_a_channel_requires_at_least_one_coroutine(): void

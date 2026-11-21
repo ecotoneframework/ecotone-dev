@@ -407,3 +407,146 @@ is still no attribute, configuration, gateway, console command, exception messag
 developer writes, configures or reads.
 
 Status changes from the new commits: none.
+
+# Round 3
+
+Range `6eaef911c..68f7c794e` (the Swoole source download in CI retries and falls back to GitHub), sent to the same four Orca workers. All four passed.
+
+## Round 3: guidelines
+
+PASSED
+
+Guidelines re-review, round 3: `git diff 6eaef911c..68f7c794e`, head 68f7c794e. Reviewer: the same Orca worker
+session as rounds 1 and 2, Claude Opus 5.5, read only.
+
+#### New commits read
+
+- 1312c76b2 `docs(reviews): round 2 of the pre-PR reviews, all four passed`: appends the four round 2 lists to
+  docs/reviews/2026-11-21-review-list-pre-pr-review.md (D4 / P3).
+- 68f7c794e `ci(swoole): the Swoole source download retries and falls back to the GitHub release tag`:
+  .github/workflows/test-monorepo.yml:257-271. The PECL download (`curl --retry 5 --retry-all-errors`) falls back to
+  `github.com/swoole/swoole-src/archive/refs/tags/v${SWOOLE_VERSION}.tar.gz` and extracts with
+  `--strip-components=1` into `$RUNNER_TEMP/swoole`. The configure flags are unchanged.
+
+Evidence handed over (not re-run by me, since it needs network and is the behaviour session's to judge): both archives
+extracted, passed `phpize`, and `config.m4` holds the swoole-pgsql and swoole-sqlite options.
+`php bin/check-agent-skills.php` on head (read-only container) → `Agent skills are valid.`
+
+#### Question 1: requirements decided `missing` earlier
+
+None. Rounds 1 and 2 passed with no `missing` requirement.
+
+#### Question 2: status changes from the new commits
+
+None. The new code is a CI workflow step and a review record: no PHP, skill, eval, test, `Api/` or storage change.
+
+GL50 — covered — `ci(swoole): …` and `docs(reviews): …` match `type(scope): `. The ci commit body states what broke (HTTP 500 from pecl.php.net failed the compile step before any test), why (the download was piped into tar with no retry), and what changed. The docs(reviews) commit has no body; it records review lists and fixes no defect, so the subject alone describes it.
+GL44, GL45 — covered (unchanged) — the new commits add no rule or convention; earlier evidence stands.
+GL46, GL47 — covered (unchanged) — no skill, grader or prompt changed since round 2, so no new eval run is required.
+GL48 — covered — `phpstan-baseline.neon` is untouched.
+GL49 — covered — the names the step uses exist: `SWOOLE_VERSION` (test-monorepo.yml:262, 6.2.6), the `v<version>` tag form of `swoole/swoole-src`, and the configure options in `config.m4`, per the handed-over phpize evidence.
+GL16 — not-apply — no PHP code added. The two YAML comment lines (test-monorepo.yml:257-258) extend that step's existing explanatory comment block.
+GL1 to GL15, GL17 to GL43 — not-apply — same reasons as rounds 1 and 2; the workflow change touches no test, service, `Api/`, error path, storage, Enterprise file, module or design.
+
+#### Not on the list
+
+1. Still open from round 1: `framework-design-and-briefs` D4 speaks of "numbered findings" while P3 cites it for
+   committing the decided lists. It does not change the result.
+2. This round followed the "never rerun a failed CI check" practice: the flaky download was fixed instead of
+   re-run. Whether the fallback really runs on the GitHub runner (curl ≥ 7.71 for `--retry-all-errors`, and the
+   tag-archive layout) is the behaviour session's to judge.
+
+## Round 3: breaking-changes
+
+PASSED
+
+Breaking-changes re-review (round 3) of dgafka/ai-reviews (PR #777), new commits git diff 6eaef911c..68f7c794e
+(1312c76b2, 68f7c794e).
+
+Question 1 — round 2 missing requirements now covered: round 2 had none missing (PASSED, BC1 to BC8 all
+not-apply), so there is nothing to re-decide.
+
+Question 2 — do the new commits change any other status: no. The two changed files are
+docs/reviews/2026-11-21-review-list-pre-pr-review.md (the round 2 record) and .github/workflows/test-monorepo.yml
+(the Swoole source download in the Monorepo (Swoole coroutines) job now retries 5 times and falls back to the GitHub
+tag archive of the same SWOOLE_VERSION, extracted with --strip-components=1). Neither is under packages/, api/ or
+upgrade/, and the release split (.github/workflows/release.yml:146-190) ships only packages/*. The workflow builds
+the CI runner's extension, which no user installs, and the configure flags are unchanged. The release is still the
+2.0 major (tag 2.0.0-beta.10, alias 2.0.x-dev).
+
+BC1 — not-apply — nothing written to a table, queue, outbox, dead letter or event store changes; no file under packages/
+BC2 — not-apply — no stored form changes (see BC1)
+BC3 — not-apply — no signature under packages/*/Api/, no attribute, gateway, #[ServiceContext] configuration or exception changes
+BC4 — not-apply — no default an application relies on changes; the workflow change affects only the CI runner
+BC5 — not-apply — no Ecotone console command or option changes
+BC6 — not-apply — no behaviour an application observes changes; only how CI fetches the Swoole source
+BC7 — not-apply — the release is the 2.0 major and there is no observable behaviour change
+BC8 — not-apply — nothing written to a shared queue or table changes
+
+Not on the list
+- None.
+
+## Round 3: behaviour
+
+PASSED
+
+### Behaviour re-review, round 3 — 6eaef911c..68f7c794e
+
+New commits: 1312c76b2 (docs/reviews, the round 2 record) and 68f7c794e (`.github/workflows/test-monorepo.yml`: the
+Swoole source download is retried 5 times and falls back to the GitHub release tag). No requirement was `missing`
+after round 2. Below I decide again every requirement the new commits touch; the rest keep their round 2 status
+(behaviour-round2.md).
+
+Checks run (read only; HEAD 68f7c794e, tree clean):
+- `php bin/test-check-agent-skills.php`: 39 checker cases passed. `php bin/check-agent-skills.php`: Agent skills are
+  valid. Both skills still name this workflow file and its `COROUTINE_TESTS`.
+- Both download URLs for `SWOOLE_VERSION: 6.2.6` (test-monorepo.yml:262) answer 200 today:
+  `https://pecl.php.net/get/swoole-6.2.6.tgz` and
+  `https://github.com/swoole/swoole-src/archive/refs/tags/v6.2.6.tar.gz`. The fallback URL's tag naming (`v` + the PECL
+  version) is right.
+- Handed over, not repeated here: in php:8.3-cli both archives extract with `--strip-components=1` and pass
+  `phpize`, and the GitHub archive's config.m4 has the swoole-pgsql and swoole-sqlite options.
+
+#### Covered
+
+BH1 — covered — unchanged; the CI change only keeps the job that runs the coroutine tests from failing before any
+      test, and changes nothing that the change claims about the skills or the checker
+BH13 — covered — no skill or eval file changed since round 2 (the diff touches only .github and docs), so the round 2
+      scores still apply
+
+#### Not apply
+
+BH2 to BH12, BH14 to BH20 — not-apply — unchanged from round 2: the new commits add no behaviour of Ecotone or the
+      checker, and no test
+BH21 — not-apply — no coroutine test file added or removed. The change is to how the Swoole job builds its extension,
+      and the `COROUTINE_TESTS` list in test-monorepo.yml is untouched
+
+#### Not on the list
+
+- A failed PECL attempt costs about 25 s of retries (5 × 5 s delay, also on a 4xx, because of `--retry-all-errors`)
+  before the fallback. That is acceptable for a CI step.
+- The fallback builds from the GitHub tag archive, not the PECL package. phpize regenerates the build files, and the
+  handed-over evidence shows the same configure options exist, but `./configure && make` from that archive was not
+  shown. If the fallback is ever used, the job's own configure and make steps will show whether it builds.
+
+## Round 3: developer-experience
+
+PASSED
+
+Developer experience review, round 3 — branch dgafka/ai-reviews (PR #777), new commits 6eaef911c..68f7c794e
+(1312c76b2, 68f7c794e), read on top of rounds 1 and 2.
+
+Missing requirements from earlier rounds: none. Rounds 1 and 2 were PASSED with NO USER-FACING SURFACE, so nothing had to be covered.
+
+NO USER-FACING SURFACE
+
+DX1 to DX10 — not-apply — the new commits leave that unchanged. They touch two files:
+docs/reviews/2026-11-21-review-list-pre-pr-review.md (the repo-internal record of round 2) and
+.github/workflows/test-monorepo.yml (the CI step that compiles Swoole now downloads the source with
+curl --retry 5 --retry-all-errors and falls back to the GitHub release tag v${SWOOLE_VERSION}, extracted with
+--strip-components=1 into one fixed directory). Both are monorepo CI and maintainer records. No file under packages/
+and no public api/skills/ecotone-* skill changed, and the Swoole build an application uses is not affected, so
+there is still no attribute, configuration, gateway, console command, exception message or default an
+application developer writes, configures or reads.
+
+Status changes from the new commits: none.

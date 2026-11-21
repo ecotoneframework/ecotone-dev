@@ -90,3 +90,18 @@ DSN orders. New findings:
 Left for the maintainer: the default of 10 coroutines (D1), the unbounded `maximumDelay()` and the public
 `$messageChannelName` (B3), `isPollable(): true` (kept: without it the asynchronous consumer is not registered), the
 two public pool-wait default constants (B2 / G13).
+
+## Re-verification at 1c23ef621
+
+All four sessions: no BLOCKING finding. Resolved: G14-G19, B5, B6, D11-D15, V9, V10. The behaviour session reran the
+channel tests with the CI command (54 on Swoole, 49 on OpenSwoole) and the refusal file (4 in `app`). New findings:
+
+- **D16 SHOULD-FIX** both refusals and `SKILL.md` (§7, rule 11): `#[Environment(['prod'])]` removes the channel in
+  every other environment, among them Ecotone's default `dev` and Laravel's `local`, so an application run on Swoole
+  locally loses it.
+- **V13 / G20 / B8 NIT** `CoroutineMessageChannelConsumerRegistration.php:39`, `EcotoneTestSupportModule.php:182-184`:
+  the coroutine sleep is registered under the public id `SleepInterface::class`, which another service could take,
+  and which test support binds whenever time is pinned.
+- **V11 NIT (rest)**: an application clock swapped without pinned time still waits real time; undocumented.
+- **V12 NIT**: the spec does not say that a direct send to the channel is handed over at once and has no userland test.
+- **D17 NIT**: one skill line overruns the wrap width.

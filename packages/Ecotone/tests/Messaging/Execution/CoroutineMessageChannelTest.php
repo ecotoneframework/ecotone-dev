@@ -599,25 +599,28 @@ final class CoroutineMessageChannelTest extends TestCase
             {
                 $this->handled[] = $payload;
             }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('sibling', endpointId: 'sibling.endpoint')]
+            public function sibling(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, ClockInterface::class => $clock], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
-        $started = null;
-        $siblingElapsed = null;
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, ClockInterface::class => $clock], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnceWithHooks(
             0,
-            static function () use ($clock, $ecotone, &$started): void {
-                $started = DatePoint::createFromInterface($clock->now());
+            static function () use ($ecotone): void {
                 $ecotone->sendCommandWithRouting('handle', 'payload');
             },
-            static function () use ($clock, &$started, &$siblingElapsed): void {
+            static function () use ($ecotone): void {
                 (new Coroutine\Channel())->pop(0.001);
-                $siblingElapsed = DatePoint::createFromInterface($clock->now())->durationSince($started)->inMilliseconds();
+                $ecotone->sendCommandWithRouting('sibling', 'sibling');
             },
         );
 
-        $this->assertSame(['payload'], $handler->handled);
-        $this->assertLessThan(200, $siblingElapsed);
+        $this->assertSame(['sibling', 'payload'], $handler->handled);
     }
 
     public function test_a_send_without_a_boundary_is_released_at_once(): void

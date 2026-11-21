@@ -211,7 +211,7 @@ final class CoroutineMessageChannelTest extends TestCase
             $ecotone->sendCommandWithRouting('handle', 'accepted');
         });
 
-        $this->assertContains("Coroutine message channel `async` dropped a message after endpoint `handle.endpoint` failed. Configure #[Asynchronous('async', asynchronousExecution: [new ErrorChannel('failures')])] or PollingMetadata::create('async')->withErrorChannelName('failures') to keep failed messages in a durable queue or dead letter.", $logger->messages);
+        $this->assertContains("Coroutine message channel `async` dropped a message after endpoint `handle.endpoint` failed. Configure #[Asynchronous('async', asynchronousExecution: [new ErrorChannel('failures')])] or PollingMetadata::create('async')->withErrorChannelName('failures') to route failed messages to an error channel; connect that error channel to a durable queue or dead letter to keep them.", $logger->messages);
         $this->assertSame(['accepted'], $handler->handled);
         $this->assertNotEmpty($logger->errors);
         $this->assertStringContainsString('failed-tenant', json_encode($logger->errors));
@@ -430,6 +430,31 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload', metadata: ['tenant' => 'failed-tenant']));
+
+        $this->assertSame([['payload', 'handling failed', 'failed-tenant']], $handler->failures);
+    }
+
+    public function test_polling_metadata_error_channel_receives_the_failure_and_headers(): void
+    {
+        $handler = new class () {
+            public array $failures = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                throw new RuntimeException('handling failed');
+            }
+
+            #[InternalHandler('failures')]
+            public function failed(string $payload, #[Header(ErrorContext::EXCEPTION_MESSAGE)] string $exception, #[Header('tenant')] string $tenant): void
+            {
+                $this->failures[] = [$payload, $exception, $tenant];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), PollingMetadata::create('async')->withErrorChannelName('failures'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload', metadata: ['tenant' => 'failed-tenant']));
 

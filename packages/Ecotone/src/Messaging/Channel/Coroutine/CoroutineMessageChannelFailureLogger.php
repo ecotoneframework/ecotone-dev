@@ -56,7 +56,7 @@ final class CoroutineMessageChannelFailureLogger
             $channelName = $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) ? $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME) : '';
             if (in_array(needle: $channelName, haystack: $this->channelNames, strict: true)) {
                 $endpointId = $failure->endpointId !== '' ? $failure->endpointId : $channelName;
-                $this->logger->error("Coroutine message channel `{$channelName}` dropped a message after endpoint `{$endpointId}` failed. Configure #[Asynchronous('{$channelName}', asynchronousExecution: [new ErrorChannel('failures')])] or PollingMetadata::create('{$channelName}')->withErrorChannelName('failures') to keep failed messages in a durable queue or dead letter.", ['headers' => $message->getHeaders()->headers(), 'exception' => $exception, 'channel' => $channelName, 'endpoint_id' => $endpointId]);
+                $this->logger->error("Coroutine message channel `{$channelName}` dropped a message after endpoint `{$endpointId}` failed. Configure #[Asynchronous('{$channelName}', asynchronousExecution: [new ErrorChannel('failures')])] or PollingMetadata::create('{$channelName}')->withErrorChannelName('failures') to route failed messages to an error channel; connect that error channel to a durable queue or dead letter to keep them.", ['headers' => $message->getHeaders()->headers(), 'exception' => $exception, 'channel' => $channelName, 'endpoint_id' => $endpointId]);
             }
             throw $exception;
         } finally {

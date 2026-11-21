@@ -100,7 +100,7 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
                 throw LicensingException::create("Coroutine message channel `{$channel->messageChannelName}` requires an Ecotone Enterprise licence. Supply the licenceKey: argument of EcotoneLite::bootstrap() or bootstrapFlowTesting(), or licenceKey in your framework's Ecotone configuration; alternatively, register another message channel builder under `{$channel->messageChannelName}`.");
             }
             if (! extension_loaded('swoole') && ! extension_loaded('openswoole')) {
-                throw ConfigurationException::create("Coroutine message channel `{$channel->messageChannelName}` requires the swoole or openswoole extension. Install either extension for the PHP running the application. In tests without it, replace this registration with SimpleMessageChannelBuilder::createQueueChannel('{$channel->messageChannelName}') and consume it with FlowTestSupport::run('{$channel->messageChannelName}'), or register another message channel builder under `{$channel->messageChannelName}`.");
+                throw ConfigurationException::create("Coroutine message channel `{$channel->messageChannelName}` requires the swoole or openswoole extension. Install either extension for the PHP running the application. In tests without it, put #[Environment(['prod'])] on the #[ServiceContext] method returning this builder, bootstrapFlowTesting(environment: 'test', extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('{$channel->messageChannelName}')]), then call the flow test support's run('{$channel->messageChannelName}').");
             }
         }
     }

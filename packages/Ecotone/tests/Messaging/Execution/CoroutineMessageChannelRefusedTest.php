@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Execution;
 
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Environment;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -30,7 +35,7 @@ final class CoroutineMessageChannelRefusedTest extends TestCase
             $this->markTestSkipped();
         }
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Coroutine message channel `async` requires the swoole or openswoole extension. Install either extension for the PHP running the application. In tests without it, replace this registration with SimpleMessageChannelBuilder::createQueueChannel(\'async\') and consume it with FlowTestSupport::run(\'async\'), or register another message channel builder under `async`.');
+        $this->expectExceptionMessage('Coroutine message channel `async` requires the swoole or openswoole extension. Install either extension for the PHP running the application. In tests without it, put #[Environment([\'prod\'])] on the #[ServiceContext] method returning this builder, bootstrapFlowTesting(environment: \'test\', extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel(\'async\')]), then call the flow test support\'s run(\'async\').');
 
         EcotoneLite::bootstrapFlowTesting(extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
     }
@@ -42,4 +47,32 @@ final class CoroutineMessageChannelRefusedTest extends TestCase
 
         CoroutineMessageChannelBuilder::create('async')->withCoroutines(0);
     }
+
+    public function test_a_production_coroutine_channel_can_be_replaced_with_a_queue_in_tests(): void
+    {
+        $handler = new class () {
+            public array $handled = [];
+
+            #[ServiceContext]
+            #[Environment(['prod'])]
+            public function channel(): CoroutineMessageChannelBuilder
+            {
+                return CoroutineMessageChannelBuilder::create('async');
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'test.queue.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $flow = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')], environment: 'test');
+
+        $flow->sendCommandWithRouting('handle', 'payload');
+        $this->assertSame([], $handler->handled);
+        $flow->run('async');
+        $this->assertSame(['payload'], $handler->handled);
+    }
+
 }

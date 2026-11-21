@@ -257,9 +257,23 @@ Without an error channel, the channel and endpoint are logged with the exception
 message is dropped. Configure an error channel connected to durable storage to retain failures. `#[Delayed]` and
 delayed retries wait on native coroutine timers, including when sleep hooks are disabled.
 
-For application tests on PHP without the extension, replace the production channel registration with
-`Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel('notifications')`. Send the command,
-then call `$flow->run('notifications')` on the flow test support. This covers application routing and handlers;
+For application tests on PHP without the extension, put
+`#[Ecotone\Api\Attribute\Environment(['prod'])]` on the production `#[ServiceContext]` method returning the
+coroutine message channel. Bootstrap the test in the `test` environment and register only the queue for that name:
+
+```php
+$flow = Ecotone\Api\Lite\EcotoneLite::bootstrapFlowTesting(
+    [$handler::class, NotificationChannels::class],
+    [$handler],
+    extensionObjects: [Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel('notifications')],
+    environment: 'test',
+);
+$flow->sendCommandWithRouting('notifications.send', $notification);
+$flow->run('notifications');
+```
+
+Call `run('notifications')` on the flow test support after sending. The environment excludes the production
+registration, so the channel is not registered twice. This covers application routing and handlers;
 use Swoole/OpenSwoole integration tests for the in-process scheduling guarantee.
 
 Messages and timers are lost on a crash or restart. Worker shutdown has no draining or completion guarantee.

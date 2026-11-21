@@ -897,6 +897,36 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(['started', 'paid'], $ecotone->sendQueryWithRouting('fulfilment.steps', metadata: ['aggregate.id' => 'order-1']));
     }
 
+    #[DataProvider('channel_chains')]
+    public function test_a_handler_chaining_the_channel_with_another_channel_is_refused_at_bootstrap(object $handler, string $chain): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $class = $handler::class;
+        $this->expectExceptionMessage("Coroutine message channel `async` cannot be chained with other channels in #[Asynchronous([{$chain}])] on handler `{$class}::handle` (endpoint `handle.endpoint`): it hands the message over inside the sending process, without the serialisation and acknowledgement a chain of channels relies on. List only `async` in #[Asynchronous], or use channels consumed with ecotone:run for the whole chain.");
+
+        EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), SimpleMessageChannelBuilder::createQueueChannel('queue')], licenceKey: LicenceTesting::VALID_LICENCE);
+    }
+
+    public static function channel_chains(): array
+    {
+        return [
+            [new class () {
+                #[Asynchronous(['queue', 'async'])]
+                #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+                public function handle(string $payload): void
+                {
+                }
+            }, "'queue', 'async'"],
+            [new class () {
+                #[Asynchronous(['async', 'queue'])]
+                #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+                public function handle(string $payload): void
+                {
+                }
+            }, "'async', 'queue'"],
+        ];
+    }
+
     public function test_a_handler_can_send_to_its_own_channel_with_one_coroutine(): void
     {
         $handler = new class () {

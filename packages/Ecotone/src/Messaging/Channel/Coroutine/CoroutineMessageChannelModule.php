@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\Coroutine;
 
+use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -155,12 +156,23 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
         );
         $coroutineHandlers = [];
         foreach ($handlers as $handler) {
-            $channels = array_intersect($endpointChannels[$handler->getAnnotationForMethod()->getEndpointId()] ?? [], $channelNames);
+            $chain = $endpointChannels[$handler->getAnnotationForMethod()->getEndpointId()] ?? [];
+            $channels = array_intersect($chain, $channelNames);
             if ($channels !== []) {
+                $this->refuseChainOfChannels(handler: $handler, channel: reset($channels), chain: $chain);
                 $coroutineHandlers[] = [$handler, $channels];
             }
         }
         return $coroutineHandlers;
+    }
+
+    private function refuseChainOfChannels(AnnotatedFinding $handler, string $channel, array $chain): void
+    {
+        if (count($chain) > 1) {
+            $listed = "'" . implode("', '", $chain) . "'";
+            $endpointId = $handler->getAnnotationForMethod()->getEndpointId();
+            throw ConfigurationException::create("Coroutine message channel `{$channel}` cannot be chained with other channels in #[Asynchronous([{$listed}])] on handler `{$handler->getClassName()}::{$handler->getMethodName()}` (endpoint `{$endpointId}`): it hands the message over inside the sending process, without the serialisation and acknowledgement a chain of channels relies on. List only `{$channel}` in #[Asynchronous], or use channels consumed with ecotone:run for the whole chain.");
+        }
     }
 
     private function refuseUnsupportedDeliveryAttributes(array $handlers, InterfaceToCallRegistry $registry): void

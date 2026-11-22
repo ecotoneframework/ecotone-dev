@@ -40,6 +40,7 @@ final class ChannelSendRecording
     /**
      * @param list<string|object> $interceptors
      * @param list<list<string>> $declaredPhases
+     * @param array<string, scalar> $attributesOfEverySend
      */
     public function __construct(
         private string $channelName,
@@ -47,7 +48,7 @@ final class ChannelSendRecording
         private array $declaredPhases,
         private bool $onlyFlowTestingIntercepts,
         private bool $queued,
-        private bool $consumedInTheSendingProcess,
+        private array $attributesOfEverySend,
         private ExecutionRecordingTracer $tracer,
     ) {
         $this->interceptors = array_map(fn (string|object $interceptor): string => is_object($interceptor) ? $interceptor::class : $interceptor, $interceptors);
@@ -62,7 +63,7 @@ final class ChannelSendRecording
                 ($released ? 'release collected message to ' : 'send ') . $this->channelName,
                 attributes: [
                     SpanAttribute::EXECUTION_SENT_MESSAGE => $messageId,
-                    ...($this->consumedInTheSendingProcess ? [SpanAttribute::EXECUTION_CONSUMED_IN_THE_SENDING_PROCESS => true] : []),
+                    ...$this->attributesOfEverySend,
                     SpanAttribute::EXECUTION_HINTS => ExecutionHint::encoded(array_values(array_filter([
                         $released ? ExecutionHint::shownInLines(ExecutionHint::COLLECTED, 'released after the handler ended') : null,
                         self::retryOf($message),

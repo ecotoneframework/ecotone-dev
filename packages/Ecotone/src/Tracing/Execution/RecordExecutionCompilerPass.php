@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing\Execution;
 
+use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\Collector\CollectorSenderInterceptor;
 use Ecotone\Messaging\Channel\ConsumedInTheSendingProcess;
@@ -169,7 +170,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 array_map(self::declaredPhasesOf(...), $interceptorClasses),
                 array_values(array_filter($interceptorClasses, fn (string $class): bool => ! self::isFlowTesting($class))) === [],
                 $channel->getClassName() === PollableChannelInterceptorAdapter::class,
-                $innerChannel instanceof Definition && is_a($innerChannel->getClassName(), ConsumedInTheSendingProcess::class, true),
+                $innerChannel instanceof Definition && is_a($innerChannel->getClassName(), ConsumedInTheSendingProcess::class, true) ? [SpanAttribute::EXECUTION_CONSUMED_IN_THE_SENDING_PROCESS => true] : [],
                 new Reference(Tracer::class),
             ]));
             $interceptors = [];

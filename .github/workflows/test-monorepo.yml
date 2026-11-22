@@ -235,6 +235,8 @@ jobs:
         packages/Ecotone/tests/Messaging/Execution/CoroutineTestingTest.php
         packages/Ecotone/tests/Messaging/Execution/CoroutineMessageChannelTest.php
         packages/Ecotone/tests/Tracing/CoroutineExecutionRecordingTest.php
+        packages/Ecotone/tests/Tracing/TracingFlowConformanceTest.php
+        packages/OpenTelemetry/tests/Integration/OpenTelemetryFlowConformanceTest.php
         packages/Dbal/tests/Integration/CoroutineExecutionsTest.php
         packages/Dbal/tests/Integration/CoroutineExecutionRecordingTest.php
         packages/Dbal/tests/Integration/CoroutineMessageChannelTest.php
@@ -299,6 +301,15 @@ jobs:
 
     - name: Coroutine tests with ext-amqp
       run: vendor/bin/phpunit --no-coverage --fail-on-skipped --exclude-group ${{ matrix.runtime.tests-of-the-other-runtime }} $COROUTINE_TESTS
+      env:
+        DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
+        SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
+
+    # OpenSwoole does not let a coroutine wait on a PostgreSQL query, so the stored flow of the catalogue's
+    # coroutine scenarios is proven on Swoole
+    - name: Flow tracking stores the catalogue's flows, the ones that need a coroutine runtime included
+      if: matrix.runtime.extension == 'swoole'
+      run: vendor/bin/phpunit --no-coverage --fail-on-skipped packages/Dbal/tests/Conformance/FlowTrackingScenarioConformanceTest.php
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
         SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0

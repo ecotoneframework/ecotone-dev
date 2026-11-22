@@ -44,11 +44,18 @@ jobs:
             echo 'has-tooling=false' >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Set Up PHP
+      # A scenario of the catalogue that needs a coroutine runtime is left out where neither extension is loaded,
+      # so OpenSwoole is loaded here, as in the coroutines job of test-monorepo.yml: the comment shows those scenarios too.
+      # A base commit from before such a scenario snapshots without it, and the comment shows it as running only now
+      - name: Set Up PHP with OpenSwoole
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.5
+          php-version: '8.5'
+          extensions: openswoole
           coverage: none
+
+      - name: Check OpenSwoole is loaded
+        run: php --ri openswoole
 
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction --ignore-platform-reqs

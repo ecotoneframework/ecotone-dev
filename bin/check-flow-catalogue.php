@@ -6,6 +6,7 @@ declare(strict_types=1);
  * licence Apache-2.0
  */
 
+use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Test\Flow\FlowScenario;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 
@@ -19,7 +20,7 @@ if ($problems !== []) {
     fwrite(STDERR, "The flow scenario catalogue is incomplete:\n- " . implode("\n- ", $problems) . "\n");
     exit(1);
 }
-echo 'Flow scenario catalogue: every scenario method is listed by its class, every class by ' . $catalogue . ", and every scenario name is used once.\n";
+echo 'Flow scenario catalogue: every scenario method is listed by its class, every class by ' . $catalogue . ", every scenario name is used once, and every scenario of a coroutine message channel is marked as needing a coroutine runtime.\n";
 
 /**
  * @return list<string>
@@ -46,6 +47,11 @@ function catalogueProblems(string $directory, string $catalogue): array
             continue;
         }
         $listed = array_map(fn (FlowScenario $scenario): string => $scenario->name, $class::all());
+        foreach ($class::all() as $scenario) {
+            if (! $scenario->needsACoroutineRuntime && array_filter($scenario->extensionObjects, fn (object $extensionObject): bool => $extensionObject instanceof CoroutineMessageChannelBuilder) !== []) {
+                $problems[] = "{$class}::all() lists `{$scenario->name}`, which registers a coroutine message channel but is not marked as needing a coroutine runtime: end the scenario with ->needingACoroutineRuntime(), so it is left out where neither swoole nor openswoole is loaded instead of failing there";
+            }
+        }
         foreach (array_diff($listed, $catalogued) as $name) {
             $problems[] = "{$class}::all() lists `{$name}`, but {$catalogue}::all() does not include {$class}::all(): add `...{$class}::all()` to it, so the baseline and the conformance tests run the scenario";
         }

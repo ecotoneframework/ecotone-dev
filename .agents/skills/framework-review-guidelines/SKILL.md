@@ -55,7 +55,7 @@ back to the implementing session to cover, and you decide them again in the re-r
 - **Expected:** the report decides every Guidelines requirement with one of the three statuses; each `missing` line
   carries the requirement id, a file and line, a concrete fix and the skill and rule to load; the report opens with
   `PASSED` or `NOT PASSED` naming the `missing` ids.
-- **Verified by:** `eval:review-diff-guidelines`, `eval:review-scenario-branch`
+- **Verified by:** `eval:review-diff-guidelines`, `eval:review-scenario-branch`, `eval:review-wiring-names-a-feature`
 
 ### G4. A deviation already recorded is not `missing`
 [references/known-deviations.md](references/known-deviations.md) lists audited deviations and audit claims that

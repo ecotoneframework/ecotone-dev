@@ -733,6 +733,45 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(['payload'], $handler->handled);
     }
 
+    public function test_delayed_message_due_in_less_than_a_millisecond_is_handled_without_a_warning(): void
+    {
+        $clock = new class () implements ClockInterface {
+            private int $microseconds = 0;
+
+            public function now(): DateTimeImmutable
+            {
+                return (new DateTimeImmutable('2026-03-01 12:00:00'))->modify('+' . ++$this->microseconds . ' microseconds');
+            }
+        };
+        $handler = new class () {
+            public array $handled = [];
+
+            #[Delayed(milliseconds: 1)]
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, ClockInterface::class => $clock], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $warnings = [];
+        set_error_handler(static function (int $level, string $warning) use (&$warnings): bool {
+            $warnings[] = $warning;
+
+            return true;
+        });
+
+        try {
+            CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertSame([], $warnings);
+        $this->assertSame(['payload'], $handler->handled);
+    }
+
     public function test_delayed_message_with_hooks_off_does_not_stall_a_sibling_coroutine(): void
     {
         $clock = new class () implements ClockInterface {

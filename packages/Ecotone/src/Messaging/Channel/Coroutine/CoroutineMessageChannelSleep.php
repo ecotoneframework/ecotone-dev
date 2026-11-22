@@ -28,6 +28,7 @@ use Ecotone\Api\Scheduling\SleepInterface;
 final class CoroutineMessageChannelSleep implements SleepInterface
 {
     public const SERVICE_ID = 'ecotone.coroutine_message_channel.sleep';
+    private const SHORTEST_SWOOLE_TIMER_IN_SECONDS = 0.001;
 
     public function sleep(Duration $duration): void
     {
@@ -39,7 +40,7 @@ final class CoroutineMessageChannelSleep implements SleepInterface
         if (method_exists($system, 'usleep')) {
             $system::usleep($duration->inMicroseconds());
         } else {
-            $system::sleep($duration->toFloat());
+            $system::sleep(max(self::SHORTEST_SWOOLE_TIMER_IN_SECONDS, $duration->toFloat()));
         }
     }
 }

@@ -8,6 +8,8 @@ use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Poller;
+use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
@@ -171,6 +173,26 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertIsInt($wiringDiagram);
         self::assertLessThan($collapsed, $path);
         self::assertLessThan(strpos($markdown, "</details>\n", $wiringDiagram), $wiringDiagram);
+    }
+
+    public function test_the_build_presentation_lists_the_interceptors_of_a_poll_that_wraps_no_step(): void
+    {
+        $this->recordAnOrderThatGainsAnAudit('Placing an order');
+        $scheduled = new class () {
+            #[Scheduled(endpointId: 'scheduled_handler')]
+            #[Poller(fixedRateInMilliseconds: 1)]
+            public function handle(): void
+            {
+            }
+        };
+        $ecotone = $this->application([$scheduled::class], [$scheduled]);
+        $ecotone->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(1));
+        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Polling', 'location' => $this->location . '/after']);
+
+        $markdown = $this->presentation('build');
+
+        self::assertStringContainsString("### `Polling`\n\nBefore: this scenario was not in the catalogue.", $markdown);
+        self::assertStringContainsString('poll scheduled_handler', $markdown);
     }
 
     public function test_the_build_presentation_lists_every_process_in_run_order_with_its_status_and_step_count(): void
@@ -360,7 +382,7 @@ final class BuildFlowPresentationTest extends TestCase
     {
         $this->recordAnOrderThatGainsAnAudit('Placing an order');
 
-        $this->expectExceptionMessage('ecotone:build-flow:compare was asked for presentation `D`, which it cannot produce. Pass --presentation=before-after (the default) for a before/after pair of diagrams and step lists, --presentation=marked for one diagram with the changes marked and one step list, --presentation=path for the message\'s path as a sequence diagram with what changed in sentences, --presentation=build for the build, the message\'s path and the marked wiring collapsed, or --presentation=json for the raw comparison.');
+        $this->expectExceptionMessage('ecotone:build-flow:compare was asked for presentation `D`, which it cannot produce. Pass --presentation=before-after (the default) for a before/after pair of diagrams and step lists, --presentation=marked for one diagram with the changes marked and one step list, --presentation=path for the message\'s path as a flow diagram with what changed in sentences, --presentation=build for the build, the message\'s path and the marked wiring collapsed, or --presentation=json for the raw comparison.');
 
         $this->presentation('D');
     }

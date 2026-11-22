@@ -220,7 +220,7 @@ final class FlowStepTree
             $chain[] = $current;
         }
 
-        return $this->aroundsIn($chain) >= 2 ? $chain : null;
+        return $this->aroundsIn($chain) >= 2 && $this->childrenOf($current) !== [] ? $chain : null;
     }
 
     /**

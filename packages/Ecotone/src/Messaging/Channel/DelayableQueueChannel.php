@@ -11,7 +11,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Api\Scheduling\DatePoint;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\GenericMessage;
@@ -125,9 +125,9 @@ final class DelayableQueueChannel implements PollableChannel, DefinedObject
         // No cleanup needed for delayable queue channels
     }
 
-    public function releaseMessagesAwaitingFor(int|TimeSpan|DateTimeInterface $time): void
+    public function releaseMessagesAwaitingFor(int|Duration|DateTimeInterface $time): void
     {
-        $this->releaseMessagesAwaitingFor = $time instanceof TimeSpan ? $time->toMilliseconds() : $time;
+        $this->releaseMessagesAwaitingFor = $time instanceof Duration ? $time->inMilliseconds() : $time;
     }
 
     public function __toString()

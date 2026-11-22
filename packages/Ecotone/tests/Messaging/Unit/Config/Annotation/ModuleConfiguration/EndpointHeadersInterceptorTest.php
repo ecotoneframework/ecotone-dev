@@ -9,7 +9,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -133,7 +133,7 @@ class EndpointHeadersInterceptorTest extends TestCase
         );
 
         $command = new stdClass();
-        $command->delay = TimeSpan::withSeconds(1);
+        $command->delay = Duration::seconds(1);
         $command->timeToLive = new stdClass();
 
         $this->expectException(ConfigurationException::class);
@@ -165,12 +165,12 @@ class EndpointHeadersInterceptorTest extends TestCase
         $headers = $ecotoneLite
             ->sendCommandWithRouting('keepHeaders', metadata: [
                 MessageHeaders::DELIVERY_DELAY => $deliveryDelay = 1,
-                MessageHeaders::TIME_TO_LIVE => $timeToLive = TimeSpan::withSeconds(2),
+                MessageHeaders::TIME_TO_LIVE => $timeToLive = Duration::seconds(2),
             ])
             ->popRecordedMessagesFrom('async')[0]->getHeaders()->headers();
 
         $this->assertEquals($deliveryDelay, $headers[MessageHeaders::DELIVERY_DELAY]);
-        $this->assertEquals($timeToLive->toMilliseconds(), $headers[MessageHeaders::TIME_TO_LIVE]);
+        $this->assertEquals($timeToLive->inMilliseconds(), $headers[MessageHeaders::TIME_TO_LIVE]);
     }
 
     public function test_delivery_delay_and_time_to_live_add_headers_when_headers_are_missing()

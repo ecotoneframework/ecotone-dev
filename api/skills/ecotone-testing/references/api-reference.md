@@ -123,7 +123,7 @@ calling `->run($endpointId)` again; a synchronous or async-channel projection ha
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `changeTimeTo(DateTimeImmutable $time)` | `self` | Set clock to specific time (same or later instant) |
-| `advanceTimeBy(TimeSpan\|Duration $span)` | `self` | Move clock forward by span; calls add up |
+| `advanceTimeBy(Duration $span)` | `self` | Move clock forward by span; calls add up |
 | `now()` | `DatePoint` | The clock's current time |
 
 `bootstrapFlowTesting(initialTime: new DateTimeImmutable(...))` pins the clock before bootstrap, so the first message

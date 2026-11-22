@@ -21,7 +21,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Pulse\PulseConfiguration;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -81,7 +81,7 @@ final class CollectingPulseTest extends TestCase
         $batchId = $service->getGateway(GatheredGroups::class)->listOpenGroups('pulse.collect.handler')[0]['groupId'];
         $reply = $this->request(service: $service, pulseService: $pulseService, pulse: $pulse, routingKey: 'ecotone.pulse.gathering.discard', payload: ['groupId' => $batchId]);
         self::assertSame(['groupId' => $batchId, 'status' => 'discarded'], $reply['gatheringAction']);
-        $service->advanceTimeBy(new TimeSpan(seconds: 10));
+        $service->advanceTimeBy(new Duration(seconds: 10));
         $service->run('batches');
         self::assertSame([], $handler->batches);
         self::assertSame([], $service->getGateway(GatheredGroups::class)->listOpenGroups('pulse.collect.handler'));
@@ -92,7 +92,7 @@ final class CollectingPulseTest extends TestCase
         $handler = new class () {
             public array $batches = [];
 
-            #[Collected(maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["tenant"]')]
+            #[Collected(maxWait: new Duration(seconds: 10), groupBy: 'payload["tenant"]')]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'pulse.collect.handler')]
             public function collect(CollectedMessages $batch): void

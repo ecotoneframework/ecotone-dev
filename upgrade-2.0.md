@@ -2045,12 +2045,12 @@ public function handle(ExportOrder $command, SerializerGateway $serializer): voi
 }
 ```
 
-### 13c. Aggregate traits, `Event`, interceptor types, `TimeSpan`, `MessageHeaders`, `ModulePackageList` and `DynamicMessageChannelBuilder` moved into `Api` too
+### 13c. Aggregate traits, `Event`, interceptor types, `MessageHeaders`, `ModulePackageList` and `DynamicMessageChannelBuilder` moved into `Api` too
 
-**Before:** nine types an application writes sat in `@internal` namespaces. Several were already named by a public
+**Before:** eight types an application writes sat in `@internal` namespaces. Several were already named by a public
 `Api` signature — `EventStore` returned `Event`, `#[Around]` and its siblings defaulted to a `Precedence` constant,
-`#[Delayed]` and `#[TimeToLive]` took a `TimeSpan` — so an application using the public class still had to import
-an internal one:
+`#[Delayed]` and `#[TimeToLive]` took a `TimeSpan` (replaced by `Duration`, §13l) — so an application using the
+public class still had to import an internal one:
 
 ```php
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;    // internal
@@ -2058,7 +2058,6 @@ use Ecotone\Messaging\Config\ModulePackageList;                              // 
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;      // internal
 use Ecotone\Messaging\MessageHeaders;                                        // internal
 use Ecotone\Messaging\Precedence;                                            // internal
-use Ecotone\Messaging\Scheduling\TimeSpan;                                   // internal
 use Ecotone\Modelling\Event;                                                 // internal
 use Ecotone\Modelling\WithAggregateVersioning;                               // internal
 use Ecotone\Modelling\WithEvents;                                            // internal
@@ -2077,7 +2076,6 @@ use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Modelling\WithEvents;
-use Ecotone\Api\Scheduling\TimeSpan;
 ```
 
 | 1.x and early 2.0 | 2.0 |
@@ -2087,7 +2085,6 @@ use Ecotone\Api\Scheduling\TimeSpan;
 | `Ecotone\Modelling\Event` | `Ecotone\Api\EventSourcing\Event` |
 | `Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation` | `Ecotone\Api\Interceptor\MethodInvocation` |
 | `Ecotone\Messaging\Precedence` | `Ecotone\Api\Interceptor\Precedence` |
-| `Ecotone\Messaging\Scheduling\TimeSpan` | `Ecotone\Api\Scheduling\TimeSpan` |
 | `Ecotone\Messaging\MessageHeaders` | `Ecotone\Api\Messaging\MessageHeaders` |
 | `Ecotone\Messaging\Config\ModulePackageList` | `Ecotone\Api\ExtensionObject\ModulePackageList` |
 | `Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder` | `Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder` |
@@ -2095,7 +2092,7 @@ use Ecotone\Api\Scheduling\TimeSpan;
 **How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Same class names, same
 methods, same constants with the same values — a header named with `MessageHeaders::MESSAGE_ID` is still `'id'`, a
 skip list built from `ModulePackageList::DBAL_PACKAGE` is still `'dbal'`, and `Precedence::DATABASE_TRANSACTION_PRECEDENCE`
-is still `-2000`. None of the nine is a container service, so no service id changes with them.
+is still `-2000`. None of the eight is a container service, so no service id changes with them.
 
 A trait is resolved when its class is loaded, so an aggregate that still says `use Ecotone\Modelling\WithEvents;`
 fails at that point with PHP's `Trait "Ecotone\Modelling\WithEvents" not found`, not at bootstrap; a stale
@@ -2122,7 +2119,7 @@ forwarded metadata with framework keys stripped keeps the keys it set itself, by
 `array_intersect_key($metadata, array_flip(['tenantId', 'userId']))`. Code that listed every package to build a
 `withEnabledModulePackageNames()` argument names the packages it needs instead, as `ModulePackageList` constants.
 
-Only these nine moved here. `EcotoneLite` stayed behind at first: it hands the application `FlowTestSupport` and
+Only these eight moved here. `EcotoneLite` stayed behind at first: it hands the application `FlowTestSupport` and
 `ConfiguredMessagingSystem`, so moving it alone would have relocated the boundary without closing it. The three
 moved together later, in §13e. `ErrorMessage` moved last, in §13i. The rule this closes is
 [conventions rule 12a](.agents/skills/framework-public-api/references/rules.md#12a-the-boundary-holds-in-both-directions).
@@ -2149,7 +2146,7 @@ use Ecotone\Messaging\Scheduling\SleepInterface;                 // internal
 ```
 
 **Now:** each sits beside the public type that takes or returns it — the matcher and its enums with `EventStore`,
-the clock's types with `TimeSpan`, `Future` and `ErrorContext` with `MessageHeaders`, `FetchMode` in
+the clock's types in `Ecotone\Api\Scheduling`, `Future` and `ErrorContext` with `MessageHeaders`, `FetchMode` in
 `Ecotone\Api\Dbal` — and `LoggingLevel` gets a `Logging` area of its own:
 
 ```php
@@ -2585,6 +2582,41 @@ own. One that registers it under the literal pre-release string has to use the c
 
 **How to adapt:** change the import; `upgrade/namespace-map-2.0.csv` has every row. The transport internals
 (`DbalContext`, `DbalConsumer`, the Enqueue contexts) stay where §5 lists them.
+
+### 13l. `TimeSpan` is replaced by `Duration`
+
+**Before:** a length of time had two types. `Ecotone\Messaging\Scheduling\TimeSpan` was what an application passed
+to `#[Delayed]`, `#[TimeToLive]` and `releaseMessagesAwaitingFor()`; `Ecotone\Messaging\Scheduling\Duration` was what
+the clock, `DatePoint` and `advanceTimeTo()` worked in. `TimeSpan` could be written inside an attribute and held
+milliseconds; `Duration` held microseconds and could be added and compared, but was built only through static
+factories, which an attribute argument can not call.
+
+**Now:** `Ecotone\Api\Scheduling\Duration` is the only one, everywhere a length of time is passed or returned, and
+`TimeSpan` is removed. `Duration` takes the units `TimeSpan` took, in the same order, so it can be written inside an
+attribute:
+
+```php
+use Ecotone\Api\Scheduling\Duration;
+
+#[Delayed(new Duration(hours: 24))]
+#[TimeToLive(new Duration(minutes: 5))]
+```
+
+| 1.x | 2.0 |
+|---|---|
+| `use Ecotone\Messaging\Scheduling\TimeSpan;` | `use Ecotone\Api\Scheduling\Duration;` |
+| `new TimeSpan(hours: 1, minutes: 30)`, `new TimeSpan(500)` | `new Duration(hours: 1, minutes: 30)`, `new Duration(500)` — same parameters, same order, the first is still milliseconds |
+| `TimeSpan::withMilliseconds(500)`, `withSeconds(5)`, `withMinutes(5)`, `withHours(1)`, `withDays(1)` | `Duration::milliseconds(500)`, `seconds(5)`, `minutes(5)`, `hours(1)`, `days(1)` |
+| `$timeSpan->toMilliseconds()` | `$duration->inMilliseconds()` |
+| `$timeSpan->toDuration()` | the value itself |
+| `$timeSpan->seconds`, `->minutes`, `->hours`, `->days`, `->milliseconds` | removed: a `Duration` is one length, read with `inMicroseconds()`, `inMilliseconds()` or `inSeconds()` |
+| `TimeSpan::fromDateInterval($interval)` — months and years were dropped without a word | `Duration::fromDateInterval($interval)` — an interval holding months or years is refused, because their length depends on the calendar |
+| `new Duration($microseconds)` | `Duration::microseconds($microseconds)` or `new Duration(microseconds: $microseconds)` |
+
+**How to adapt:** apply the table. Every row but the last fails loudly when left as it was — a missing class, or
+`Call to undefined method`. The last one does not: `Duration`'s first constructor parameter was microseconds and is
+now milliseconds, so a positional `new Duration(1000)` that meant one millisecond now means one second. Search for
+`new Duration(` and name the unit. The static factories (`Duration::seconds(5)` and the others) are unchanged.
 
 ## 14. Smaller behaviour changes
 
@@ -4418,7 +4450,7 @@ rename test-support methods without aliases; the renamed methods are listed in e
   throws, now with `Cannot move time backwards: the test clock is at 2026-03-01 13:00:00.000000 and you requested
   2026-03-01 12:00:00.000000. Request a later time, or use advanceTimeBy() to move forward relative to the current time.`
   **How to adapt:** nothing.
-- **`advanceTimeTo(Duration)` is renamed `advanceTimeBy(TimeSpan|Duration)`, and `run()` no longer takes a time
+- **`advanceTimeTo(Duration)` is renamed `advanceTimeBy(Duration)`, and `run()` no longer takes a time
   argument.** The third argument of `run($name, $metadata, $releaseAwaitingFor)` released messages whose *original delay*
   was at most the given span (or which were due at a given date) without moving the clock, so `run(…, 23h)` followed by
   `run(…, 2h)` never released a 24-hour delay. Time now moves only through the clock, and `run()` delivers what is due
@@ -4428,7 +4460,7 @@ rename test-support methods without aliases; the renamed methods are listed in e
   | 1.x / early 2.0 | 2.0 |
   |---|---|
   | `$ecotone->advanceTimeTo(Duration::seconds(5))` | `$ecotone->advanceTimeBy(Duration::seconds(5))` |
-  | `$ecotone->run('async', $metadata, TimeSpan::withHours(1))` | `$ecotone->advanceTimeBy(TimeSpan::withHours(1))->run('async', $metadata)` |
+  | `$ecotone->run('async', $metadata, TimeSpan::withHours(1))` | `$ecotone->advanceTimeBy(Duration::hours(1))->run('async', $metadata)` |
   | `$ecotone->run('async', releaseAwaitingFor: $dateTime)` | `$ecotone->changeTimeTo($dateTime)->run('async')` |
 
   A test that used the span as "release everything delayed by up to X" while keeping the clock still must now move the
@@ -4536,7 +4568,7 @@ rename test-support methods without aliases; the renamed methods are listed in e
   #[Reference].`). Parameter resolution is unchanged.
   **How to adapt:** nothing; add `#[Reference]` where the message tells you to.
 - **New: `#[Delayed]` accepts named durations.** `#[Delayed(hours: 24)]` and `#[Delayed(minutes: 30, seconds: 10)]`
-  (`milliseconds`, `seconds`, `minutes`, `hours`, `days`) work next to `#[Delayed(new TimeSpan(hours: 24))]`. Passing both a
+  (`milliseconds`, `seconds`, `minutes`, `hours`, `days`) work next to `#[Delayed(new Duration(hours: 24))]`. Passing both a
   `$time` and a named duration throws `#[Delayed] takes either $time or named durations (milliseconds, seconds, minutes,
   hours, days), not both.` **How to adapt:** nothing.
 - **New: `WithAggregateVersioning::getVersion()`.** Aggregates using the trait expose their current version. The version

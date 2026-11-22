@@ -12,7 +12,7 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\DatePoint;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Messaging\Conversion\ConversionException;
@@ -475,16 +475,16 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         $orderId = 'someId';
         $ecotoneTestSupport->changeTimeTo(new DateTimeImmutable('2026-01-01 12:00:00'));
         $ecotoneTestSupport->sendCommandWithRouting('order.register', new PlaceOrder($orderId), metadata: [
-            MessageHeaders::DELIVERY_DELAY => TimeSpan::withHours(1),
+            MessageHeaders::DELIVERY_DELAY => Duration::hours(1),
         ]);
 
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
-        $ecotoneTestSupport->advanceTimeBy(TimeSpan::withMinutes(59))->run('orders');
+        $ecotoneTestSupport->advanceTimeBy(Duration::minutes(59))->run('orders');
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
-        $ecotoneTestSupport->advanceTimeBy(TimeSpan::withMinutes(1))->run('orders');
+        $ecotoneTestSupport->advanceTimeBy(Duration::minutes(1))->run('orders');
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertEquals([$orderId], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));

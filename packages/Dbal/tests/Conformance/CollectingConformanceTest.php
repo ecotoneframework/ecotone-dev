@@ -35,7 +35,7 @@ use Ecotone\Api\Messaging\CollectedReleaseReason;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RequiresPhp;
@@ -138,7 +138,7 @@ final class CollectingConformanceTest extends TestCase
         $handler = new class () {
             public array $batches = [];
 
-            #[Collected(maxSize: 3, maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxSize: 3, maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -153,11 +153,11 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         self::assertSame([], $handler->batches);
 
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 9));
+        $ecotone->advanceTimeBy(new Duration(seconds: 9));
         $ecotone->run('batches');
         self::assertSame([], $handler->batches);
 
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 1));
+        $ecotone->advanceTimeBy(new Duration(seconds: 1));
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
         self::assertSame(['first'], array_column($handler->batches[0]->messages, 'payload'));
@@ -199,7 +199,7 @@ final class CollectingConformanceTest extends TestCase
         $handler = new class () {
             public array $batches = [];
 
-            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -214,11 +214,11 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         self::assertSame([], $handler->batches);
 
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 9));
+        $ecotone->advanceTimeBy(new Duration(seconds: 9));
         $ecotone->run('batches');
         self::assertSame([], $handler->batches);
 
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 1));
+        $ecotone->advanceTimeBy(new Duration(seconds: 1));
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
         self::assertSame(['first'], array_column($handler->batches[0]->messages, 'payload'));
@@ -346,7 +346,7 @@ final class CollectingConformanceTest extends TestCase
         $handler = new class () {
             public array $batches = [];
 
-            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -357,11 +357,11 @@ final class CollectingConformanceTest extends TestCase
         $ecotone = $this->bootstrap($handler, $durable);
         $ecotone->sendCommandWithRouting('collect', 'first');
         $ecotone->run('batches');
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 9));
+        $ecotone->advanceTimeBy(new Duration(seconds: 9));
         $ecotone->sendCommandWithRouting('collect', 'second');
         $ecotone->run('batches');
         self::assertSame([], $handler->batches);
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 1));
+        $ecotone->advanceTimeBy(new Duration(seconds: 1));
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
         self::assertSame(['first', 'second'], array_column($handler->batches[0]->messages, 'payload'));
@@ -444,7 +444,7 @@ final class CollectingConformanceTest extends TestCase
             public array $attempts = [];
             public array $reasons = [];
 
-            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -463,7 +463,7 @@ final class CollectingConformanceTest extends TestCase
         if ($manual) {
             $groups->requestRelease($groups->listOpenGroups('collect.handler')[0]['groupId']);
         } else {
-            $ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
+            $ecotone->advanceTimeBy(new Duration(seconds: 10));
         }
         try {
             $ecotone->run('batches');
@@ -492,7 +492,7 @@ final class CollectingConformanceTest extends TestCase
             public bool $available = false;
             public array $attempts = [];
 
-            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -512,7 +512,7 @@ final class CollectingConformanceTest extends TestCase
         if ($manual) {
             $groups->requestRelease($groups->listOpenGroups('collect.handler')[0]['groupId']);
         }
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 11));
+        $ecotone->advanceTimeBy(new Duration(seconds: 11));
         $ecotone->run('batches', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
         self::assertSame($manual ? [['first'], ['first']] : [['first']], $handler->attempts);
         $failed = array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previous, true)));
@@ -659,7 +659,7 @@ final class CollectingConformanceTest extends TestCase
     public function test_console_lists_a_batch_by_endpoint_id_in_the_shared_group_columns(bool $durable): void
     {
         $handler = new class () {
-            #[Collected(maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["tenant"]')]
+            #[Collected(maxWait: new Duration(seconds: 10), groupBy: 'payload["tenant"]')]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -776,7 +776,7 @@ final class CollectingConformanceTest extends TestCase
     public function test_listing_an_unknown_endpoint_id_names_the_known_endpoint_ids(bool $durable): void
     {
         $handler = new class () {
-            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -801,7 +801,7 @@ final class CollectingConformanceTest extends TestCase
     public function test_batches_stored_under_an_endpoint_id_without_a_current_handler_are_still_listed(): void
     {
         $before = new class () {
-            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.renamed.before')]
             public function collect(CollectedMessages $batch): void
@@ -809,7 +809,7 @@ final class CollectingConformanceTest extends TestCase
             }
         };
         $after = new class () {
-            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.renamed.after')]
             public function collect(CollectedMessages $batch): void
@@ -869,7 +869,7 @@ final class CollectingConformanceTest extends TestCase
         $handler = new class () {
             public array $batches = [];
 
-            #[Collected(maxSize: 2, maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxSize: 2, maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -882,13 +882,13 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect', 'second');
         $ecotone->run('batches');
         self::assertSame(CollectedReleaseReason::MAX_SIZE_REACHED, $handler->batches[0]->releaseReason);
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 9));
+        $ecotone->advanceTimeBy(new Duration(seconds: 9));
         $ecotone->sendCommandWithRouting('collect', 'third');
         $ecotone->run('batches');
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 1));
+        $ecotone->advanceTimeBy(new Duration(seconds: 1));
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 9));
+        $ecotone->advanceTimeBy(new Duration(seconds: 9));
         $ecotone->run('batches');
         self::assertCount(2, $handler->batches);
         self::assertSame(['third'], array_column($handler->batches[1]->messages, 'payload'));
@@ -912,7 +912,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone = $this->bootstrap($handler, $durable);
         $ecotone->sendCommandWithRouting('collect', 'first');
         $ecotone->run('batches');
-        $ecotone->advanceTimeBy(new TimeSpan(days: 30));
+        $ecotone->advanceTimeBy(new Duration(days: 30));
         $ecotone->run('batches');
         self::assertSame([], $handler->batches);
         $groups = $ecotone->getGateway(GatheredGroups::class);
@@ -942,7 +942,7 @@ final class CollectingConformanceTest extends TestCase
                 }
             }
 
-            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -960,7 +960,7 @@ final class CollectingConformanceTest extends TestCase
         self::assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('collect.handler'));
         $handler->failTimeout = false;
         $ecotone->run('batches');
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
+        $ecotone->advanceTimeBy(new Duration(seconds: 10));
         $ecotone->run('batches');
         self::assertSame(['first'], array_column($handler->batches[0]->messages, 'payload'));
     }
@@ -1008,10 +1008,10 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->run('batches');
         $closedId = array_values(array_diff(array_column($groups->listClosedGroups('collect.handler'), 'groupId'), $before))[0];
         $openId = $groups->listOpenGroups('collect.handler')[0]['groupId'];
-        $ecotone->advanceTimeBy(new TimeSpan(days: 6));
+        $ecotone->advanceTimeBy(new Duration(days: 6));
         $groups->cleanupClosedGroups();
         self::assertContains($closedId, array_column($groups->listClosedGroups('collect.handler'), 'groupId'));
-        $ecotone->advanceTimeBy(new TimeSpan(days: 1));
+        $ecotone->advanceTimeBy(new Duration(days: 1));
         $groups->cleanupClosedGroups();
         self::assertNotContains($closedId, array_column($groups->listClosedGroups('collect.handler'), 'groupId'));
         self::assertContains($openId, array_column($groups->listOpenGroups('collect.handler'), 'groupId'));
@@ -1072,7 +1072,7 @@ final class CollectingConformanceTest extends TestCase
             public array $batches = [];
             public array $tenants = [];
 
-            #[Collected(maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["key"]')]
+            #[Collected(maxWait: new Duration(seconds: 10), groupBy: 'payload["key"]')]
             #[Asynchronous('tenant_batches')]
             #[CommandHandler('collect.tenant', endpointId: 'collect.tenant.handler')]
             public function collect(CollectedMessages $batch, #[Header('tenant')] ?string $tenant = null): void
@@ -1098,7 +1098,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect.tenant', ['key' => $key, 'value' => 'first'], metadata: ['tenant' => 'collecting_tenant']);
         $ecotone->run('tenant_batches');
         self::assertSame([], $handler->batches);
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
+        $ecotone->advanceTimeBy(new Duration(seconds: 10));
         $failure = null;
         try {
             $ecotone->run('tenant_batches');
@@ -1200,7 +1200,7 @@ final class CollectingConformanceTest extends TestCase
             ErrorContext::DLQ_MESSAGE_REPLIED => '1',
             'label' => 'first',
         ]);
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 1));
+        $ecotone->advanceTimeBy(new Duration(seconds: 1));
         $ecotone->run('batches');
         $ecotone->sendCommandWithRouting('collect', 'second', metadata: ['label' => 'second']);
         $ecotone->run('batches');
@@ -1222,7 +1222,7 @@ final class CollectingConformanceTest extends TestCase
         $handler = new class () {
             public array $consumedHeaders = [];
 
-            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -1245,7 +1245,7 @@ final class CollectingConformanceTest extends TestCase
         ]);
         $ecotone->run('batches');
         $handler->consumedHeaders = [];
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
+        $ecotone->advanceTimeBy(new Duration(seconds: 10));
         $ecotone->run('batches');
 
         self::assertCount(1, $handler->consumedHeaders);
@@ -1320,7 +1320,7 @@ final class CollectingConformanceTest extends TestCase
         $handler = new class () {
             public array $reasons = [];
 
-            #[Collected(maxSize: 2, maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxSize: 2, maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -1333,7 +1333,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('collect', 'two');
         $ecotone->sendCommandWithRouting('collect', 'three');
         $ecotone->run('batches');
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
+        $ecotone->advanceTimeBy(new Duration(seconds: 10));
         $ecotone->run('batches');
         self::assertSame(['MAX_SIZE_REACHED', 'MAX_WAIT_REACHED'], $handler->reasons);
     }
@@ -1342,7 +1342,7 @@ final class CollectingConformanceTest extends TestCase
     public function test_batch_listing_rows_use_the_shared_group_shape(bool $durable): void
     {
         $handler = new class () {
-            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -1352,7 +1352,7 @@ final class CollectingConformanceTest extends TestCase
         $ecotone = $this->bootstrap($handler, $durable);
         $ecotone->sendCommandWithRouting('collect', 'one');
         $ecotone->run('batches');
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 2));
+        $ecotone->advanceTimeBy(new Duration(seconds: 2));
         $ecotone->sendCommandWithRouting('collect', 'two');
         $ecotone->run('batches');
         $groups = $ecotone->getGateway(GatheredGroups::class);
@@ -1413,7 +1413,7 @@ final class CollectingConformanceTest extends TestCase
         $handler = new class () {
             public array $batches = [];
 
-            #[Collected(maxSize: 3, maxWait: new TimeSpan(days: 8))]
+            #[Collected(maxSize: 3, maxWait: new Duration(days: 8))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -1440,7 +1440,7 @@ final class CollectingConformanceTest extends TestCase
         $handler = new class () {
             public array $batches = [];
 
-            #[Collected(maxSize: 3, maxWait: new TimeSpan(days: 8))]
+            #[Collected(maxSize: 3, maxWait: new Duration(days: 8))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -1473,7 +1473,7 @@ final class CollectingConformanceTest extends TestCase
         $handler = new class () {
             public array $batches = [];
 
-            #[Collected(maxSize: 3, maxWait: new TimeSpan(days: 8))]
+            #[Collected(maxSize: 3, maxWait: new Duration(days: 8))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -1488,10 +1488,10 @@ final class CollectingConformanceTest extends TestCase
         $groupId = $groups->listOpenGroups('collect.handler')[0]['groupId'];
         $groups->requestRelease($groupId);
         $ecotone->run('batches');
-        $ecotone->advanceTimeBy(new TimeSpan(days: 7));
+        $ecotone->advanceTimeBy(new Duration(days: 7));
         $groups->cleanupClosedGroups();
         self::assertNotContains($groupId, array_column($groups->listClosedGroups('collect.handler'), 'groupId'));
-        $ecotone->advanceTimeBy(new TimeSpan(days: 1));
+        $ecotone->advanceTimeBy(new Duration(days: 1));
         $ecotone->run('batches');
         self::assertCount(1, $handler->batches);
         self::assertSame([], $groups->listOpenGroups('collect.handler'));
@@ -1503,7 +1503,7 @@ final class CollectingConformanceTest extends TestCase
         $handler = new class () {
             public array $batches = [];
 
-            #[Collected(maxSize: 3, maxWait: new TimeSpan(days: 8))]
+            #[Collected(maxSize: 3, maxWait: new Duration(days: 8))]
             #[Asynchronous('batches')]
             #[CommandHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void

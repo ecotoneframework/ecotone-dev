@@ -49,13 +49,13 @@ use Ecotone\Api\Attribute\Priority;
 
 ```php
 use Ecotone\Api\Attribute\TimeToLive;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
 // Integer (milliseconds)
 #[TimeToLive(60000)]
 
-// TimeSpan object
-#[TimeToLive(time: TimeSpan::withMinutes(5))]
+// Duration object
+#[TimeToLive(time: Duration::minutes(5))]
 
 // Expression-based
 #[TimeToLive(expression: "reference('config').getTtl()")]
@@ -65,14 +65,17 @@ use Ecotone\Api\Scheduling\TimeSpan;
 - Message discarded if not consumed within TTL
 - Can target `Attribute::TARGET_CLASS | Attribute::TARGET_METHOD`
 
-## TimeSpan Factory Methods
+## Duration Factory Methods
 
 ```php
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
-TimeSpan::withMilliseconds(500)
-TimeSpan::withSeconds(30)
-TimeSpan::withMinutes(5)
+Duration::milliseconds(500)
+Duration::seconds(30)
+Duration::minutes(5)
+Duration::hours(24)
+Duration::days(7)
+new Duration(hours: 1, minutes: 30)   // the form an attribute argument takes
 ```
 
 ## PollingMetadata API

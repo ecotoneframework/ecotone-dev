@@ -12,7 +12,6 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Test\StaticPsrClock;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -85,7 +84,7 @@ final class TestClockTest extends TestCase
             public array $expired = [];
 
             #[Asynchronous('async')]
-            #[Delayed(new TimeSpan(hours: 24))]
+            #[Delayed(new Duration(hours: 24))]
             #[EventHandler('order.placed', endpointId: 'expireOrder')]
             public function expire(string $orderId): void
             {
@@ -96,7 +95,7 @@ final class TestClockTest extends TestCase
         $ecotone->changeTimeTo(new DateTimeImmutable('2026-03-01 12:00:00'));
         $ecotone->publishEventWithRouting('order.placed', 'order-1');
 
-        $ecotone->advanceTimeBy(TimeSpan::withHours(23))->run('async');
+        $ecotone->advanceTimeBy(Duration::hours(23))->run('async');
         $this->assertSame([], $handler->expired);
 
         $ecotone->advanceTimeBy(Duration::minutes(60))->run('async');
@@ -110,7 +109,7 @@ final class TestClockTest extends TestCase
             public array $handled = [];
 
             #[Asynchronous('async')]
-            #[Delayed(new TimeSpan(hours: 24))]
+            #[Delayed(new Duration(hours: 24))]
             #[EventHandler('order.placed', endpointId: 'expireOrder')]
             public function expire(string $orderId): void
             {
@@ -118,7 +117,7 @@ final class TestClockTest extends TestCase
             }
 
             #[Asynchronous('async')]
-            #[Delayed(new TimeSpan(hours: 1))]
+            #[Delayed(new Duration(hours: 1))]
             #[EventHandler('shipping.requested', endpointId: 'reserveShippingSlot')]
             public function reserve(string $orderId): void
             {

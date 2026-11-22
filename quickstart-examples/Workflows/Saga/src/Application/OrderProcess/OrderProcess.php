@@ -17,7 +17,7 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Modelling\WithEvents;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
 #[Saga]
 final class OrderProcess
@@ -56,7 +56,7 @@ final class OrderProcess
         $this->orderStatus = OrderProcessStatus::READY_TO_BE_SHIPPED;
     }
 
-    #[Delayed(new TimeSpan(hours: 1))]
+    #[Delayed(new Duration(hours: 1))]
     #[Asynchronous('async_saga')]
     #[EventHandler(endpointId: "whenPaymentFailedEndpoint", outputChannelName: "takePayment")]
     public function whenPaymentFailed(PaymentFailed $event, OrderService $orderService): ?TakePayment

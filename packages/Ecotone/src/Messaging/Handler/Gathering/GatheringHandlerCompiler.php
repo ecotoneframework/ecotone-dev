@@ -68,7 +68,7 @@ final class GatheringHandlerCompiler
                     targetParameterName: 'groupBy',
                 ),
                 new Definition(CollectedHandlerContext::class, [$interface->getClassName(), $interface->getMethodName(), $endpointId, is_string($collected->groupBy) ? $collected->groupBy : $interface->getClassName() . '::' . $interface->getMethodName() . ' groupBy closure']),
-                $collected->maxWait?->toMilliseconds(),
+                $collected->maxWait?->inMilliseconds(),
                 new Reference(EcotoneClockInterface::class),
                 new Reference(ChannelResolver::class),
                 CollectingPayloadType::for($collected),

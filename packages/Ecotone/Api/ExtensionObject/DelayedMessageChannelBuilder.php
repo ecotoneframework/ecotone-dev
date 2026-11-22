@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\ExtensionObject;
 
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
 /**
  * licence Apache-2.0
@@ -13,5 +13,5 @@ interface DelayedMessageChannelBuilder
 {
     public function supportsDelayedMessages(): bool;
 
-    public function maximumDelay(): ?TimeSpan;
+    public function maximumDelay(): ?Duration;
 }

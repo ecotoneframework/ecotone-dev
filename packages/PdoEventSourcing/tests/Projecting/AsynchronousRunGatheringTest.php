@@ -32,7 +32,7 @@ use Ecotone\Api\Projecting\ProjectionDelete;
 use Ecotone\Api\Projecting\ProjectionExecution;
 use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\ProjectionReset;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use RuntimeException;
@@ -220,7 +220,7 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
 
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'account_names']);
         $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
-        $ecotone->advanceTimeBy(new TimeSpan(days: 30));
+        $ecotone->advanceTimeBy(new Duration(days: 30));
         $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         self::assertSame([[3, 2, [2]]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded'], $group['missingPartNumbers']], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('account_names.rebuild')));

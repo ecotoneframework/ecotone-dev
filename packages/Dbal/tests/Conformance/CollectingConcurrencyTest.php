@@ -40,7 +40,7 @@ use Ecotone\Api\Messaging\CollectedReleaseReason;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -366,7 +366,7 @@ final class CollectingConcurrencyTest extends TestCase
         $first->run('cleanup_race');
         self::assertCount($cleanup ? 1 : 0, $handler->batches);
         $discardId = $cleanup ? null : array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenGroups('collect.cleanup.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key))[0]['groupId'];
-        $first->advanceTimeBy(new TimeSpan(days: 8));
+        $first->advanceTimeBy(new Duration(days: 8));
         $second = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
@@ -422,7 +422,7 @@ final class CollectingConcurrencyTest extends TestCase
         $handler = new class () {
             public array $batches = [];
 
-            #[Collected(maxSize: 3, maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["key"]')]
+            #[Collected(maxSize: 3, maxWait: new Duration(seconds: 10), groupBy: 'payload["key"]')]
             #[Asynchronous('release_race')]
             #[CommandHandler('collect.release.race', endpointId: 'collect.release.race.handler')]
             public function collect(CollectedMessages $batch): void
@@ -441,7 +441,7 @@ final class CollectingConcurrencyTest extends TestCase
                     return $message;
                 }
 
-                #[Collected(maxSize: 3, maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["key"]')]
+                #[Collected(maxSize: 3, maxWait: new Duration(seconds: 10), groupBy: 'payload["key"]')]
                 #[Asynchronous('release_race')]
                 #[InternalHandler('collect.release.race.shared', endpointId: 'collect.release.race.handler')]
                 public function collect(CollectedMessages $batch): void
@@ -466,7 +466,7 @@ final class CollectingConcurrencyTest extends TestCase
                     $events->publishWithRouting('collect.release.race.event', $message);
                 }
 
-                #[Collected(maxSize: 3, maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["key"]')]
+                #[Collected(maxSize: 3, maxWait: new Duration(seconds: 10), groupBy: 'payload["key"]')]
                 #[Asynchronous('release_race')]
                 #[EventHandler(listenTo: 'collect.release.race.event', endpointId: 'collect.release.race.handler')]
                 public function collect(CollectedMessages $batch): void
@@ -522,7 +522,7 @@ final class CollectingConcurrencyTest extends TestCase
             if ($manualRelease) {
                 $second->getGateway(GatheredGroups::class)->requestRelease($seed['groupId']);
             } else {
-                $second->advanceTimeBy(new TimeSpan(seconds: 10));
+                $second->advanceTimeBy(new Duration(seconds: 10));
             }
             $second->run('release_race', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 5)->withExecutionAmountLimit(5));
         };

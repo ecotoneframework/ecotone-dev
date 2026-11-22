@@ -44,6 +44,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PollingMetadataConverter;
+use Ecotone\Messaging\Handler\Recoverability\ReplayChannels;
 use Ecotone\Messaging\Handler\Router\HeaderRouter;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
@@ -150,6 +151,7 @@ final class BasicMessagingModule extends NoExternalConfigurationModule implement
 
         $messagingConfiguration->registerServiceDefinition(LicenceDecider::class, new Definition(LicenceDecider::class, [$messagingConfiguration->isRunningForEnterpriseLicence()]));
 
+        $messagingConfiguration->registerServiceDefinition(ReplayChannels::class, new Definition(ReplayChannels::class, [ReplayChannels::declaredBy($extensionObjects)]));
         $messagingConfiguration->registerServiceDefinition(
             MessagingEntrypointService::class,
             new Definition(MessagingEntrypointService::class, [

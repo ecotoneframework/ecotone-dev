@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -34,6 +35,7 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\CoroutineTesting;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -209,6 +211,18 @@ final class CoroutineMessageChannelTest extends TestCase
 
     public function test_replay_inside_a_coroutine_handles_the_message_in_the_replaying_coroutine_before_the_replay_call_returns(): void
     {
+        $this->assert_replay_in_the_replaying_coroutine('mysql');
+    }
+
+    #[RequiresPhpExtension('swoole')]
+    #[Group('swoole')]
+    public function test_replay_inside_a_coroutine_handles_the_message_in_the_replaying_coroutine_before_the_replay_call_returns_on_postgresql(): void
+    {
+        $this->assert_replay_in_the_replaying_coroutine('pgsql');
+    }
+
+    private function assert_replay_in_the_replaying_coroutine(string $database): void
+    {
         $handler = new class () {
             public bool $fail = true;
             public array $handled = [];
@@ -225,7 +239,7 @@ final class CoroutineMessageChannelTest extends TestCase
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
-            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf($database))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), PollingMetadata::create('async')->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -313,6 +327,49 @@ final class CoroutineMessageChannelTest extends TestCase
 
         $this->assertSame(2, $handler->attempts);
         $this->assertSame(1, $deadLetter->count());
+    }
+
+    public function test_replay_outside_a_coroutine_that_fails_again_on_an_endpoint_with_delayed_retries(): void
+    {
+        $handler = new class () {
+            public int $attempts = 0;
+
+            #[Asynchronous('async', asynchronousExecution: [new DelayedRetry(initialDelayInMilliseconds: 1, maxRetries: 1, deadLetterChannel: DbalDeadLetterBuilder::STORE_CHANNEL)])]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->attempts++;
+                throw new RuntimeException('handling failed');
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $deadLetter = $ecotone->getGateway(DeadLetterGateway::class);
+        $deadLetter->deleteAll();
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
+        $attemptsBeforeTheReplay = $handler->attempts;
+        $storedBeforeTheReplay = $deadLetter->count();
+
+        $stored = $deadLetter->list(10, 0)[0]->getMessageId();
+
+        $refusal = null;
+        try {
+            $deadLetter->replay($stored);
+        } catch (ConfigurationException $exception) {
+            $refusal = $exception->getMessage();
+        }
+
+        $this->assertSame(2, $attemptsBeforeTheReplay);
+        $this->assertSame(1, $storedBeforeTheReplay);
+        $this->assertSame(3, $handler->attempts);
+        $this->assertStringStartsWith('Coroutine message channel `async` cannot send outside a Swoole or OpenSwoole coroutine. This can happen in a console command, a consumer started without --coroutines, an HTTP server with enable_coroutine disabled, or a dead letter replay outside a coroutine that failed again and is retried with a delay.', (string) $refusal);
+        $this->assertStringContainsString('for a dead letter replay on an endpoint with delayed retries replay inside a coroutine.', (string) $refusal);
+        $this->assertSame([$stored], array_map(static fn ($failed) => $failed->getMessageId(), $deadLetter->list(10, 0)));
     }
 
     public function test_concurrent_messages_keep_their_own_headers_and_transaction(): void

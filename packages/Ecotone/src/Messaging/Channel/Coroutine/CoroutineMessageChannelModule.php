@@ -36,6 +36,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\LicensingException;
 
 #[ModuleAnnotation]
@@ -81,6 +82,7 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
         $this->refuseUnsupportedDeliveryAttributes($handlers, $interfaceToCallRegistry);
         $this->registerFailureLogging(configuration: $messagingConfiguration, registry: $interfaceToCallRegistry, channelNames: $channelNames, handlers: $handlers);
         $this->registerConsumers($messagingConfiguration, $channelNames);
+        $this->registerReplay($messagingConfiguration, $interfaceToCallRegistry, $channels);
         $this->waitOnThePinnedTestClock($messagingConfiguration, $extensionObjects);
     }
 
@@ -223,12 +225,24 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
         ));
     }
 
+    /**
+     * @param CoroutineMessageChannelBuilder[] $channels
+     */
+    private function registerReplay(Configuration $configuration, InterfaceToCallRegistry $registry, array $channels): void
+    {
+        foreach ($channels as $channel) {
+            $configuration->registerMessageHandler(
+                MessageProcessorActivatorBuilder::createForMethod(CoroutineMessageChannelConsumer::SERVICE_ID_PREFIX . $channel->getMessageChannelName(), $registry->getFor(CoroutineMessageChannelConsumer::class, 'replay'))
+                    ->withInputChannelName($channel->replayChannelName())
+            );
+        }
+    }
+
     private function registerConsumers(Configuration $configuration, array $channelNames): void
     {
         $configuration->addCompilerPass(new CoroutineMessageChannelConsumerRegistration($channelNames));
         $configuration->registerChannelInterceptor(new CoroutineMessageChannelConsumerStopInterceptorBuilder($channelNames));
         foreach ($channelNames as $channelName) {
-            $configuration->registerChannelInterceptor(new CoroutineMessageChannelReplayInterceptorBuilder($channelName));
             $configuration->registerChannelInterceptor(new CoroutineMessageChannelHoldingInterceptorBuilder($channelName));
             $configuration->registerChannelInterceptor(new InMemoryQueueAcknowledgeInterceptorBuilder(
                 relatedChannel: $channelName,

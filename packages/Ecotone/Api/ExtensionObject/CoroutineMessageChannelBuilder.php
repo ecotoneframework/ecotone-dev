@@ -7,11 +7,13 @@ namespace Ecotone\Api\ExtensionObject;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannel;
+use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannelConsumer;
 use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannelSleep;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Handler\Recoverability\DeclaresReplayChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Psr\Container\ContainerInterface;
 
@@ -20,7 +22,7 @@ use Psr\Container\ContainerInterface;
  *
  * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
-final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, DelayedMessageChannelBuilder
+final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, DelayedMessageChannelBuilder, DeclaresReplayChannel
 {
     public const DEFAULT_COROUTINES = 10;
 
@@ -44,6 +46,11 @@ final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, Del
     public function getMessageChannelName(): string
     {
         return $this->messageChannelName;
+    }
+
+    public function replayChannelName(): string
+    {
+        return CoroutineMessageChannelConsumer::REPLAY_CHANNEL_PREFIX . $this->messageChannelName;
     }
 
     public function isPollable(): bool

@@ -6,10 +6,13 @@ namespace Ecotone\Messaging\Channel\Coroutine;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\PollingConsumer\InterceptedConsumerRunner;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Enterprise
@@ -32,8 +35,9 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\InterceptedConsumerRunner;
 final class CoroutineMessageChannelConsumer implements EndpointRunner
 {
     public const SERVICE_ID_PREFIX = 'ecotone.coroutine_message_channel.consumer.';
+    public const REPLAY_CHANNEL_PREFIX = 'ecotone.coroutine_message_channel.replay.';
 
-    public function __construct(private string $channelName, private InterceptedConsumerRunner $runner)
+    public function __construct(private string $channelName, private InterceptedConsumerRunner $runner, private MessageBuilder $messageBuilder)
     {
     }
 
@@ -49,6 +53,19 @@ final class CoroutineMessageChannelConsumer implements EndpointRunner
 
     public function createConsumer(): ConsumerLifecycle
     {
-        return $this->runner->createConsumer(ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withStopOnError(false)->withMemoryLimitInMegabytes(0));
+        return $this->runner->createConsumer($this->executionPollingMetadata());
+    }
+
+    public function replay(Message $message): void
+    {
+        $this->runner->handleReceived(
+            message: $this->messageBuilder->fromMessage($message)->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, $this->channelName)->build(),
+            executionPollingMetadata: $this->executionPollingMetadata(),
+        );
+    }
+
+    private function executionPollingMetadata(): ExecutionPollingMetadata
+    {
+        return ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withStopOnError(false)->withMemoryLimitInMegabytes(0);
     }
 }

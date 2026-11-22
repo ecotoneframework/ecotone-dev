@@ -13,6 +13,7 @@ use Ecotone\Dbal\Tracing\FlowTrackingScope;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\Recoverability\ReplayChannels;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -28,6 +29,7 @@ final class DeadLetterHandler
         private MessageBuilder $messageBuilder,
         private FlowTrackingScope $flowTracking,
         private ChannelResolver $channelResolver,
+        private ReplayChannels $replayChannels,
     ) {
     }
 
@@ -159,7 +161,7 @@ final class DeadLetterHandler
             ->setHeader(ErrorContext::DLQ_MESSAGE_REPLIED, '1')
             ->setHeader(
                 MessagingEntrypointService::ENTRYPOINT,
-                $entrypoint
+                $this->replayChannels->of($entrypoint)
             )
             ->build();
 

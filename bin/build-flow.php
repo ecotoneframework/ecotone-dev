@@ -33,7 +33,7 @@ const BUILD_FLOW_USAGE = <<<'USAGE'
           produces now. Presentations, as GitHub Markdown with Mermaid, each opening with one
           tree of what the build changes (MessagingSystem > module > endpoint > layers):
           before-after (the default) a before/after pair with what ran process by process,
-          marked one marked diagram, path the message's path as a sequence diagram, build what
+          marked one marked diagram, path the message's path as a flow diagram, build what
           the pull request comment shows: per scenario the Before/Now summary, what ran process
           by process with the step tree of each changed process, the message's path, and the
           marked wiring collapsed. json prints the raw comparison.

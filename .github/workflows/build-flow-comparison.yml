@@ -54,7 +54,7 @@ jobs:
       - name: Test the comment builder
         run: php bin/test-build-flow-comment.php
 
-      # The build presentation shows what ran, process by process, then the message's path as a sequence diagram,
+      # The build presentation shows what ran, process by process, then the message's path as a flow diagram,
       # and keeps the marked wiring and traced spans collapsed under it, so the comment always shows a diagram
       - name: Compare the message flow with the base commit
         id: compare

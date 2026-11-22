@@ -128,7 +128,7 @@ $cases = [
         ]);
     },
     'a scenario too large even emptied is cut between whole parts, never inside a fold' => function (): ?string {
-        $result = run(comparison(pathScenario('large', str_repeat("  a->>b: step\n", 2_000), processBlocks(5, str_repeat('p', 9_000)))));
+        $result = run(comparison(pathScenario('large', str_repeat("  a -->|\"step\"| b\n", 2_000), processBlocks(5, str_repeat('p', 9_000)))));
         $comment = read($result['output']);
 
         return expectAll([
@@ -209,7 +209,7 @@ $cases = [
     'a message path diagram too large to render does not move the cut inside the collapsed wiring' => function (): ?string {
         $scenarios = [];
         for ($index = 1; $index <= 6; $index++) {
-            $scenarios[] = pathScenario('scenario ' . $index, str_repeat("  a->>b: step\n", $index === 4 ? 4_000 : 100), str_repeat('z', 13_000), "```mermaid\nflowchart LR\n" . str_repeat("  a --> b\n", 300) . "```\n");
+            $scenarios[] = pathScenario('scenario ' . $index, str_repeat("  a -->|\"step\"| b\n", $index === 4 ? 4_000 : 100), str_repeat('z', 13_000), "```mermaid\nflowchart LR\n" . str_repeat("  a --> b\n", 300) . "```\n");
         }
         $comment = read(run(comparison(...$scenarios))['output']);
 
@@ -302,7 +302,7 @@ function scenario(string $name, string $content): string
 
 function pathScenario(string $name, string $diagram, string $whatRan, string $wiring = "Unchanged.\n"): string
 {
-    return "### `{$name}`\n\nNow: it changed.\n\n#### What ran, process by process\n\n{$whatRan}\n\n#### The message's path\n\n```mermaid\nsequenceDiagram\n{$diagram}\n```\n\n<details><summary>Marked wiring and traced spans</summary>\n\n#### Wiring\n\n{$wiring}\n</details>\n";
+    return "### `{$name}`\n\nNow: it changed.\n\n#### What ran, process by process\n\n{$whatRan}\n\n#### The message's path\n\n```mermaid\nflowchart LR\n{$diagram}\n```\n\n<details><summary>Marked wiring and traced spans</summary>\n\n#### Wiring\n\n{$wiring}\n</details>\n";
 }
 
 function processBlocks(int $count, string $tree): string

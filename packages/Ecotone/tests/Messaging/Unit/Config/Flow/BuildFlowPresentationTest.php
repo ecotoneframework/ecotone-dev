@@ -92,7 +92,7 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertStringContainsString("-      route audit → audit.target\n-        process event handler audit\n", $markdown);
     }
 
-    public function test_message_path_follows_the_message_before_and_after_as_one_sequence_diagram_with_sentences(): void
+    public function test_message_path_draws_every_hand_over_once_as_one_flow_diagram_with_the_new_ones_green(): void
     {
         $this->recordAnOrderThatGainsAnAudit('Placing an order');
 
@@ -100,25 +100,56 @@ final class BuildFlowPresentationTest extends TestCase
 
         $diagrams = $this->mermaidBlocksOf($markdown);
         self::assertCount(1, $diagrams);
-        self::assertStringStartsWith("sequenceDiagram\n", $diagrams[0]);
-        self::assertSame(['    rect rgba(248, 81, 73, 0.15)', '    rect rgba(46, 160, 67, 0.15)'], array_values(array_filter(explode("\n", $diagrams[0]), fn (string $line): bool => str_starts_with($line, '    rect '))));
-        [, $before, $after] = preg_split('/^    rect rgba\(.*\)$/m', $diagrams[0]);
-        self::assertStringContainsString('Before', $before);
-        self::assertStringNotContainsString('audit', $before);
-        self::assertStringContainsString('After', $after);
-        self::assertMatchesRegularExpression('/^    p\d+->>p\d+: \+ handles$/m', $after);
-        self::assertMatchesRegularExpression('/^    participant p\d+ as event handler audit$/m', $diagrams[0]);
-        self::assertStringContainsString("Before: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### The message's path\n", $markdown);
+        self::assertStringStartsWith("flowchart LR\n", $diagrams[0]);
+        self::assertStringNotContainsString('sequenceDiagram', $markdown);
+        self::assertMatchesRegularExpression('/^  (p\d+)\["event handler audit"\]:::new$/m', $diagrams[0]);
+        self::assertMatchesRegularExpression('/^  p\d+ -->\|"\+ handles"\| p\d+$/m', $diagrams[0]);
+        self::assertMatchesRegularExpression('/^  p\d+ -->\|"handles"\| p\d+$/m', $diagrams[0]);
+        self::assertSame(count(array_unique(preg_grep('/^  p\d+ -/', explode("\n", $diagrams[0])))), count(preg_grep('/^  p\d+ -/', explode("\n", $diagrams[0]))));
+        self::assertMatchesRegularExpression('/^  classDef new fill:#2ea04333,stroke:#2ea043,stroke-width:2px$/m', $diagrams[0]);
+        self::assertMatchesRegularExpression('/^  linkStyle \d+ stroke:#2ea043,stroke-width:2\.5px$/m', $diagrams[0]);
+        self::assertStringContainsString("Before: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### The message's path\n\nGreen is a hand-over that happens only now, red one that happened only before, plain one that happens both before and now, and a dashed arrow is taken from the wiring because no span is recorded.\n\n```mermaid\nflowchart LR\n", $markdown);
     }
 
-    public function test_the_message_path_of_a_wiring_change_draws_only_the_sequence_diagram(): void
+    public function test_message_path_draws_a_gone_hand_over_red_after_the_ones_that_happen_now(): void
+    {
+        $this->record('Placing an order', 'before', $this->orderingWithAudit());
+        $this->record('Placing an order', 'after', $this->ordering());
+
+        [$diagram] = $this->mermaidBlocksOf($this->presentation('path'));
+
+        $edges = array_values(preg_grep('/^  p\d+ -/', explode("\n", $diagram)));
+        self::assertMatchesRegularExpression('/^  p\d+ -->\|"- handles"\| p\d+$/', $edges[count($edges) - 1]);
+        self::assertMatchesRegularExpression('/^  (p\d+)\["event handler audit"\]:::gone$/m', $diagram);
+        self::assertMatchesRegularExpression('/^  linkStyle ' . (count($edges) - 1) . ' stroke:#f85149,stroke-width:2\.5px$/m', $diagram);
+    }
+
+    public function test_message_path_keeps_quotes_pipes_brackets_backticks_and_hashes_of_a_label_from_breaking_the_diagram(): void
+    {
+        $hostile = 'order"|#[x]`y`';
+        $this->recordAnEventCalled($hostile, 'before', withAudit: false);
+        $this->recordAnEventCalled($hostile, 'after', withAudit: true);
+
+        [$diagram] = $this->mermaidBlocksOf($this->presentation('path'));
+
+        foreach (explode("\n", rtrim($diagram)) as $line) {
+            if (preg_match('/^  p\d+ /', $line) === 1) {
+                self::assertMatchesRegularExpression('/^  p\d+ -\.?->\|"[^"|`\[\]]*"\| p\d+$/', $line);
+            } elseif (preg_match('/^  p\d+[\[(]/', $line) === 1) {
+                self::assertMatchesRegularExpression('/^  p\d+(\["[^"`]*"\]|\[\("[^"`]*"\)\])(:::(new|gone))?$/', $line);
+            }
+        }
+        self::assertStringContainsString('event order#quot;#124;#35;#91;x#93;#96;y#96;', $diagram);
+    }
+
+    public function test_the_message_path_of_a_wiring_change_draws_only_the_flow_diagram(): void
     {
         $this->recordAnOrderThatGainsAnAudit('Placing an order');
 
         $diagrams = $this->mermaidBlocksOf($this->presentation('path'));
 
         self::assertCount(1, $diagrams);
-        self::assertStringStartsWith("sequenceDiagram\n", $diagrams[0]);
+        self::assertStringStartsWith("flowchart LR\n", $diagrams[0]);
     }
 
     public function test_the_build_presentation_draws_the_message_path_before_the_changed_wiring_collapsed_under_it(): void
@@ -129,10 +160,10 @@ final class BuildFlowPresentationTest extends TestCase
 
         $diagrams = $this->mermaidBlocksOf($markdown);
         self::assertCount(2, $diagrams);
-        self::assertStringStartsWith("sequenceDiagram\n", $diagrams[0]);
+        self::assertStringStartsWith("flowchart LR\n", $diagrams[0]);
         self::assertStringStartsWith('flowchart', $diagrams[1]);
         self::assertStringContainsString('audit', $diagrams[1]);
-        $path = strpos($markdown, "#### The message's path\n\n```mermaid\nsequenceDiagram");
+        $path = strpos($markdown, "#### The message's path\n\n");
         $collapsed = strpos($markdown, "<details><summary>Marked wiring and traced spans</summary>\n\n#### Wiring\n");
         $wiringDiagram = strpos($markdown, "```mermaid\nflowchart", (int) $collapsed);
         self::assertIsInt($path);
@@ -332,6 +363,33 @@ final class BuildFlowPresentationTest extends TestCase
         $this->expectExceptionMessage('ecotone:build-flow:compare was asked for presentation `D`, which it cannot produce. Pass --presentation=before-after (the default) for a before/after pair of diagrams and step lists, --presentation=marked for one diagram with the changes marked and one step list, --presentation=path for the message\'s path as a sequence diagram with what changed in sentences, --presentation=build for the build, the message\'s path and the marked wiring collapsed, or --presentation=json for the raw comparison.');
 
         $this->presentation('D');
+    }
+
+    private function recordAnEventCalled(string $event, string $side, bool $withAudit): void
+    {
+        $handlers = $withAudit
+            ? new class () {
+                #[CommandHandler('order.place', endpointId: 'placeOrder')]
+                public function place(array $order, EventBus $eventBus): void
+                {
+                    $eventBus->publishWithRouting($order['event'], []);
+                }
+
+                #[EventHandler('order"|#[x]`y`', endpointId: 'audit')]
+                public function audit(): void
+                {
+                }
+            }
+        : new class () {
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(array $order, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting($order['event'], []);
+            }
+        };
+        $ecotone = $this->application([$handlers::class], [$handlers]);
+        $ecotone->sendCommandWithRouting('order.place', ['event' => $event]);
+        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location . '/' . $side]);
     }
 
     private function recordAnOrderThatGainsAnAudit(string $scenario): void

@@ -31,7 +31,7 @@ final class FlowComparisonMarkdown
     public static function of(FlowSnapshotComparison $comparison, string $presentation): string
     {
         if (! in_array($presentation, [self::BEFORE_AFTER_PAIR, self::MARKED_DIAGRAM, self::MESSAGE_PATH, self::BUILD_VIEW], true)) {
-            throw InvalidArgumentException::create("ecotone:build-flow:compare was asked for presentation `{$presentation}`, which it cannot produce. Pass --presentation=before-after (the default) for a before/after pair of diagrams and step lists, --presentation=marked for one diagram with the changes marked and one step list, --presentation=path for the message's path as a sequence diagram with what changed in sentences, --presentation=build for the build, the message's path and the marked wiring collapsed, or --presentation=json for the raw comparison.");
+            throw InvalidArgumentException::create("ecotone:build-flow:compare was asked for presentation `{$presentation}`, which it cannot produce. Pass --presentation=before-after (the default) for a before/after pair of diagrams and step lists, --presentation=marked for one diagram with the changes marked and one step list, --presentation=path for the message's path as a flow diagram with what changed in sentences, --presentation=build for the build, the message's path and the marked wiring collapsed, or --presentation=json for the raw comparison.");
         }
         $title = "## Message flow: what changed\n\n";
         if ($comparison->groups === [] && $comparison->everyScenario === null) {
@@ -613,44 +613,81 @@ final class FlowComparisonMarkdown
             $before = self::arrowsAsPath(arrows: [...$change->wiring->removedEdges, ...array_map(fn (FlowEdgeChange $changed): FlowEdge => $changed->before, $change->wiring->changedEdges)], mark: '- ', change: $change);
             $after = self::arrowsAsPath(arrows: [...$change->wiring->addedEdges, ...array_map(fn (FlowEdgeChange $changed): FlowEdge => $changed->after, $change->wiring->changedEdges)], mark: '+ ', change: $change);
         }
-        $participants = [];
-        $sides = [];
-        foreach (['Before' => ['248, 81, 73, 0.15', $before], 'After' => ['46, 160, 67, 0.15', $after]] as $side => [$colour, $path]) {
-            $arrows = [];
-            foreach ($path as $position => $arrow) {
-                $needed = count(array_diff_key([$arrow['from'] => true, $arrow['to'] => true], $participants));
-                if (count($participants) + $needed > FlowScenarioChange::NODES_PER_PART) {
-                    $arrows[] = '    Note over ' . $participants[$path[$position - 1]['to'] ?? array_key_first($participants)] . ': and ' . (count($path) - $position) . ' more steps';
-                    break;
-                }
-                $participants[$arrow['from']] ??= 'p' . count($participants);
-                $participants[$arrow['to']] ??= 'p' . count($participants);
-                $arrows[] = "    {$participants[$arrow['from']]}" . ($arrow['derived'] ? '-->>' : '->>') . "{$participants[$arrow['to']]}: " . self::sequenceText($arrow['label']);
-            }
-            if ($arrows !== []) {
-                $sides[] = [$side, $colour, $arrows];
+        $edges = self::flowEdgesOf(before: $before, after: $after);
+        if ($edges === []) {
+            return "#### The message's path\n\nNothing to follow: neither the traced spans nor an arrow changed.\n";
+        }
+        $ids = [];
+        foreach ($edges as $edge) {
+            $ids[$edge['from']] ??= 'p' . count($ids);
+            $ids[$edge['to']] ??= 'p' . count($ids);
+        }
+        $lines = ['flowchart LR'];
+        foreach ($ids as $place => $id) {
+            $touching = array_values(array_unique(array_map(fn (array $edge): string => $edge['change'], array_filter($edges, fn (array $edge): bool => $edge['from'] === $place || $edge['to'] === $place))));
+            $mark = match ($touching) {
+                ['new'] => ':::new',
+                ['gone'] => ':::gone',
+                default => '',
+            };
+            $label = self::flowchartText($place);
+            $lines[] = '  ' . $id . (str_starts_with($place, 'channel ') ? '[("' . $label . '")]' : '["' . $label . '"]') . $mark;
+        }
+        $styles = [];
+        foreach (array_values($edges) as $position => $edge) {
+            $prefix = match ($edge['change']) {
+                'new' => '+ ',
+                'gone' => '- ',
+                default => '',
+            };
+            $lines[] = '  ' . $ids[$edge['from']] . ($edge['derived'] ? ' -.->' : ' -->') . '|"' . self::flowchartText($prefix . $edge['label']) . '"| ' . $ids[$edge['to']];
+            $stroke = match ($edge['change']) {
+                'new' => '#2ea043',
+                'gone' => '#f85149',
+                default => null,
+            };
+            if ($stroke !== null) {
+                $styles[] = "  linkStyle {$position} stroke:{$stroke},stroke-width:2.5px";
             }
         }
-        $lines = [];
-        foreach ($sides as [$side, $colour, $arrows]) {
-            $width = count($participants) === 1 ? 'p0' : 'p0,p' . (count($participants) - 1);
-            $lines = [...$lines, "    rect rgba({$colour})", "    Note over {$width}: {$side}", ...$arrows, '    end'];
-        }
-        $declared = array_map(fn (string $place, string $id): string => "    participant {$id} as " . self::sequenceText($place), array_keys($participants), $participants);
-        $drawn = implode("\n", $lines);
-        $legend = implode('; ', array_filter([
-            implode(', ', array_filter([
-                preg_match('/^    p\d+->>/m', $drawn) === 1 ? 'solid arrow = a traced step' : null,
-                preg_match('/^    p\d+-->>/m', $drawn) === 1 ? 'dashed arrow = taken from the wiring or the build because no span is recorded' : null,
-            ])),
-            implode(', ', array_filter([
-                preg_match('/^    p\d+--?>>p\d+: \+ /m', $drawn) === 1 ? '`+` = new' : null,
-                preg_match('/^    p\d+--?>>p\d+: - /m', $drawn) === 1 ? '`-` = gone' : null,
-            ])),
-        ]));
+        $lines[] = '  classDef new fill:#2ea04333,stroke:#2ea043,stroke-width:2px';
+        $lines[] = '  classDef gone fill:#f8514933,stroke:#f85149,stroke-width:2px';
 
-        return "#### The message's path\n\n" . ($lines === [] ? "Nothing to follow: neither the traced spans nor an arrow changed.\n" : "```mermaid\nsequenceDiagram\n" . implode("\n", [...$declared, ...$lines]) . "\n```\n\n"
-            . ($legend === '' ? '' : "_Legend: {$legend}._\n"));
+        return "#### The message's path\n\nGreen is a hand-over that happens only now, red one that happened only before, plain one that happens both before and now, and a dashed arrow is taken from the wiring because no span is recorded.\n\n```mermaid\n" . implode("\n", [...$lines, ...$styles]) . "\n```\n\n";
+    }
+
+    /**
+     * @param list<array{from: string, to: string, label: string, derived: bool}> $before
+     * @param list<array{from: string, to: string, label: string, derived: bool}> $after
+     * @return array<string, array{from: string, to: string, label: string, derived: bool, change: string}>
+     */
+    private static function flowEdgesOf(array $before, array $after): array
+    {
+        $distinct = function (array $path): array {
+            $edges = [];
+            foreach ($path as $arrow) {
+                $label = (string) preg_replace('/ \((build|wiring), no span\)$/', '', (string) preg_replace('/^[+-] /', '', $arrow['label']));
+                $edges[$arrow['from'] . "\0" . $arrow['to'] . "\0" . $label] ??= ['from' => $arrow['from'], 'to' => $arrow['to'], 'label' => $label, 'derived' => $arrow['derived']];
+            }
+
+            return $edges;
+        };
+        $then = $distinct($before);
+        $now = $distinct($after);
+        $edges = [];
+        foreach ($now as $key => $edge) {
+            $edges[$key] = [...$edge, 'change' => isset($then[$key]) ? 'kept' : 'new'];
+        }
+        foreach (array_diff_key($then, $now) as $key => $edge) {
+            $edges[$key] = [...$edge, 'change' => 'gone'];
+        }
+
+        return $edges;
+    }
+
+    private static function flowchartText(string $text): string
+    {
+        return str_replace(['#', '"', '|', '`', '[', ']', '<', '>', "\n"], ['#35;', '#quot;', '#124;', '#96;', '#91;', '#93;', '#lt;', '#gt;', ' '], $text);
     }
 
     /**
@@ -760,8 +797,4 @@ final class FlowComparisonMarkdown
         return count($lines) <= self::STEPS_PER_LIST ? $lines : [...array_slice($lines, 0, self::STEPS_PER_LIST), '… and ' . (count($lines) - self::STEPS_PER_LIST) . ' more lines'];
     }
 
-    private static function sequenceText(string $text): string
-    {
-        return str_replace(['#', ';', "\n"], ['№', ',', ' '], $text);
-    }
 }

@@ -63,7 +63,7 @@ final class BuildFlowConsoleCommands
         $writer->success('All ' . (count($files) - 1) . " flow snapshots in {$location} match what the code produces");
     }
 
-    #[ConsoleCommand('ecotone:build-flow:compare', 'Framework development: prints what changed between the snapshots stored in two locations, cut to the changed parts, as GitHub Markdown with Mermaid: --presentation=before-after (the default) a before/after pair, marked one marked diagram, path the message path as a sequence diagram, build what the pull request comment shows (the build tree, then per scenario the Before/Now summary, what ran process by process with the step tree of each changed process, the message path, and the marked wiring collapsed), json the raw comparison')]
+    #[ConsoleCommand('ecotone:build-flow:compare', 'Framework development: prints what changed between the snapshots stored in two locations, cut to the changed parts, as GitHub Markdown with Mermaid: --presentation=before-after (the default) a before/after pair, marked one marked diagram, path the message path as a flow diagram, build what the pull request comment shows (the build tree, then per scenario the Before/Now summary, what ran process by process with the step tree of each changed process, the message path, and the marked wiring collapsed), json the raw comparison')]
     public function compare(ConsoleWriter $writer, #[ConsoleParameterOption] string $from, #[ConsoleParameterOption] string $to, #[ConsoleParameterOption] string $presentation = FlowComparisonMarkdown::BEFORE_AFTER_PAIR): void
     {
         $before = new FlowSnapshots($from);

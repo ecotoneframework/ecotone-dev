@@ -155,7 +155,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
             );
             self::assertStringNotContainsString('not on this path', $markdown, $presentation);
             self::assertStringNotContainsString('Build: what', $markdown, $presentation);
-            self::assertStringContainsString("\n_Legend: ", $markdown, $presentation);
+            self::assertStringContainsString($presentation === 'path' ? "\nGreen is a hand-over that happens only now" : "\n_Legend: ", $markdown, $presentation);
             self::assertStringNotContainsString('class@anonymous', $markdown, $presentation);
             self::assertStringNotContainsString('Bridge::handle', $markdown, $presentation);
             self::assertStringNotContainsString('ecotone.channel.ecotone:', $markdown, $presentation);
@@ -193,36 +193,28 @@ final class BuildFlowReadableComparisonTest extends TestCase
         self::assertStringContainsString('_Legend: dotted outline = registered by Ecotone, solid outline = declared by the application; ', $pair);
     }
 
-    public function test_message_path_draws_sender_channel_and_receiving_handler_as_separate_participants(): void
+    public function test_message_path_draws_sender_channel_and_receiving_handler_as_separate_nodes(): void
     {
         $this->recordARunThatGainsItsCompletion('rebuild');
 
         $path = $this->comparison('path');
 
-        self::assertStringContainsString('    participant p4 as consumer of rebuild', $path);
-        self::assertStringContainsString('    participant p3 as channel rebuild', $path);
-        self::assertStringContainsString('    participant p5 as partition batch orders', $path);
-        self::assertStringContainsString('    participant p7 as GatheringPartCompletion', $path);
-        self::assertStringContainsString('    participant p8 as channel ecotone.projection.rebuild.completion:orders', $path);
-        self::assertStringContainsString('    participant p9 as channel ecotone.projection.rebuild.completion:orders.execute', $path);
-        self::assertStringContainsString('    participant p10 as gatherer (Enterprise only)', $path);
-        self::assertStringContainsString('    participant p11 as ProjectionRunCompletion::complete', $path);
-        self::assertMatchesRegularExpression('/^    Note over p0,p11: Before$/m', $path);
-        self::assertMatchesRegularExpression('/^    Note over p0,p11: After$/m', $path);
-        self::assertStringContainsString(
-            "    p5-->>p7: + ends, its part completion runs (build, no span)\n"
-            . "    p7-->>p8: + sends part report (build, no span)\n"
-            . "    p8->>p3: + asynchronous routing sends\n"
-            . "    p3->>p4: + delivers\n"
-            . "    p4-->>p9: + routed to (wiring, no span)\n"
-            . "    p9-->>p10: + delivers (build, no span)\n"
-            . "    p10-->>p11: + invokes (build, no span)\n",
-            $path,
-        );
-        self::assertDoesNotMatchRegularExpression('/^    (p\d+)--?>>\1:/m', $path);
+        foreach (['consumer of rebuild', 'partition batch orders', 'gatherer (Enterprise only)', 'ProjectionRunCompletion::complete'] as $box) {
+            self::assertMatchesRegularExpression('/^  p\d+\["' . preg_quote($box, '/') . '"\](:::new)?$/m', $path);
+        }
+        foreach (['channel rebuild', 'channel ecotone.projection.rebuild.completion:orders', 'channel ecotone.projection.rebuild.completion:orders.execute'] as $channel) {
+            self::assertMatchesRegularExpression('/^  p\d+\[\("' . preg_quote($channel, '/') . '"\)\](:::new)?$/m', $path);
+        }
+        self::assertMatchesRegularExpression('/^  p\d+\["GatheringPartCompletion"\]:::new$/m', $path);
+        foreach (['-.->|"+ ends, its part completion runs"|', '-.->|"+ sends part report"|', '-->|"+ asynchronous routing sends"|', '-.->|"+ routed to"|', '-.->|"+ delivers"|', '-.->|"+ invokes"|'] as $edge) {
+            self::assertMatchesRegularExpression('/^  p\d+ ' . preg_quote($edge, '/') . ' p\d+$/m', $path);
+        }
+        self::assertStringNotContainsString('no span)', $path);
+        self::assertDoesNotMatchRegularExpression('/^  (p\d+) -\.?->\|"[^"]*"\| \1$/m', $path);
+        self::assertStringNotContainsString('sequenceDiagram', $path);
         self::assertStringNotContainsString('nodes added', $path);
         self::assertStringNotContainsString('- Traced spans:', $path);
-        self::assertStringContainsString('_Legend: solid arrow = a traced step, dashed arrow = taken from the wiring or the build because no span is recorded; `+` = new._', $path);
+        self::assertStringContainsString("Green is a hand-over that happens only now, red one that happened only before, plain one that happens both before and now, and a dashed arrow is taken from the wiring because no span is recorded.\n", $path);
     }
 
     public function test_the_sentence_the_marked_wiring_and_the_traced_steps_name_the_same_sender(): void
@@ -232,7 +224,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
         $markdown = $this->comparison('build');
 
         self::assertSame(1, preg_match('/^Now: after each .*the Enterprise part completion, `GatheringPartCompletion`, sends a part report to `ecotone\.projection\.rebuild\.completion:orders`/m', $markdown));
-        self::assertStringContainsString('as GatheringPartCompletion', $markdown);
+        self::assertMatchesRegularExpression('/^  p\d+\["GatheringPartCompletion"\]:::new$/m', $markdown);
         self::assertStringContainsString('ecotone.projection.rebuild.completion:orders (entry point: part reports are sent here by GatheringPartCompletion)', $markdown);
         self::assertStringContainsString('send rebuild (part report by GatheringPartCompletion to ecotone.projection.rebuild.completion:orders)', $markdown);
         self::assertStringNotContainsString('the consumer of `rebuild` sends', $markdown);

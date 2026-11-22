@@ -3,22 +3,22 @@
     "scenario": "handler outside the boundary records no boundary spans",
     "wiring": {
         "nodes": [
-            {"id":"channel:enrolment.plain.target","kind":"channel","label":"enrolment.plain.target","attributes":{"build":true,"name":"enrolment.plain.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
-            {"id":"channel:enrolment.without_boundary","kind":"channel","label":"enrolment.without_boundary","attributes":{"build":true,"name":"enrolment.without_boundary","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
-            {"id":"endpoint:enrolment.without_boundary","kind":"internalHandler","label":"ChainedMessageProcessor::process on enrolment.without_boundary","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","inputChannel":"enrolment.without_boundary","method":"process","registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:enrolment.plain.target","kind":"channel","label":"enrolment.plain.target","attributes":{"framework":true,"name":"enrolment.plain.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:enrolment.without_boundary","kind":"channel","label":"enrolment.without_boundary","attributes":{"framework":true,"name":"enrolment.without_boundary","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"endpoint:enrolment.without_boundary","kind":"internalHandler","label":"ChainedMessageProcessor::process on enrolment.without_boundary","attributes":{"class":"Ecotone\\Messaging\\Handler\\Processor\\ChainedMessageProcessor","framework":true,"inputChannel":"enrolment.without_boundary","method":"process","registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
             {"id":"handler:enrolment.plain","kind":"commandHandler","label":"class@anonymous#1::enrol","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"enrolment.plain","method":"enrol","owner":null,"routingKeys":["enrolment.without_boundary"]}},
-            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","method":"aroundCommandHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
-            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"build":true,"class":"Ecotone\\Tracing\\TracingInterceptor","method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundCommandHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","framework":true,"method":"aroundCommandHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","framework":true,"method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
             {"id":"message:enrolment.without_boundary","kind":"command","label":"enrolment.without_boundary","attributes":{"class":null,"handled":true,"routingKey":"enrolment.without_boundary"}}
         ],
         "edges": [
-            {"from":"channel:enrolment.plain.target","to":"handler:enrolment.plain","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
-            {"from":"channel:enrolment.without_boundary","to":"endpoint:enrolment.without_boundary","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
-            {"from":"handler:enrolment.plain","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptedBy","attributes":{"build":true}},
-            {"from":"handler:enrolment.plain","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"build":true}},
-            {"from":"endpoint:enrolment.without_boundary","to":"channel:enrolment.plain.target","kind":"output","attributes":{"build":true}},
+            {"from":"channel:enrolment.plain.target","to":"handler:enrolment.plain","kind":"input","attributes":{"consumer":"eventDriven","framework":true}},
+            {"from":"channel:enrolment.without_boundary","to":"endpoint:enrolment.without_boundary","kind":"input","attributes":{"consumer":"eventDriven","framework":true}},
+            {"from":"handler:enrolment.plain","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundCommandHandler","kind":"interceptedBy","attributes":{"framework":true}},
+            {"from":"handler:enrolment.plain","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"framework":true}},
+            {"from":"endpoint:enrolment.without_boundary","to":"channel:enrolment.plain.target","kind":"output","attributes":{"framework":true}},
             {"from":"message:enrolment.without_boundary","to":"handler:enrolment.plain","kind":"routedTo","attributes":[]},
-            {"from":"endpoint:ecotone.modelling.bus.command_by_name","to":"channel:enrolment.plain.target","kind":"routesTo","attributes":{"build":true,"routingKeys":["enrolment.without_boundary"]}}
+            {"from":"endpoint:ecotone.modelling.bus.command_by_name","to":"channel:enrolment.plain.target","kind":"routesTo","attributes":{"framework":true,"routingKeys":["enrolment.without_boundary"]}}
         ],
         "withoutNodes": [],
         "withoutEdges": []

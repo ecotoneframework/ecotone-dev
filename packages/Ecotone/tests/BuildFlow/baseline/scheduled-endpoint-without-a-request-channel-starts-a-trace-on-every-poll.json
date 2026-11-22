@@ -3,12 +3,12 @@
     "scenario": "scheduled endpoint without a request channel starts a trace on every poll",
     "wiring": {
         "nodes": [
-            {"id":"channel:scheduled_handler","kind":"channel","label":"scheduled_handler","attributes":{"build":true,"name":"scheduled_handler","pollable":false,"registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule"}},
-            {"id":"endpoint:scheduled_handler.target","kind":"internalHandler","label":"class@anonymous#1::handle on scheduled_handler","attributes":{"build":true,"class":"class@anonymous#1","inputChannel":"scheduled_handler","method":"handle","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule"}},
+            {"id":"channel:scheduled_handler","kind":"channel","label":"scheduled_handler","attributes":{"framework":true,"name":"scheduled_handler","pollable":false,"registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule"}},
+            {"id":"endpoint:scheduled_handler.target","kind":"internalHandler","label":"class@anonymous#1::handle on scheduled_handler","attributes":{"class":"class@anonymous#1","framework":true,"inputChannel":"scheduled_handler","method":"handle","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule"}},
             {"id":"scheduled:scheduled_handler","kind":"scheduled","label":"class@anonymous#1::handle","attributes":{"class":"class@anonymous#1","endpointId":"scheduled_handler","method":"handle"}}
         ],
         "edges": [
-            {"from":"channel:scheduled_handler","to":"endpoint:scheduled_handler.target","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}}
+            {"from":"channel:scheduled_handler","to":"endpoint:scheduled_handler.target","kind":"input","attributes":{"consumer":"eventDriven","framework":true}}
         ],
         "withoutNodes": [],
         "withoutEdges": []

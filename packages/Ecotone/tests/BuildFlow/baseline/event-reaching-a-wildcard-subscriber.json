@@ -3,18 +3,18 @@
     "scenario": "event reaching a wildcard subscriber",
     "wiring": {
         "nodes": [
-            {"id":"channel:order.auditing.target","kind":"channel","label":"order.auditing.target","attributes":{"build":true,"name":"order.auditing.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:order.auditing.target","kind":"channel","label":"order.auditing.target","attributes":{"framework":true,"name":"order.auditing.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
             {"id":"handler:order.auditing","kind":"eventHandler","label":"class@anonymous#1::audit","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"order.auditing","method":"audit","owner":null,"routingKeys":["order.*"]}},
-            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundEventHandler","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","method":"aroundEventHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
-            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"build":true,"class":"Ecotone\\Tracing\\TracingInterceptor","method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundEventHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","framework":true,"method":"aroundEventHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","framework":true,"method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
             {"id":"message:order.*","kind":"event","label":"order.*","attributes":{"class":null,"handled":true,"routingKey":"order.*"}}
         ],
         "edges": [
-            {"from":"channel:order.auditing.target","to":"handler:order.auditing","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
-            {"from":"handler:order.auditing","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptedBy","attributes":{"build":true}},
-            {"from":"handler:order.auditing","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"build":true}},
+            {"from":"channel:order.auditing.target","to":"handler:order.auditing","kind":"input","attributes":{"consumer":"eventDriven","framework":true}},
+            {"from":"handler:order.auditing","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundEventHandler","kind":"interceptedBy","attributes":{"framework":true}},
+            {"from":"handler:order.auditing","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"framework":true}},
             {"from":"message:order.*","to":"handler:order.auditing","kind":"routedTo","attributes":[]},
-            {"from":"endpoint:ecotone.modelling.bus.event_by_name","to":"channel:order.auditing.target","kind":"routesTo","attributes":{"build":true,"routingKeys":["order.*"]}}
+            {"from":"endpoint:ecotone.modelling.bus.event_by_name","to":"channel:order.auditing.target","kind":"routesTo","attributes":{"framework":true,"routingKeys":["order.*"]}}
         ],
         "withoutNodes": [],
         "withoutEdges": []

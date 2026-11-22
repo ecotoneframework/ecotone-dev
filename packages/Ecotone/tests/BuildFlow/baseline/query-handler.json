@@ -3,22 +3,22 @@
     "scenario": "query handler",
     "wiring": {
         "nodes": [
-            {"id":"channel:order.status","kind":"channel","label":"order.status","attributes":{"build":true,"name":"order.status","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
-            {"id":"channel:order.status.reading.target","kind":"channel","label":"order.status.reading.target","attributes":{"build":true,"name":"order.status.reading.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
-            {"id":"endpoint:order.status","kind":"internalHandler","label":"Bridge::handle on order.status","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge","inputChannel":"order.status","method":"handle","registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:order.status","kind":"channel","label":"order.status","attributes":{"framework":true,"name":"order.status","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"channel:order.status.reading.target","kind":"channel","label":"order.status.reading.target","attributes":{"framework":true,"name":"order.status.reading.target","pollable":false,"registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
+            {"id":"endpoint:order.status","kind":"internalHandler","label":"Bridge::handle on order.status","attributes":{"class":"Ecotone\\Messaging\\Handler\\Bridge\\Bridge","framework":true,"inputChannel":"order.status","method":"handle","registeredBy":"Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule"}},
             {"id":"handler:order.status.reading","kind":"queryHandler","label":"class@anonymous#1::status","attributes":{"class":"class@anonymous#1","distributed":false,"endpointId":"order.status.reading","method":"status","owner":null,"routingKeys":["order.status"]}},
-            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundQueryHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundQueryHandler","attributes":{"build":true,"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","method":"aroundQueryHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
-            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"build":true,"class":"Ecotone\\Tracing\\TracingInterceptor","method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
+            {"id":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundQueryHandler","kind":"interceptor","label":"MessageHandlerLogger::aroundQueryHandler","attributes":{"class":"Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger","framework":true,"method":"aroundQueryHandler","position":"around","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule"}},
+            {"id":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptor","label":"TracingInterceptor::traceHandlerEndpoint","attributes":{"class":"Ecotone\\Tracing\\TracingInterceptor","framework":true,"method":"traceHandlerEndpoint","position":"around","registeredBy":"Ecotone\\Tracing\\Config\\TracingModule"}},
             {"id":"message:order.status","kind":"query","label":"order.status","attributes":{"class":null,"handled":true,"routingKey":"order.status"}}
         ],
         "edges": [
-            {"from":"channel:order.status","to":"endpoint:order.status","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
-            {"from":"channel:order.status.reading.target","to":"handler:order.status.reading","kind":"input","attributes":{"build":true,"consumer":"eventDriven"}},
-            {"from":"handler:order.status.reading","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundQueryHandler","kind":"interceptedBy","attributes":{"build":true}},
-            {"from":"handler:order.status.reading","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"build":true}},
-            {"from":"endpoint:order.status","to":"channel:order.status.reading.target","kind":"output","attributes":{"build":true}},
+            {"from":"channel:order.status","to":"endpoint:order.status","kind":"input","attributes":{"consumer":"eventDriven","framework":true}},
+            {"from":"channel:order.status.reading.target","to":"handler:order.status.reading","kind":"input","attributes":{"consumer":"eventDriven","framework":true}},
+            {"from":"handler:order.status.reading","to":"interceptor:Ecotone\\Messaging\\Handler\\Logger\\Config\\MessageHandlerLogger::aroundQueryHandler","kind":"interceptedBy","attributes":{"framework":true}},
+            {"from":"handler:order.status.reading","to":"interceptor:Ecotone\\Tracing\\TracingInterceptor::traceHandlerEndpoint","kind":"interceptedBy","attributes":{"framework":true}},
+            {"from":"endpoint:order.status","to":"channel:order.status.reading.target","kind":"output","attributes":{"framework":true}},
             {"from":"message:order.status","to":"handler:order.status.reading","kind":"routedTo","attributes":[]},
-            {"from":"endpoint:ecotone.modelling.bus.query_by_name","to":"channel:order.status.reading.target","kind":"routesTo","attributes":{"build":true,"routingKeys":["order.status"]}}
+            {"from":"endpoint:ecotone.modelling.bus.query_by_name","to":"channel:order.status.reading.target","kind":"routesTo","attributes":{"framework":true,"routingKeys":["order.status"]}}
         ],
         "withoutNodes": [],
         "withoutEdges": []

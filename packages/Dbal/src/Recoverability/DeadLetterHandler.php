@@ -21,6 +21,8 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 final class DeadLetterHandler
 {
+    private const LISTED_AT_ONCE = 100;
+
     public function __construct(
         private DeadLetterStore $deadLetterStore,
         private MessageBuilder $messageBuilder,
@@ -76,11 +78,24 @@ final class DeadLetterHandler
     {
         $this->assertTargetChannelExists($targetChannel);
 
-        while ($errorContexts = $this->deadLetterStore->list(100, 0)) {
+        foreach ($this->storedMessageIds() as $messageId) {
+            $this->replayMessage($messageId, $messagingEntrypoint, $targetChannel);
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function storedMessageIds(): array
+    {
+        $messageIds = [];
+        for ($offset = 0; $errorContexts = $this->deadLetterStore->list(self::LISTED_AT_ONCE, $offset); $offset += self::LISTED_AT_ONCE) {
             foreach ($errorContexts as $errorContext) {
-                $this->replayMessage($errorContext->getMessageId(), $messagingEntrypoint, $targetChannel);
+                $messageIds[] = $errorContext->getMessageId();
             }
         }
+
+        return $messageIds;
     }
 
     public function delete(string|array $messageId): void

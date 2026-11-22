@@ -46,6 +46,21 @@ $message = $this->messageBuilder->fromMessage($message)
 $messagingEntrypoint->send($message);
 ```
 
-In the console there is no event loop, so the replayed message sits on the queue and the command exits without the handler having run. I want a replayed message to be handled synchronously, before the console command returns. The endpoint that consumes a channel is registered in the container under `EndpointRunnerReference` for the channel name and can run one message with `runOnce(Message $message)`; it applies the endpoint's transaction, retries and error channel.
+In the console there is no event loop, so the replayed message sits on the queue and the command exits without the handler having run. I want a replayed message to be handled synchronously, before the console command returns.
+
+What a background consumer does with each message it takes off the queue is this class of the same feature, which our module registers in the container under `'ecotone.in_process.endpoint.' . $channelName`:
+
+```php
+namespace Ecotone\Messaging\Channel\InProcess;
+
+final class InProcessEndpoint
+{
+    /** runs the handler of the channel's endpoint for one message: its transaction, retries and error channel */
+    public function handle(Message $message): void
+    {
+        // ...
+    }
+}
+```
 
 Make the change: show the code you change or add, in full, and say why you put it where you did. Don't ask me questions.

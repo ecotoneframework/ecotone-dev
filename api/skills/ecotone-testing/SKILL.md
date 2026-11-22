@@ -235,8 +235,9 @@ echo implode("\n", $recording->lines);
   step of a distributed message, the application and message it came from, the text of its `sent by` hint;
   `ecotone.execution.started_in_a_coroutine_of` (`EXECUTION_STARTED_IN_A_COROUTINE_OF`) is, on the first step of a
   process that runs in a coroutine a handler started (OpenSwoole or Swoole), the `ecotone.execution.order` of the step
-  that was open when the coroutine started, which makes the process a sub-flow of that step; a coroutine that first
-  records after the process that started it ended carries no link.
+  that was open when the coroutine started (or, when that step has ended by the time the coroutine first records, of
+  its nearest ancestor still open), which makes the process a sub-flow of that step; a coroutine that first records
+  after the process that started it ended carries no link.
 - An exported step whose label holds an id Ecotone generates (an endpoint without an `endpointId`) is named with
   `{generated}` in its place, and its full label is in `ecotone.execution.label`. Give the endpoint an `endpointId` to
   get a readable name.

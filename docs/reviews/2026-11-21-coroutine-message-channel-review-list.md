@@ -1375,3 +1375,517 @@ Not touched by this range, so unchanged: BH4, BH8, BH14, BH20 (not-apply).
   changes for every scenario.", var/rv10-compare-swoole.md
 - `bin/test-agent-skills framework-testing`: 4 × 1.00; `bin/test-agent-skills ecotone-open-swoole`: 2 × 1.00
 
+
+## Re-check at e35d30581 (range 8a63c0a44..e35d30581, 7 commits)
+
+Developer experience passed. Breaking changes has nothing missing in its own section and keeps one place of the
+pending one-path requirement open, `ConnectionPool.php:153`; the coordinator ruled that it is not a break: it only
+refuses, on the pool's own setting, and waiting zero seconds would deadlock. Behaviour has every finding resolved and
+leaves BH13 undecided, because the skill eval lost its judges to a usage limit and is rerun later. Guidelines did not
+pass: GL42. The sections follow as the sessions wrote them, with headings one level down.
+
+### Guidelines
+
+#### Re-check at e35d30581
+
+Previous findings:
+- GL15 — resolved (f554d3441): `CoroutineMessageChannelModule.php:83` `registerReplay(configuration:, registry:,
+  channels:)` and `CoroutineFlowScenarios.php:41-45` `new FlowScenario(name:, classesToResolve:, services:,
+  extensionObjects:, stages:)`
+- One-path 1, consumer-stop interceptor — resolved (d780f0107): interceptor and builder deleted; no polling consumer
+  runs for the channel, so no stop event is published
+- One-path 2, failure logger on every asynchronous endpoint — resolved (d780f0107): the `AsynchronousRunningEndpoint`
+  around interceptor is deleted; `loggingADroppedMessage()` wraps only the channel consumer's `handleReceived()`
+  call (`CoroutineMessageChannelConsumer.php:71-79`); its remaining `?:` reads which endpoint failed, not a scenario
+- One-path 3, sleep — resolved (b5a68a55c): `CoroutineMessageChannelSwooleSleep` / `…OpenSwooleSleep`, chosen in
+  `CoroutineMessageChannelConsumerRegistration.php:46` when the container is built
+- One-path 4, `ChannelSendRecording` — resolved (109f5462c): the compiler pass decides `attributesOfEverySend`
+  (`RecordExecutionCompilerPass.php:173`); the send spreads it unconditionally
+
+Missing:
+
+GL42 — missing — `docs/superpowers/specs/2026-11-21-coroutine-message-channel-spec.md` states "A replay does not use
+      delayed retries … the handler annotations with `#[DelayedRetry]` and `#[ErrorChannel]` replaced the same way",
+      but (a) `AsyncHandlerAnnotationRegistry::withoutDelayedRetries()` (`AsyncHandlerAnnotationRegistry.php:42-45`)
+      leaves a `#[DelayedRetry]` without `deadLetterChannel` unchanged, so a replay of that endpoint does use delayed
+      retries: the retry is sent to the coroutine channel, refused outside a coroutine by the holding interceptor,
+      whose message no longer names the replay case; and (b) the `#[ErrorChannel]` branch
+      (`:44`) has no test: the two new Dbal tests cover `#[DelayedRetry(deadLetterChannel:)]` and an
+      `ErrorHandlerConfiguration` behind the polling metadata. Fix: for (a) either drop a `#[DelayedRetry]` without a
+      dead letter channel from the replay annotations (the polling metadata's error channel, already mapped through
+      `DeadLetterChannels`, then applies) with a test, or narrow the guarantee in the spec and the skill to name the
+      exception and test what happens; for (b) a Dbal test with `#[ErrorChannel('retried')]` and an
+      `ErrorHandlerConfiguration::createWithDeadLetterChannel('retried', …)` — skill: framework-design-and-briefs D2
+      (and framework-testing 10a for the per-path tests)
+
+Re-decided, because the commits touch them:
+GL1, GL4, GL5 — covered — the new Dbal tests boot `bootstrapFlowTesting()` with `Api/` types only, reach the
+      channel through `#[Asynchronous('async')]`, snake_case, no comments
+GL2 — covered for what is tested (replay outside and inside a coroutine, `replayAll` over two messages and over three
+      pages in `DeadLetterTest`); the untested `#[ErrorChannel]` branch is counted under GL42
+GL7 — covered — the consumer's nine constructor parameters are all required and passed by
+      `CoroutineMessageChannelConsumerRegistration.php:53-63`
+GL8 — covered — no new property written after construction
+GL9 — covered — `goingOnAfterAFailure()`, `withoutDelayedRetries()` (both) return new instances; `consumeWaiting()`,
+      `loggingADroppedMessage()` are `void`
+GL11, GL26 — covered — the replay inputs are `Definition` factories and a factory-built service, decided at build
+GL14 — covered — `DeadLetterChannels`, both sleeps are `final` with `strict_types`
+GL15 — covered — every new call of three or more arguments is named
+GL16 — covered — only array-shape docblocks added
+GL17 — covered — "dead letter channel" (`DeadLetterChannels`, `ErrorHandlerConfiguration::$deadLetterChannel`)
+      keeps one word. Nit, not counted: `goingOnAfterAFailure()` is a second name for `withStopOnError(false)`
+GL23 — covered — the refusal text lost its replay sentence with the case it described; both Core message tests
+      assert the new text
+GL37 — covered — `DeadLetterChannels` and `ErrorHandlerModule` are `licence Apache-2.0` with no licence branch;
+      `withoutDelayedRetries()` is in `AsyncHandlerAnnotationRegistry`, already `licence Enterprise`; open-core
+      behaviour is unchanged for an application without the channel (the new service is only registered, the flow
+      comparison shows it as a registration in every scenario)
+GL44–GL47 — covered — the `ecotone-open-swoole` §7 change was evaluated: consume-on-coroutines 1.00, send-in-process
+      1.00 (`var/r12-report.txt:20`)
+GL48 — covered — phpstan clean, baseline not grown; the OpenSwoole sleep calls through a class-string constant for that
+GL49 — covered — names resolve
+GL50 — covered — all 7 subjects conventional and scoped
+
+#### d780f0107: does the channel's consumer lose anything the polling consumer did?
+
+Read: `PollToGatewayTaskExecutor`, `InterceptedConsumerRunner`, `InterceptedConsumer::createInterceptorsForPollingMetadata()`,
+`PollingConsumerErrorChannelInterceptor`, `AcknowledgeConfirmationInterceptor`, `PollableChannelPollerAdapter`.
+
+Kept, because they live on the endpoint's gateway (`AsynchronousRunningEndpoint`), which `handleReceived()` calls
+through the same `PollToGatewayTaskExecutor`: transaction per message, instant retries, tracing (the scenario is
+byte-identical except the deleted acknowledgement steps), handler-scoped `#[DelayedRetry]` / `#[ErrorChannel]`
+(the executor sets them from the registry it is given), and the error channel: `PollingConsumerErrorChannelInterceptor`
+needs `CONSUMER_POLLING_METADATA` (set by the executor), `stopOnError = false` (`goingOnAfterAFailure()`) and
+`POLLED_CHANNEL_NAME` (set by `received()`); all three are there. The limit of N and the last-look loop are
+unchanged in `CoroutineMessageChannel::enqueue()` (`do { consumeWaiting() } while (hasWaitingMessage())`);
+`gc_collect_cycles()` per message stays in the executor.
+
+Gone, and intended or harmless:
+- Acknowledgement: the channel's messages carry no callback, so `AcknowledgeConfirmationInterceptor` proceeds without
+  acting. With the old `IGNORE` + auto-ack the result is the same (a failure not taken by the error channel is
+  dropped, now logged at error with the way out). One difference: a handler throwing `RejectMessageException`
+  (`src/`, not `Api/`) used to be rejected quietly at info and is now an ordinary failure (error channel, or the
+  drop log). Not counted; worth one sentence in the spec if it is intended
+- Consumer interceptors (handled-message, memory and time limits, signal, finish-when-no-messages,
+  `ConnectionExceptionRetryInterceptor`): none applies to a one-message in-process hand-over; the limits are refused
+  at bootstrap (`refuseConsumerLimits()`), and the connection retry is for a channel connection, which an in-memory
+  queue has none of; under the old `IGNORE` acknowledgement a handler's exception never reached it either
+- Lifecycle hooks: no `#[OnConsumerStop]` for the channel, no signal interceptor; intended and tested
+- `ENABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT` now wraps the no-op `ReceivedMessage` receive, while the real
+  `receive()` runs before it, through the channel's interceptors. No receive interceptor of the channel sends a
+  message, so nothing propagates differently; noted only
+
+Second implementation? The pipeline is not one: `handleReceived()` is the framework's executor. One small part is:
+`CoroutineMessageChannelConsumer::received()` (`:88`) sets `POLLED_CHANNEL_NAME`, which the endpoint's own poller
+`PollableChannelPollerAdapter::receiveWithTimeout()` already does, and `consumeWaiting()` calls `channel->receive()`
+itself instead of that poller. One-path requirement, minor: let the runner poll with its own `$messagePoller` for
+the channel (an `InterceptedConsumerRunner` method running the executor once with the given polling metadata and
+annotations), keep `received()` for the replay only. Not counted.
+
+#### Verdicts on what the implementer left open (r12 §1, §3, §7)
+
+- `#[DelayedRetry]` without a dead letter channel on a replay: not acceptable as untested, because the spec and the
+  skill state the opposite; GL42 above. Dropping that attribute from the replay annotations is the one-path answer
+  (decided at build, like the rest)
+- The channel's drop log next to the framework's critical log: keep both. The critical log records the exception for
+  every asynchronous endpoint; the drop log is the only record that the message is gone, and it names the channel,
+  endpoint, headers and the way out (framework-error-handling 1). It replaces the acknowledgement interceptor's
+  "rejected" info line, which no longer runs, so it is not a second implementation. Level `error` is the
+  maintainer's call
+- `CoroutineMessageChannelRelease::hold()` with no open boundary: agree, it is the component's own contract (hold
+  while a boundary the component opened is open, pass on when none is), not a scenario read; the release's own
+  re-send depends on it, and a boundary-less send has no transaction to wait for. Not a breach
+
+
+### Breaking changes
+
+NOT PASSED: OP1 (one of its five places is still open: ConnectionPool.php:153). The BC section has nothing missing.
+
+Breaking-changes review at e35d30581. New range 8a63c0a44..e35d30581 (7 commits, implementer's report
+var/r12-report.txt); the one-path requirement checked over origin/main...HEAD. The release is still the 2.0.0 major.
+
+#### Missing
+
+OP1 — missing — packages/Dbal/src/Connection/ConnectionPool.php:153
+- `if ($this->connectionPoolWaitSeconds <= 0.0) throw` still tests, on every exhausted acquire, the wait fixed when the
+  connection was registered.
+- This is configuration known at boot branched on at runtime. The range does not touch the file, and r12 does not
+  mention it.
+- Fix: decide in the constructor how an exhausted pool answers, refuse at once (0) or wait N seconds (for example two
+  small strategies, or one closure chosen once), and have `acquire` call that answer with no test on the setting.
+- Skill: `framework-service-design`.
+
+#### My earlier OP1 findings
+
+- CoroutineMessageChannelFailureLogger (#3) — resolved.
+  - The interceptor around every `AsynchronousRunningEndpoint` that read `POLLED_CHANNEL_NAME` is deleted
+    (CoroutineMessageChannelModule.php `registerFailureLogging`).
+  - The drop log is now written by the channel's own consumer around its one `handleReceived` call
+    (CoroutineMessageChannelConsumer.php:71-80).
+  - The one `?:` left (failed endpoint, or the channel) reads what happened, not a scenario.
+- Consumer-stop interceptor (#4) — resolved. It is deleted with its builder. The channel's consumer is no longer an
+  `InterceptedConsumer`, so no stop event is published and no signal interceptor exists; there is nothing to filter.
+- Sleep (#5) — resolved.
+  - Split into `CoroutineMessageChannelSwooleSleep` and `CoroutineMessageChannelOpenSwooleSleep`; the compiler pass
+    registers the one of the loaded extension when the container is built
+    (CoroutineMessageChannelConsumerRegistration.php:46).
+  - A container dumped on a host with the other extension would keep the wrong one. That is the same constraint as
+    any build-time choice, not a breach.
+- ConnectionPool (#4 of the earlier list) — not resolved, see Missing.
+- ChannelSendRecording (#6) — resolved. The send attributes are decided in `RecordExecutionCompilerPass` (:173) and
+  spread unconditionally (ChannelSendRecording.php:66).
+
+#### The new consumer (d780f0107): does it lose anything a polling consumer did, or implement it twice?
+
+`consumeWaiting()` (CoroutineMessageChannelConsumer.php:71) receives from the intercepted channel, through
+`ChannelReference`, so the channel's interceptors still run on receive. It hands each message to
+`InterceptedConsumerRunner::handleReceived()` (:63). That builds the framework's own `PollToGatewayTaskExecutor` with
+a one-message poller and runs the endpoint's gateway, the same pipeline a polled message gets.
+
+What the polling consumer did, one by one:
+- Acknowledge / reject: previously `InMemoryQueueAcknowledgeInterceptor` with auto-ack and `FinalFailureStrategy::IGNORE`,
+  so the message left the queue on receive and was dropped on final failure. Now `receive()` takes it off the
+  in-memory queue, and a final failure is caught and logged by the channel's consumer. Same semantics: at most once,
+  dropped after failure. Nothing else held the message.
+- Instant retries, error channel, delayed retries, transaction per message: these are interceptors on the
+  asynchronous endpoint's gateway (`AsynchronousRunningEndpoint`), plus the error channel taken from the
+  `CONSUMER_POLLING_METADATA` header the executor sets (PollToGatewayTaskExecutor.php:47-51). The same executor runs,
+  so they are kept. r12 lists the existing tests that still pass.
+- Handler annotations (`#[ErrorChannel]`, `#[DelayedRetry]`, routing slip): the executor sets
+  `asyncEndpointAnnotationContext` from the registry passed in. For consumption that is the endpoint's own
+  `AsyncHandlerAnnotationRegistry` (Registration.php:51-58), so they are kept.
+- Header propagation: the executor still sends the enable/disable polling-propagation messages around its receive. The
+  channel's receive now happens before that window, but the `isPollingConsumer` flag is read by nothing in
+  `packages/*/src`, so nothing is lost.
+- Tracing: the channel's receive interceptors and the endpoint's spans run as before. r12's flow comparison shows only
+  the acknowledgement steps and the old `log` interceptor gone.
+- At most N at once: kept by the channel's `$consumers` counter (CoroutineMessageChannel.php `enqueue`).
+- Last-look loop against a stranded message: kept (`do { consumeWaiting() } while (hasWaitingMessage())`).
+- Stop on error: forced off at build (`goingOnAfterAFailure`, factory at Registration.php:55). The memory, time,
+  amount, handled-message, connection-retry and signal settings are refused for the channel at boot, so the consumer
+  interceptors that implement them have nothing to do.
+- Consumer lifecycle hooks (`#[OnConsumerStop]`, `onStartup` / `onShutdown`, the poller's `onConsumerStop`):
+  intentionally not called (coordinator decision). This is now structural, not filtered.
+- `gc_collect_cycles()` per message: kept inside the executor.
+
+Second implementation? No. Handling a message is the framework's executor and gateway. `consumeWaiting()` is only a
+receive loop, and the framework's own loop (`InterceptedConsumer` with `ConsumerCoroutines`) is the part whose
+lifecycle the channel must not have.
+
+#### The implementer's open points
+
+- `#[DelayedRetry]` without a dead letter channel on a replay (untested) — a gap, not a BC item.
+  - `AsyncHandlerAnnotationRegistry::withoutDelayedRetries()` maps only a `#[DelayedRetry]` that has a dead letter
+    channel. One without it keeps its delayed retry on a replay.
+  - Inside a coroutine, the retry is held by the replay's gateway boundary and released into the channel. The replay
+    then goes through the coroutine channel, against the maintainer's decision that a replay does not.
+  - Outside a coroutine, it reaches the holding interceptor's refusal, whose replay advice was removed in this range.
+    The replay call throws and the dead letter keeps the message.
+  - Recommendation: map it at build too (drop that `#[DelayedRetry]` for the replay, so a failing replay throws back to
+    the caller and the dead letter keeps the message) and add a test. It belongs to the behaviour session.
+- The channel's drop log next to the framework's critical log — keep both; no OP1 breach.
+  - The framework's `LoggingInterceptor` logs the exception of every asynchronous endpoint. The final-failure
+    "rejected / ignored" log of the acknowledgement path no longer runs for this channel, because it has no
+    acknowledgement.
+  - So the channel's log replaces that one, saying the message was dropped and how to keep it; it is not a second
+    copy. Whether the two lines are too much is the DX session's or the maintainer's call.
+- `CoroutineMessageChannelRelease::hold()` with no open boundary (:33) — I agree with r12 §7: it is the component's
+  own contract (hold while a boundary is open, otherwise pass on).
+  - The release's own re-send needs that pass, and a boundary-less send shares it.
+  - Telling those two apart would itself need a scenario flag. No OP1 breach.
+
+#### Other OP1 checks of the new code (meets OP1)
+
+- The replay's polling metadata and handler annotations (`withoutDelayedRetries`, Consumer.php:66, Registration.php:48,
+  :57-58) are built once, at container build, and reached through their own entry, the replay channel. There is no
+  runtime "is this a replay".
+- The `match` in `AsyncHandlerAnnotationRegistry::withoutDelayedRetries()` runs once, at build.
+- `DeadLetterChannels::of()` is a map built at boot from `ErrorHandlerConfiguration`s.
+- The non-static factory `[AsyncHandlerAnnotationRegistry::class, 'withoutDelayedRetries']` resolves the service
+  instance (SymfonyContainerImplementation.php:202-206). That is an existing mechanism.
+
+#### Covered
+
+BC3 — covered — re-decided; no `Api/` signature changes in the range.
+- `CoroutineMessageChannelBuilder::compile()` only references the moved sleep service id.
+- The changed signature of `InterceptedConsumerRunner::handleReceived(Message, PollingMetadata,
+  AsyncHandlerAnnotationRegistry)` was introduced on this branch, on an internal `src/` class nothing extends.
+- `AsyncHandlerAnnotationRegistry::withoutDelayedRetries()` is a new method on an internal class.
+- `CoroutineMessageChannelSleep` and its `SERVICE_ID` are renamed or moved, all internal and new on this branch.
+
+BC4 — covered — no default changes. `DeadLetterChannels::of()` returns the channel itself when no dead letter is
+configured, and it is used only by the coroutine channel's replay inputs.
+
+BC6 — covered — re-decided.
+- New behaviour in this range is limited to the opt-in channel: a coroutine channel's failing replay goes straight back
+  to the dead letter as a new entry, and the consumer has no lifecycle.
+- `DeadLetterChannels` (ErrorHandlerModule.php:180) is registered for every application, but only the coroutine
+  consumer reads it. Replays of other channels and their delayed retries are unchanged.
+- The `replayAll` paging test (e35d30581) pins existing behaviour.
+- The pool-wait entry is unchanged at upgrade-2.0.md:3066-3067 and :3083.
+
+BC1 — covered — unchanged from 8a63c0a44.
+- A re-failed replay is stored through the existing dead-letter store, same row form, new id.
+- The span attribute is still the optional JSON key, now set at build.
+
+BC8 — covered — unchanged. Old and new versions read each other's trace attributes and dead-letter rows.
+
+#### Not-apply
+
+BC2 — not-apply — no stored form changes.
+
+BC5 — not-apply — no console command or option changes.
+
+BC7 — not-apply — major release; the new behaviour is opt-in.
+
+Pending with the maintainer, unchanged and not counted:
+- the default of 10 coroutines;
+- the unbounded `maximumDelay()`;
+- the public `$messageChannelName`;
+- the two public pool-wait default constants.
+
+Counts (BC section): not-apply 3 (BC2, BC5, BC7) / covered 5 (BC1, BC3, BC4, BC6, BC8) / missing 0.
+OP1: missing (ConnectionPool.php:153).
+
+### Developer experience
+
+#### Re-check at e35d30581 (8a63c0a44..HEAD, 7 commits)
+
+Re-decided: DX7 (my finding), DX6, DX9; DX1-DX5, DX8 and DX10 are not touched (no new option, setting or attribute).
+
+DX7 — covered (was missing at 8a63c0a44) — c172709bf: a replay is handled with polling metadata and handler
+annotations built at boot without delayed retries: the error channel is replaced by the dead letter behind it
+(`DeadLetterChannels::of()`, `CoroutineMessageChannelConsumer::withoutDelayedRetries`,
+`AsyncHandlerAnnotationRegistry::withoutDelayedRetries`). A replay that fails again, from `ecotone:deadletter:replay`
+or a script outside a coroutine or from inside one, goes back to the dead letter with the handler's own exception, and
+`replayAll` goes on to the next message. The user now sees the real failure and can act on it. Evidence: Dbal
+`test_replay_that_fails_again_on_an_endpoint_with_delayed_retries_goes_straight_back_to_the_dead_letter_with_the_handlers_failure`
+(`CoroutineMessageChannelTest.php:334`, red first on the refusal) and
+`test_replay_that_fails_again_skips_the_delayed_retries_configured_behind_the_endpoints_error_channel` (`:380`). The
+skill says it (`SKILL.md:262-265`), and the refusal no longer names the replay case. Left open, my verdict:
+`#[DelayedRetry]` without `deadLetterChannel` on a replay is not a DX7 miss. Such an endpoint's failures never reach
+the dead letter through that attribute, so a stored message of it comes only from another route, an unusual setup.
+The worst case is the earlier refusal, with the message kept. It is untested: a behaviour-session item, not counted
+here.
+
+DX6 — covered — a replay on this channel gets one delivery with instant retries and no delayed retries, while a
+replay on a queue or broker channel goes through the endpoint's delayed retries again. The difference is justified,
+because a delayed retry of this channel outside a coroutine cannot run. It is stated in the skill. The new entry
+with a new id and no retry count is the dead letter's existing behaviour (r11 D4), not this change.
+
+DX9 — covered — no new name a user reads. `DeadLetterChannels`, `withoutDelayedRetries`, `consumeWaiting` and the two
+sleep classes are internal.
+
+The polling-consumer loop is replaced (d780f0107). Checked that nothing a user relies on is lost:
+- Acknowledge and reject: the in-memory acknowledgement is gone. Before, a final failure was rejected (dropped)
+  under `FinalFailureStrategy::IGNORE`; now it is caught by `loggingADroppedMessage` and dropped. Same outcome, and
+  the message is held only in memory either way.
+- Instant retries, error channel, delayed retries, transaction per message, tracing: these run in the endpoint's
+  gateway and `PollToGatewayTaskExecutor`, which `handleReceived()` uses as before, and the existing tests for each
+  hold.
+- The limit of N at once and the last look that prevents a stranded message: unchanged in
+  `CoroutineMessageChannel::enqueue()`. `consumeWaiting()` drains until empty, then `hasWaitingMessage()` checks
+  again, with nothing in between that yields.
+- Stop-on-error, memory and other loop settings: the consumer interceptors that implement them (limits, time, memory,
+  finish-when-empty, signal, connection retry) were all refused or switched off for this channel already, so nothing
+  configurable is lost. Stop-on-error is forced off at boot.
+- `#[OnConsumerStop]`: not called, as intended; now by construction, since no consumer is started.
+
+Not a second implementation: the per-message handling is the framework's executor and gateway. What is left is a
+drain loop that replaced a full consumer, which needed three interceptors to neutralise it. That is a simplification.
+
+Drop log next to the framework's critical log, my verdict: keep it. The framework's `LoggingInterceptor` logs the
+exception. The channel's error line adds what the user needs and nothing else gives: that the message was dropped,
+the channel, the endpoint, the headers, and how to keep failures (an error channel to durable storage). The old
+info-level "rejected" log is gone for this channel, so there is no third line. Two lines per final failure is
+acceptable for a best-effort channel. Merging them is the maintainer's call, not a DX miss.
+
+Counts: not-apply 0, covered 10, missing 0.
+
+#### Pending requirement "a component has one path" at e35d30581
+
+Resolved since 8a63c0a44:
+1. The failure logger's runtime branch on `polledChannelName` is deleted. The drop log is written by the channel's
+   own consumer around its one `handleReceived()` call. Its remaining `?:` (the endpoint that failed, or the channel)
+   reads what happened, not a scenario.
+2. The consumer-stop interceptor is deleted. No consumer is started, so no stop event is published.
+3. The sleep: `CoroutineMessageChannelSwooleSleep` or `CoroutineMessageChannelOpenSwooleSleep` is chosen once in the
+   compiler pass (`CoroutineMessageChannelConsumerRegistration.php`).
+4. `Release::hold()` with no open boundary, my verdict: accepted as the component's own contract. It reads the
+   release's own state, not another feature's header, a caller's class or the runtime situation. The release's own
+   re-send through the channel's interceptors needs it, so it keeps the send span and the collector. A boundary-less
+   direct send shares that path, and no userland entry reaches it. I withdraw my "probably" item.
+5. `ChannelSendRecording`: its attributes are decided in the compiler pass.
+
+New code checked: `DeadLetterChannels::of()` and `ReplayChannels::of()` are map lookups built at boot.
+`AsyncHandlerAnnotationRegistry::withoutDelayedRetries()` runs its `match` once, when the container builds the replay
+annotations. `handleReceived()` takes its inputs, so there is no runtime "is this a replay". No break found in
+origin/main...HEAD.
+
+
+### Behaviour
+
+NOT PASSED: BH13 (not decided: the `ecotone-open-swoole` eval lost the judges of rules 6-9 to a usage limit; rerun
+`bin/test-agent-skills ecotone-open-swoole` after it resets). Every other requirement, OP included, is covered or not-apply at
+e35d30581.
+
+Count at e35d30581 (BH1-BH22 + OP): not-apply 1, covered 20, missing 1 (BH13, run incomplete); OP covered.
+Count at 8a63c0a44 (BH1-BH22): not-apply 1, covered 21, missing 0; plus OP missing.
+Count at b0c74d831 (BH1-BH22): not-apply 1, covered 21, missing 0. At 3d77734da (BH1-BH21): not-apply 1, covered 20, missing 0. (At 4d95019cc: BH17 and BH14 missing; at 082a7e5a6: BH14 missing.)
+
+#### Re-check at e35d30581 (range 8a63c0a44..e35d30581, 7 commits, var/r12-report.txt)
+
+##### Missing
+
+BH13 — missing — not decided. `bin/test-agent-skills ecotone-open-swoole` (var/rv11-skills.log): consume-on-coroutines
+1.00 (rules 1-5 pass); send-in-process 0.50, because rule-6..9 "grader threw: judge call failed: You've hit your
+5-hour limit" (resets 00:20 Europe/Warsaw); rules 10-12 pass. The skill change (§7, the replay sentence: no
+delayed retries, straight back to the dead letter, no retry count, replayAll goes on) is reference text, not a
+rule, so no new grader is needed. Only the rerun is missing. Fix: rerun the eval after the reset. Skill:
+`framework-agent-tooling`.
+
+##### My findings at 8a63c0a44: each resolved
+
+- OP 1, failure logger: resolved (d780f0107). The around interceptor on every `AsynchronousRunningEndpoint` that
+  read `POLLED_CHANNEL_NAME` is deleted. The drop log is written by the channel's own consumer around its one
+  `handleReceived` call (`CoroutineMessageChannelConsumer::consumeWaiting`), and `recordFailedEndpoint` keeps the
+  pointcut of the channel's handlers, decided at boot. Tests:
+  `test_failed_messages_are_logged_with_headers_and_dropped_while_others_continue` and
+  `test_failure_logs_keep_each_coroutines_endpoint_and_headers` (green in the list runs).
+- OP 2, consumer-stop filter: resolved (d780f0107). No `InterceptedConsumer` exists for the channel, so no stop event
+  is published, and the filter and its builder are deleted. Tests:
+  `test_consumer_stop_handlers_are_not_called_when_the_channel_is_drained` and the beside-a-polling-consumer twin
+  (green).
+- OP 3, sleep: resolved (b5a68a55c). `CoroutineMessageChannelSwooleSleep` / `CoroutineMessageChannelOpenSwooleSleep`,
+  one path each; the compiler pass picks one by `extension_loaded` once, at boot. The sub-millisecond test stays
+  green on both runtimes.
+- OP 4, `ChannelSendRecording`: resolved (109f5462c). The compiler pass passes `attributesOfEverySend`, decided at
+  boot, and the recording spreads it.
+- Recommended replayAll over 100: added (e35d30581,
+  `DeadLetterTest::test_replaying_all_replays_every_dead_letter_when_more_are_stored_than_are_listed_at_once`, 205
+  messages). It is a pin that passes on 79fe831ce too, as r12 says.
+
+##### The consumer without a polling loop (d780f0107): what the polling consumer did, kept or dropped
+
+`consumeWaiting()` receives from the channel reference (through the channel's interceptors, so the tracing
+receive step stays) and hands each message to `InterceptedConsumerRunner::handleReceived()`. That call is the
+framework's own `PollToGatewayTaskExecutor` with the endpoint's gateway, including the polling-consumer header
+propagation context around the receive. Read against `InterceptedConsumerRunner::createConsumer`,
+`InterceptedConsumer::createInterceptorsForPollingMetadata` and `AcknowledgeConfirmationInterceptor`, and against
+the swoole flow comparison (var/rv11-compare-swoole.md:183-265):
+- Kept, because it lives in the endpoint's gateway: tracing (`receive notifications` span), `AcknowledgeConfirmationInterceptor`,
+  `LoggingInterceptor::logException`, `PollingConsumerErrorChannelInterceptor` (error channel, and through it
+  delayed retries and the dead letter), header propagation, instant retry, `CoroutineMessageChannelRelease`,
+  delivery confirmation, the collector. With DBAL, the transaction per message is there too: the Dbal channel tests
+  that assert a rollback per message stay green.
+- Acknowledge / reject: the channel's messages now carry no acknowledgement callback, so
+  `AcknowledgeConfirmationInterceptor` proceeds without one. Before, the in-memory callback was auto-acked with
+  `FinalFailureStrategy::IGNORE`: a failure was rejected and the message dropped. Now the failure reaches the
+  channel's logger, which logs and drops it. The outcome is the same. Probed (a throwaway test in var/, since
+  removed) with a handler throwing `RejectMessageException`, the exception an application throws:
+  - with an error channel: on a queue channel and on this channel, 1 call and the message on the error channel;
+  - without one: on both, 1 call and dropped, with the framework's critical log; the queue channel adds an info
+    "rejected in Message Channel", this channel an error "dropped a message after endpoint ... failed".
+  Note, not blocking: a deliberate reject is reported as a failure with an error-channel way out. Wording for the
+  DX review.
+- `stopOnError`: kept as data, `goingOnAfterAFailure()` at boot, put in `CONSUMER_POLLING_METADATA` (read by the
+  acknowledge interceptor only when there is a callback). Going on after a failure is now the logger's catch, so
+  one failed message never stops the coroutine (the drop-and-continue test).
+- Not called, on purpose: the consumer interceptors (handled-message, memory, execution and time limits, all
+  refused for the channel at bootstrap or 0 before), `SignalInterceptor` (BH14: the termination-signal test stays
+  green on swoole and openswoole), `FinishWhenNoMessagesInterceptor` (the loop ends at `receive() === null`), stop
+  hooks / `onConsumerStop` (tested), `ConnectionExceptionRetryInterceptor`. The last one only acts on a
+  `ConnectionException`, which inbound adapters throw (DBAL, AMQP, Enqueue); the in-memory channel never does, and
+  with no retry template it rethrew anyway.
+- The limit of N at once and the last look: unchanged in `CoroutineMessageChannel` (the `consumers` counter, and
+  `do { consumeWaiting() } while (hasWaitingMessage())` before `consumers--`).
+- Second implementation? No. The executor and gateway are the framework's own; what is left out is the polling
+  process (trigger, scheduler, consumer interceptors), which the channel must not run. The remainder is a
+  receive-until-empty loop and one catch. That is no more than `FinishWhenNoMessages` plus the IGNORE
+  acknowledgement did, without the stop event the filter had to undo.
+
+##### OP on the new code: no break
+
+`DeadLetterChannels::of()` is a map lookup built at boot, like `ReplayChannels`. The `match` in
+`AsyncHandlerAnnotationRegistry::withoutDelayedRetries` runs once, as a definition factory, as do
+`withoutDelayedRetries` / `goingOnAfterAFailure` for the polling metadata. The compiler pass ternaries
+(`extension_loaded`, the send attributes) run at boot. Replay and consumption share `handleReceived`, with
+different inputs built at boot, not a runtime "is this a replay". The logger's `endpointId !== '' ?` reads what
+happened (failed inside or outside a handler), not a scenario.
+
+##### The three points left open by r12: my verdicts
+
+- `#[DelayedRetry]` without a dead letter channel on a replay, untested: accept. Such an endpoint's messages never
+  reach the dead letter through it. The same holds for an `ErrorHandlerConfiguration` without a dead letter channel.
+  If such a message is replayed anyway (stored by another route, or an explicit target), inside a coroutine it
+  retries through the channel as usual; outside one it gets the generic refusal, which no longer names the replay
+  case since c172709bf. Note it in the spec; no test required.
+- The drop log next to the framework's critical log: keep both. The critical log is the exception of any
+  asynchronous endpoint; the channel's log says the message is gone, the channel, the failed endpoint, the headers
+  and the way out. Optional DX: say "rejected" for `RejectMessageException`.
+- `Release::hold()` with no open boundary: agree, it is the component's own contract. `release()` delivers through
+  it by re-sending with the boundary closed, so tracing and the collector see the send. A boundary-less send from
+  elsewhere is still refused outside a coroutine by the holding interceptor, and inside one it is an ordinary send.
+  Telling the two apart would need exactly the scenario flag OP forbids.
+
+##### Re-decided by this range
+
+BH1 — covered — a replay that fails again goes straight back to the dead letter with the handler's exception, outside
+and inside a coroutine (DX7); the consumer hands each message to the endpoint's pipeline.
+
+BH2 — covered — red first:
+- `test_replay_that_fails_again_on_an_endpoint_with_delayed_retries_goes_straight_back_to_the_dead_letter_with_the_handlers_failure`:
+  r12, the refusal at 8a63c0a44.
+- `test_replay_that_fails_again_skips_the_delayed_retries_configured_behind_the_endpoints_error_channel`: red by
+  the diff. At 8a63c0a44 the replay used the `retried` error channel; its delayed retry sent to `async` outside a
+  coroutine and replayAll threw the refusal.
+- The paging test is a pin (stated). d780f0107, b5a68a55c and 109f5462c are refactors held by the unchanged
+  tests, and the compare shows no step moved except the deleted acknowledge and logger steps.
+
+BH3 — covered — replay(id) / replayAll outside and inside a coroutine, MySQL in the list run, PostgreSQL in the
+Swoole twin, MariaDB per r12; delayed retries from `#[DelayedRetry(deadLetterChannel:)]` and from an
+`ErrorHandlerConfiguration` behind the polling metadata.
+
+BH5 — covered — the two new Dbal replay tests above; the dropped-message log test; the error-channel and
+delayed-retry tests of the channel (green).
+
+BH6 — covered — replayAll goes on to the next message after a failing one; the paging test covers 205.
+
+BH10 / V8 — covered — dead letter × channel × delayed retries (both configuration forms), tracing (compare), flow
+tracking (192 OK on swoole).
+
+BH12 — covered — the new tests use `DeadLetterGateway`, `ErrorContext`, `ErrorHandlerConfiguration` and
+`PollingMetadata` (Api).
+
+BH14 — covered — no signal interceptor is built for the channel any more. The termination-signal test (green on
+both runtimes) proves the application's handler still gets the signal.
+
+BH15-BH18 — covered — the consumer's new state is constructor-injected, immutable and built at boot; per-message
+objects are fresh; no new wait.
+
+BH19 — covered — the channel's consumer still refuses `ecotone:run`
+(`CoroutineMessageChannelConsumer::runEndpointWithExecutionPollingMetadata`, its refusal test green).
+Concurrency is bounded by the channel's counter.
+
+BH21 — covered — no new test file; the new tests sit in listed files or need no coroutine runtime (DeadLetterTest).
+
+BH22 — covered — the scenario's comparison shows the consumer's new steps (no `acknowledge` step, no
+`FailureLogger::log`) and the two new registrations; the baseline is untouched.
+
+Not touched: BH4, BH7, BH8, BH9, BH11 (unchanged), BH20 (not-apply).
+
+##### Runs on e35d30581 (worktree root, one at a time)
+
+- swoole, CI command, COROUTINE_TESTS: OK (328 tests, 994 assertions), var/rv11-swoole.log
+- openswoole, CI command, COROUTINE_TESTS: OK (318 tests, 981 assertions), var/rv11-openswoole.log
+- swoole, Dbal `CoroutineMessageChannelTest` alone with `--fail-on-skipped`: OK (22 tests),
+  var/rv11-dbal-channel-swoole.log
+- app, Dbal `DeadLetterTest`: OK (21 tests, 200 assertions), var/rv11-deadletter-app.log
+- app, Tracing / OpenTelemetry / Dbal flow conformance and `Messaging/Unit/Config/Flow`: OK (859 tests, 1 skipped:
+  the orchestrator scenario), var/rv11-flow-app.log
+- swoole, Dbal `FlowTrackingScenarioConformanceTest` with `--fail-on-skipped`: OK (192), var/rv11-flowtracking-swoole.log
+- build-flow compare: app "No scenario of 95 changes its message path. 2 registrations change for every scenario."
+  (`ReplayChannels`, `DeadLetterChannels`), var/rv11-compare-app.md; swoole "1 of 96 scenarios changes its message
+  path. 2 registrations change for every scenario.", var/rv11-compare-swoole.md
+- `bin/test-agent-skills ecotone-open-swoole`: incomplete (see BH13), var/rv11-skills.log
+

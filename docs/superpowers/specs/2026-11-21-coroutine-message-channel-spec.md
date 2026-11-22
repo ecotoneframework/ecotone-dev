@@ -31,6 +31,7 @@ Test names below are in `packages/Ecotone/tests/Messaging/Execution/CoroutineMes
 | Sending to the same channel with limit one completes | `test_a_handler_can_send_to_its_own_channel_with_one_coroutine` |
 | Traces retain the sender context | OpenTelemetry `CoroutineTracingTest::test_coroutine_message_channel_continues_each_senders_trace` |
 | Framework-level tracing records the handler as a sub-flow of its sender | Core `CoroutineMessageChannelTest::test_handler_on_the_channel_is_recorded_when_framework_tracing_records_the_execution` |
+| The flow is a scenario of the flow scenario catalogue, run where a coroutine runtime is loaded | `CoroutineFlowScenarios` through `TracingFlowConformanceTest`, `OpenTelemetryFlowConformanceTest` and Dbal `FlowTrackingScenarioConformanceTest` |
 | Outside a coroutine is refused with recovery and rollback guidance, including fibers | `test_sending_outside_a_coroutine_is_refused`, `test_a_sender_on_a_fiber_outside_a_coroutine_is_refused` |
 | Bootstrap requires Enterprise licence and runtime extension; positive concurrency; extension-free environment replacement | `CoroutineMessageChannelRefusedTest`, including `test_a_production_coroutine_channel_can_be_replaced_with_a_queue_in_tests` |
 | Separate consumer execution and polling concurrency are refused | `test_starting_a_consumer_is_refused`, `test_console_consumer_start_is_refused`, `test_polling_concurrency_is_refused_at_bootstrap` |

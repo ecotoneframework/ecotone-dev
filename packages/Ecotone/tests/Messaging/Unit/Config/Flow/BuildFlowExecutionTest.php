@@ -778,7 +778,7 @@ final class BuildFlowExecutionTest extends TestCase
 
     private static function currentSnapshotFilesOf(string $scenarioName): array
     {
-        [$scenario] = array_values(array_filter(FlowScenarioCatalogue::all(), fn (FlowScenario $scenario): bool => $scenario->name === $scenarioName));
+        [$scenario] = array_values(array_filter(FlowScenarioCatalogue::runningOnThisPhp(), fn (FlowScenario $scenario): bool => $scenario->name === $scenarioName));
         $snapshot = FlowScenarioRecorder::snapshotOf($scenario);
 
         return FlowSnapshots::filesOf([$snapshot->fileName() => $snapshot], FlowScenarioRecorder::snapshotOf(new FlowScenario(name: 'application without handlers', classesToResolve: [], services: [], extensionObjects: [], stages: [])));

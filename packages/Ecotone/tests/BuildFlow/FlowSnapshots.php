@@ -43,8 +43,9 @@ final class FlowSnapshots
 
     /**
      * @param array<string, string> $files
+     * @param list<string> $keeping
      */
-    public function replaceWith(array $files): void
+    public function replaceWith(array $files, array $keeping): void
     {
         $this->createLocation('Flow snapshots');
         foreach ($files as $fileName => $content) {
@@ -52,9 +53,18 @@ final class FlowSnapshots
                 throw InvalidArgumentException::create("Flow snapshot file {$this->location}/{$fileName} could not be written. Make the location {$this->location} writable for the user running this command, or pass another --location.");
             }
         }
-        foreach (array_diff($this->fileNames(), array_keys($files)) as $noLongerProduced) {
+        foreach (array_diff($this->fileNames(), array_keys($files), $keeping) as $noLongerProduced) {
             unlink($this->location . '/' . $noLongerProduced);
         }
+    }
+
+    /**
+     * @param list<string> $fileNames
+     * @return array<string, FlowSnapshot>
+     */
+    public function allBut(array $fileNames): array
+    {
+        return array_diff_key($this->all(), array_flip($fileNames));
     }
 
     /**

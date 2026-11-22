@@ -14,9 +14,25 @@ final class FlowScenarioCatalogue
      */
     public static function dataProvider(): iterable
     {
-        foreach (self::all() as $scenario) {
+        foreach (self::runningOnThisPhp() as $scenario) {
             yield $scenario->name => [$scenario];
         }
+    }
+
+    /**
+     * @return list<FlowScenario>
+     */
+    public static function runningOnThisPhp(): array
+    {
+        return array_values(array_filter(self::all(), fn (FlowScenario $scenario): bool => $scenario->runsOnThisPhp()));
+    }
+
+    /**
+     * @return list<FlowScenario>
+     */
+    public static function leftOutOnThisPhp(): array
+    {
+        return array_values(array_filter(self::all(), fn (FlowScenario $scenario): bool => ! $scenario->runsOnThisPhp()));
     }
 
     /**
@@ -41,6 +57,7 @@ final class FlowScenarioCatalogue
             ...EndpointFlowScenarios::all(),
             ...RoutingFlowScenarios::all(),
             ...DynamicConsistencyBoundaryFlowScenarios::all(),
+            ...CoroutineFlowScenarios::all(),
         ];
     }
 }

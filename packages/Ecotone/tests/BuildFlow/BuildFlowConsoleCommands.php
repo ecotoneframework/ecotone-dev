@@ -21,7 +21,7 @@ final class BuildFlowConsoleCommands
     public function snapshot(ConsoleWriter $writer, #[ConsoleParameterOption] string $location): void
     {
         $files = FlowScenarioRecorder::filesOfTheCatalogue();
-        (new FlowSnapshots($location))->replaceWith($files);
+        (new FlowSnapshots($location))->replaceWith(files: $files, keeping: FlowScenarioRecorder::fileNamesLeftOutOnThisPhp());
 
         $writer->success('Stored ' . (count($files) - 1) . " flow snapshots and what they share in {$location}");
     }
@@ -43,7 +43,7 @@ final class BuildFlowConsoleCommands
         $problems = array_filter([
             'differs' => $differs,
             'missing' => $missing,
-            'no longer produced' => array_values(array_diff((new FlowSnapshots($location))->fileNames(), array_keys($files))),
+            'no longer produced' => array_values(array_diff((new FlowSnapshots($location))->fileNames(), array_keys($files), FlowScenarioRecorder::fileNamesLeftOutOnThisPhp())),
         ]);
         if ($problems !== []) {
             throw InvalidArgumentException::create(
@@ -64,7 +64,8 @@ final class BuildFlowConsoleCommands
         }
         $before = new FlowSnapshots($from);
         $after = new FlowSnapshots($to);
-        $comparison = FlowSnapshotComparison::between(before: $before->all(), after: $after->all(), sharedBefore: $before->shared(), sharedAfter: $after->shared());
+        $leftOut = FlowScenarioRecorder::fileNamesLeftOutOnThisPhp();
+        $comparison = FlowSnapshotComparison::between(before: $before->allBut($leftOut), after: $after->allBut($leftOut), sharedBefore: $before->shared(), sharedAfter: $after->shared());
 
         $writer->write($presentation === self::JSON_PRESENTATION ? $comparison->toJson() : FlowComparisonMarkdown::of($comparison));
     }

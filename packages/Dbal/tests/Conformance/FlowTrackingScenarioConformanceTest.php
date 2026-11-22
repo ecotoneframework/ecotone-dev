@@ -27,7 +27,7 @@ final class FlowTrackingScenarioConformanceTest extends DbalMessagingTestCase
     public static function scenariosOnEveryStore(): iterable
     {
         foreach (['in-memory', 'dbal'] as $implementation) {
-            foreach (FlowScenarioCatalogue::all() as $scenario) {
+            foreach (FlowScenarioCatalogue::runningOnThisPhp() as $scenario) {
                 yield "{$scenario->name} [{$implementation}]" => [$scenario, $implementation];
             }
         }

@@ -26,7 +26,18 @@ final class FlowScenario
         public readonly array $services,
         public readonly array $extensionObjects,
         public readonly array $stages,
+        public readonly bool $needsACoroutineRuntime = false,
     ) {
+    }
+
+    public function needingACoroutineRuntime(): self
+    {
+        return new self(...[...get_object_vars($this), 'needsACoroutineRuntime' => true]);
+    }
+
+    public function runsOnThisPhp(): bool
+    {
+        return ! $this->needsACoroutineRuntime || extension_loaded('swoole') || extension_loaded('openswoole');
     }
 
     /**
@@ -65,7 +76,7 @@ final class FlowScenario
 
     public function asStoredByFlowTracking(): self
     {
-        return new self($this->name, $this->classesToResolve, $this->services, $this->extensionObjects, array_map(fn (FlowStage $stage) => $stage->asStoredByFlowTracking(), $this->stages));
+        return new self(...[...get_object_vars($this), 'stages' => array_map(fn (FlowStage $stage) => $stage->asStoredByFlowTracking(), $this->stages)]);
     }
 
     /**

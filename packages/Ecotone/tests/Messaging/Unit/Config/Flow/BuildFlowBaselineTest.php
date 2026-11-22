@@ -14,6 +14,7 @@ use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
+use Test\Ecotone\BuildFlow\FlowScenarioRecorder;
 
 /**
  * licence Apache-2.0
@@ -51,7 +52,7 @@ final class BuildFlowBaselineTest extends TestCase
         $tooling->runConsoleCommand('ecotone:build-flow:snapshot', ['location' => $this->location . '/second']);
 
         $first = $this->filesIn($this->location . '/first');
-        self::assertCount(count(FlowScenarioCatalogue::all()) + 1, $first);
+        self::assertCount(count(FlowScenarioCatalogue::runningOnThisPhp()) + 1, $first);
         $second = $this->filesIn($this->location . '/second');
         self::assertSame('kept', $second['notes.txt']);
         unset($second['notes.txt']);
@@ -122,7 +123,7 @@ final class BuildFlowBaselineTest extends TestCase
         $comparison = json_decode($tooling->getInMemoryConsoleWriter()->getWrittenContent(), true, flags: JSON_THROW_ON_ERROR);
 
         self::assertCount(1, $comparison['groups']);
-        self::assertCount(count(FlowScenarioCatalogue::all()), $comparison['groups'][0]['scenarios']);
+        self::assertCount(count(FlowScenarioCatalogue::runningOnThisPhp()), $comparison['groups'][0]['scenarios']);
         self::assertSame(['gateway:Ecotone\\Api\\Gateway\\CommandBus::send'], array_column(array_column($comparison['groups'][0]['wiring']['changed']['nodes'], 'after'), 'id'));
     }
 
@@ -146,6 +147,33 @@ final class BuildFlowBaselineTest extends TestCase
         );
 
         $tooling->runConsoleCommand('ecotone:build-flow:check', ['location' => $this->location]);
+    }
+
+    public function test_a_snapshot_of_a_scenario_this_php_cannot_run_is_kept_by_snapshot_and_passed_over_by_check_and_compare(): void
+    {
+        $leftOut = FlowScenarioRecorder::fileNamesLeftOutOnThisPhp();
+        if ($leftOut === []) {
+            self::markTestSkipped('This PHP runs every scenario of the catalogue');
+        }
+        $tooling = $this->tooling();
+        $tooling->runConsoleCommand('ecotone:build-flow:snapshot', ['location' => $this->location . '/now']);
+        $tooling->runConsoleCommand('ecotone:build-flow:snapshot', ['location' => $this->location . '/recorded']);
+        $recordedElsewhere = (string) file_get_contents($this->location . '/recorded/projection-rebuilt-asynchronously.json');
+        foreach ($leftOut as $fileName) {
+            file_put_contents($this->location . '/recorded/' . $fileName, $recordedElsewhere);
+        }
+
+        $tooling->runConsoleCommand('ecotone:build-flow:snapshot', ['location' => $this->location . '/recorded']);
+        $tooling->runConsoleCommand('ecotone:build-flow:check', ['location' => $this->location . '/recorded']);
+        $tooling->runConsoleCommand('ecotone:build-flow:compare', ['from' => $this->location . '/recorded', 'to' => $this->location . '/now', 'presentation' => 'json']);
+
+        foreach ($leftOut as $fileName) {
+            self::assertSame($recordedElsewhere, $this->filesIn($this->location . '/recorded')[$fileName]);
+            self::assertArrayNotHasKey($fileName, $this->filesIn($this->location . '/now'));
+        }
+        $comparison = json_decode($tooling->getInMemoryConsoleWriter()->getWrittenContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame([], $comparison['groups']);
+        self::assertSame(count(FlowScenarioCatalogue::runningOnThisPhp()), $comparison['scenariosCompared']);
     }
 
     public function test_check_command_refuses_a_location_that_does_not_exist_with_the_command_that_writes_it(): void

@@ -44,7 +44,13 @@ final class ExpectedSpan
         public readonly ?string $traceId = null,
         public readonly ?string $parentSpanId = null,
         public readonly ?string $statusDescription = null,
+        public readonly bool $endsAfterTheTransaction = false,
     ) {
+    }
+
+    public function endingAfterTheTransaction(): self
+    {
+        return new self(...[...get_object_vars($this), 'endsAfterTheTransaction' => true]);
     }
 
     public function withoutAttributes(string ...$keys): self
@@ -129,13 +135,36 @@ final class ExpectedSpan
         return false;
     }
 
-    public function asStoredByFlowTracking(): ?self
+    /**
+     * @return list<self>
+     */
+    public function asStoredByFlowTracking(): array
+    {
+        [$stored, $storedWithoutTheirParent] = $this->storedByFlowTracking();
+
+        return [...$stored, ...$storedWithoutTheirParent];
+    }
+
+    /**
+     * @return array{list<self>, list<self>}
+     */
+    private function storedByFlowTracking(): array
     {
         if ($this->status === SpanStatus::Error) {
-            return null;
+            return [[], []];
+        }
+        $children = [];
+        $withoutTheirParent = [];
+        foreach ($this->children as $child) {
+            [$storedOfChild, $withoutTheirParentOfChild] = $child->storedByFlowTracking();
+            $children = [...$children, ...$storedOfChild];
+            $withoutTheirParent = [...$withoutTheirParent, ...$withoutTheirParentOfChild];
+        }
+        if ($this->endsAfterTheTransaction) {
+            return [[], [...$children, ...$withoutTheirParent]];
         }
 
-        return new self(...[...get_object_vars($this), 'children' => array_values(array_filter(array_map(fn (ExpectedSpan $child) => $child->asStoredByFlowTracking(), $this->children)))]);
+        return [[new self(...[...get_object_vars($this), 'children' => $children])], $withoutTheirParent];
     }
 
     public function count(): int

@@ -29,7 +29,7 @@ final class FlowScenarioRecorder
     public static function snapshotsOfTheCatalogue(): array
     {
         $snapshots = [];
-        foreach (FlowScenarioCatalogue::all() as $scenario) {
+        foreach (FlowScenarioCatalogue::runningOnThisPhp() as $scenario) {
             $snapshot = self::snapshotOf($scenario);
             if (isset($snapshots[$snapshot->fileName()])) {
                 throw InvalidArgumentException::create("Scenarios `{$snapshots[$snapshot->fileName()]->scenario}` and `{$scenario->name}` would both be stored as {$snapshot->fileName()}, because a snapshot file is named after the letters and digits of its scenario. Rename one of the two scenarios in the flow scenario catalogue.");
@@ -47,6 +47,14 @@ final class FlowScenarioRecorder
     public static function filesOfTheCatalogue(): array
     {
         return FlowSnapshots::filesOf(self::snapshotsOfTheCatalogue(), self::snapshotOf(new FlowScenario(name: 'application without handlers', classesToResolve: [], services: [], extensionObjects: [], stages: [])));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function fileNamesLeftOutOnThisPhp(): array
+    {
+        return array_map(fn (FlowScenario $scenario): string => FlowSnapshot::fileNameOf($scenario->name), FlowScenarioCatalogue::leftOutOnThisPhp());
     }
 
     public static function snapshotOf(FlowScenario $scenario): FlowSnapshot

@@ -39,8 +39,8 @@ final class InMemoryQueueRedeliveryTest extends TestCase
 
         $ecotone->sendCommandWithRouting('order.place', 'order-a', metadata: ['customer' => 'alice']);
         $ecotone->sendCommandWithRouting('order.place', 'order-b', metadata: ['customer' => 'bob']);
-        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
-        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertSame(
             [['order-a', 'alice'], ['order-b', 'bob'], ['order-a', 'alice']],
@@ -54,7 +54,7 @@ final class InMemoryQueueRedeliveryTest extends TestCase
         $ecotone = $this->application($orders, tracing: true);
 
         $ecotone->sendCommandWithRouting('order.place', 'order-a');
-        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         [$first, $again] = array_column($orders->deliveries, 'headers');
         self::assertSame($first[MessageHeaders::TRACEPARENT], $again[MessageHeaders::TRACEPARENT] ?? null);
@@ -81,7 +81,7 @@ final class InMemoryQueueRedeliveryTest extends TestCase
         $ecotone = $this->application($orders, tracing: false);
 
         $ecotone->sendCommandWithRouting('order.place', 'order-a');
-        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         self::assertSame(['abc', 'abc'], $orders->tokens);
     }
@@ -105,7 +105,7 @@ final class InMemoryQueueRedeliveryTest extends TestCase
         $ecotone = $this->application($orders, tracing: false);
 
         $ecotone->sendCommandWithRouting('order.place', 'order-a', metadata: ['customer' => 'alice']);
-        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         self::assertSame([null, null], $orders->customers);
     }
@@ -128,10 +128,10 @@ final class InMemoryQueueRedeliveryTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders')], enabledModules: [], initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'));
 
         $ecotone->sendCommandWithRouting('order.place', 'order-a');
-        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
         $beforeTheDelay = $orders->deliveries;
         $ecotone->advanceTimeBy(Duration::seconds(5));
-        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         self::assertSame([0, 2], [$beforeTheDelay, $orders->deliveries]);
     }
@@ -160,7 +160,7 @@ final class InMemoryQueueRedeliveryTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         $ecotone->sendCommandWithRouting('order.place', 'order-a');
-        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         self::assertSame(['put on orders', 'put on orders'], $orders->stamps);
     }

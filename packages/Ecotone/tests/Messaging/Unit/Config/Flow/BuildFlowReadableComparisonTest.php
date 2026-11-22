@@ -276,7 +276,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
         $ecotone = $this->application([$projection::class], [$projection], [SimpleMessageChannelBuilder::createQueueChannel($operation)]);
         $ecotone->withEventStream('orders_stream', [Event::createWithType('order.placed', ['orderId' => '1'])]);
         $ecotone->runConsoleCommand('ecotone:projection:' . $operation, ['name' => 'orders']);
-        $ecotone->run($operation, ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run($operation, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => "projection {$operation} run", 'location' => $this->location . '/after']);
 
         $file = "projection-{$operation}-run.json";

@@ -143,9 +143,9 @@ final class PulseTracesTest extends DbalMessagingTestCase
             $this->orderService->sendCommandWithRouting('create.ticket', '100');
             $this->orderService->advanceTimeBy(Duration::seconds(10));
             $this->orderService->sendCommandWithRouting('create.ticket', '200');
-            $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+            $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             $this->sendWithTrace('ticket.close', 'ticket-1', self::FIRST_TRACE);
-            $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+            $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
             $shown[$level->name] = $this->whatPulseShows();
             $this->orderService->runConsoleCommand('ecotone:migration:database:delete', ['force' => true]);
         }

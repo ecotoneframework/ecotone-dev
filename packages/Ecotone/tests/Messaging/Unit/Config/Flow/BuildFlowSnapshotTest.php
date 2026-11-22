@@ -51,7 +51,7 @@ final class BuildFlowSnapshotTest extends TestCase
     {
         $ecotone = $this->orderingApplication($this->orderingService());
         $ecotone->sendCommandWithRouting('order.place', []);
-        $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location]);
 
@@ -142,7 +142,7 @@ final class BuildFlowSnapshotTest extends TestCase
         $second = $this->orderingApplication($this->orderingServiceDeclaredElsewhere());
         foreach ([$first, $second] as $ecotone) {
             $ecotone->sendCommandWithRouting('order.place', []);
-            $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+            $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         }
 
         $first->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location . '/first']);

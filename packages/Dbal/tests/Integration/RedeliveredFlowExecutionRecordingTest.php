@@ -47,8 +47,8 @@ final class RedeliveredFlowExecutionRecordingTest extends DbalMessagingTestCase
         );
 
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
-        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
-        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $processes = $ecotone->popExecutionRecording()->processes;
 
         self::assertSame(2, $orders->attempts);

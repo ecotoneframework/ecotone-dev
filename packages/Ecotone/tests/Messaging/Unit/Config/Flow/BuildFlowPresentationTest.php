@@ -460,7 +460,7 @@ final class BuildFlowPresentationTest extends TestCase
     {
         $ecotone = $this->application([$ordering::class], [$ordering]);
         $ecotone->sendCommandWithRouting('order.place', []);
-        $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => $scenario, 'location' => $this->location . '/' . $side]);
     }

@@ -680,7 +680,7 @@ final class FlowTrackingTest extends TestCase
             $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel'), TracingConfiguration::createWithDefaults()->withLevel($level)]);
             $trace = SpanContext::newTrace();
             $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
-            $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+            $ecotone->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
             $steps = $this->completion($ecotone)->fetchFlow($trace->traceId)->steps;
             $nameOf = array_column(array_map(fn (Span $step): array => [$step->spanId, $step->name], $steps), 1, 0);
             $stored[$level->name] = array_map(fn (Span $step): array => [$step->name, $step->kind, $step->status, $step->statusDescription, $nameOf[$step->parentSpanId ?? ''] ?? ($step->parentSpanId === null ? null : 'outside the flow'), array_keys($step->attributes)], $steps);

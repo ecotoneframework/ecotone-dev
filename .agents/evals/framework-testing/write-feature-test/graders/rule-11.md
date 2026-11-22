@@ -1,4 +1,4 @@
 ---
 type: llm
 ---
-PASS if test methods are snake_case named after behaviour, the code has no comments, and handlers are inline anonymous classes (events/commands as named classes below the test case are fine). FAIL if it uses camelCase test names, comments, or a shared Fixture/ directory.
+PASS if every test method is `public function test_<behaviour>(): void` in snake_case, the code holds no comment and no docblock other than the test class's `licence Apache-2.0` / `@internal` marker, handlers and aggregates are inline anonymous classes, and a named class or interface appears only where PHP forces one: an event or command used as a type, a gateway or business interface (PHP has no anonymous interfaces), an attribute argument. Private helper methods of the test case are not test methods and may be camelCase. FAIL if a test method is camelCase or not named after the behaviour, the code has an inline comment, a prose docblock or an assertion message, a handler is a named class where an anonymous one would work, or fixtures live in a shared Fixture/ directory.

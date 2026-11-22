@@ -56,12 +56,13 @@ Real concurrency (processes racing a database constraint or lock) is the one exc
 - **Verified by:** `eval:cross-service-test`
 
 ### 11. Test shape: snake_case, no comments, inline anonymous fixtures
-Method names describe the behaviour in `snake_case`; no comments, docblocks or assertion messages. Fixtures are
-inline anonymous classes registered via `$fixture::class`; a named class below the `TestCase` only where PHP forces
-one (a type declaration, an attribute argument, a DBAL event-sourced aggregate without `#[AggregateType]`, syntax
-newer than PHP 8.2). Never a shared `Fixture/` directory.
-- **Expected:** `public function test_<behaviour>(): void`, anonymous-class handlers, commands/events as named
-  classes below the test case, no comments.
+Method names describe the behaviour in `snake_case`; no comments, no assertion messages, and no docblock but the
+class's `/** licence Apache-2.0 @internal */` marker. Fixtures are inline anonymous classes registered via
+`$fixture::class`; a named class or interface below the `TestCase` only where PHP forces one (a type declaration, an
+attribute argument, a gateway or business interface, a DBAL event-sourced aggregate without `#[AggregateType]`,
+syntax newer than PHP 8.2). Never a shared `Fixture/` directory.
+- **Expected:** `public function test_<behaviour>(): void`, anonymous-class handlers, commands/events and gateway
+  interfaces as named types below the test case, no comment and no docblock but the class's licence marker.
 - **Verified by:** `eval:write-feature-test`
 
 ### T2. A channel is reached through an `#[Asynchronous]` handler

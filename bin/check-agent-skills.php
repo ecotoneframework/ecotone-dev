@@ -21,6 +21,7 @@ const DETERMINISTIC_CHECKS = [
     'monorepo-shards' => '.github/workflows/test-monorepo.yml: php bin/check-monorepo-shards.php',
     'framework-transactions' => '.github/workflows/file-licence.yml: php bin/check-framework-transactions.php',
     'framework-connections' => '.github/workflows/file-licence.yml: php bin/check-framework-connections.php',
+    'flow-catalogue' => '.github/workflows/file-licence.yml: php bin/check-flow-catalogue.php',
     'phpstan' => 'composer tests:phpstan in every package CI run',
     'contribution-terms' => '.github/workflows/contribution-check.yml',
 ];

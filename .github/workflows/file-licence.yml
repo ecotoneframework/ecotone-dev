@@ -37,3 +37,8 @@ jobs:
 
       - name: Check framework code builds no database connection outside the connection pool
         run: php bin/check-framework-connections.php
+
+      - name: Check every flow scenario is in the flow scenario catalogue once
+        run: |
+          php bin/test-check-flow-catalogue.php
+          php bin/check-flow-catalogue.php

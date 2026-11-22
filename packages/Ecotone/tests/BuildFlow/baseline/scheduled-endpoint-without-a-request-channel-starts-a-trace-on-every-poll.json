@@ -1,0 +1,58 @@
+{
+    "formatVersion": 3,
+    "scenario": "scheduled endpoint without a request channel starts a trace on every poll",
+    "wiring": {
+        "nodes": [
+            {"id":"channel:scheduled_handler","kind":"channel","label":"scheduled_handler","attributes":{"framework":true,"name":"scheduled_handler","pollable":false,"registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule"}},
+            {"id":"endpoint:scheduled_handler.target","kind":"internalHandler","label":"class@anonymous#1::handle on scheduled_handler","attributes":{"class":"class@anonymous#1","framework":true,"inputChannel":"scheduled_handler","method":"handle","registeredBy":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule"}},
+            {"id":"scheduled:scheduled_handler","kind":"scheduled","label":"class@anonymous#1::handle","attributes":{"class":"class@anonymous#1","endpointId":"scheduled_handler","method":"handle"}}
+        ],
+        "edges": [
+            {"from":"channel:scheduled_handler","to":"endpoint:scheduled_handler.target","kind":"input","attributes":{"consumer":"eventDriven","framework":true}}
+        ],
+        "withoutNodes": [],
+        "withoutEdges": []
+    },
+    "build": {
+        "ledger": [
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule","kind":"channel","name":"scheduled_handler","builder":"SimpleMessageChannelBuilder","pollable":false},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ScheduledModule","kind":"consumer","name":"scheduled_handler","builder":"inbound channel adapter"},
+            {"module":"Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessageConsumerModule","kind":"handler","name":"scheduled_handler.target","builder":"service activator","inputChannel":"scheduled_handler","target":"class@anonymous#1::handle"}
+        ],
+        "chains": [
+            {"handler":"scheduled_handler.target","layers":["event driven consumer of scheduled_handler","handler class@anonymous#1::handle()","routing slip: the result goes to the next channel on it","part completion Ecotone\\Messaging\\Handler\\Gathering\\GatheringPartCompletion with an Enterprise licence, Ecotone\\Messaging\\Handler\\Gathering\\NullPartCompletion in open core","reply channel of the message"]}
+        ],
+        "withoutLedger": [],
+        "withoutChains": []
+    },
+    "trace": [
+        {"depth":0,"name":"poll scheduled_handler","kind":"Consumer","status":"Ok"},
+        {"depth":0,"name":"poll scheduled_handler","kind":"Consumer","status":"Ok"}
+    ],
+    "execution": [
+        {"process": "poll scheduled_handler (1 of 2)", "steps": [
+            {"depth":1,"label":"gateway InboundGatewayEntrypoint::executeEntrypoint","hints":[{"key":"returns","value":"nothing","shownInLines":false}]},
+            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","shownInLines":false}]},
+            {"depth":2,"label":"around TracingInterceptor::traceAsynchronousEndpoint"},
+            {"depth":3,"label":"span poll scheduled_handler"},
+            {"depth":4,"label":"around AcknowledgeConfirmationInterceptor::ack"},
+            {"depth":5,"label":"around LoggingInterceptor::logException"},
+            {"depth":6,"label":"around PollingConsumerErrorChannelInterceptor::handle"},
+            {"depth":7,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders"},
+            {"depth":8,"label":"around AsynchronousEndpointInstantRetryByDefault::retry"},
+            {"depth":9,"label":"around DeliveryConfirmationInterceptor::await"}
+        ]},
+        {"process": "poll scheduled_handler (2 of 2)", "steps": [
+            {"depth":1,"label":"gateway InboundGatewayEntrypoint::executeEntrypoint","hints":[{"key":"returns","value":"nothing","shownInLines":false}]},
+            {"depth":2,"label":"before MessageHeadersPropagatorInterceptor::propagateHeaders","hints":[{"key":"returns","value":"array","shownInLines":false}]},
+            {"depth":2,"label":"around TracingInterceptor::traceAsynchronousEndpoint"},
+            {"depth":3,"label":"span poll scheduled_handler"},
+            {"depth":4,"label":"around AcknowledgeConfirmationInterceptor::ack"},
+            {"depth":5,"label":"around LoggingInterceptor::logException"},
+            {"depth":6,"label":"around PollingConsumerErrorChannelInterceptor::handle"},
+            {"depth":7,"label":"around MessageHeadersPropagatorInterceptor::storeHeaders"},
+            {"depth":8,"label":"around AsynchronousEndpointInstantRetryByDefault::retry"},
+            {"depth":9,"label":"around DeliveryConfirmationInterceptor::await"}
+        ]}
+    ]
+}

@@ -393,8 +393,8 @@ of the condition reads. A condition joined with `&&` or `||` is decided part by 
 | The condition reads | Decision |
 |---|---|
 | **The scenario**: a header or marker another feature sets (`ErrorContext::DLQ_MESSAGE_REPLIED`, a retry counter), the concrete class of a caller or collaborator, the runtime situation (`Coroutine::getCid()`, `PHP_SAPI`, console or HTTP) | Breaks the rule, unless the branch only refuses (throws). A part of a condition that lets one scenario past a refusal the others get is not a refusal: it is the second path |
-| **Configuration known when the application boots**: an extension object, an attribute, a licence, an installed extension | Breaks the rule as a runtime branch. It is resolved when the container is built, into one of two collaborators |
-| **The component's own contract**: data the component defines and documents as its input | Follows the rule |
+| **A mode known when the application boots**: a flag, an enum, a licence, an installed extension, whose branch chooses which code handles the message | Breaks the rule as a runtime branch. It is resolved when the container is built, into one of two collaborators |
+| **The component's own contract**: data the component defines and documents as its input: a header, or a setting it was built with that every message meets the same way | Follows the rule |
 
 The ownership test for a header: it is defined for the component that reads it, and the component would still need
 it if every other feature were removed. A channel reads `MessageHeaders::DELIVERY_DELAY`, `PRIORITY` and
@@ -402,6 +402,29 @@ it if every other feature were removed. A channel reads `MessageHeaders::DELIVER
 aggregate flow reads `AggregateMessage::AGGREGATE_ID`. These say what to do with this message. A header that says
 where the message has been (`ecotone.dlq.message_replied`, `ecotone_retry_number`) belongs to the feature that
 wrote it, and any sender can set it: a receiver that changes its behaviour on it hands that switch to every sender.
+
+A value known at boot is not always a mode. The question is what the branch on it selects:
+
+- It is a **mode** when the two arms are two ways of doing the work, so that two classes could each hold one arm
+  and the container could pick: `extension_loaded('openswoole') ? 'OpenSwoole' : 'Swoole'` asked on every call of a
+  sleep service, a ternary on a `bool` the builder was given, asked on every send. Nothing about it can change
+  after boot, so the choice is made once, when the container is built.
+- It is the component's **own setting** when the component is documented to take it and every message meets it
+  the same way: a size, a limit, a wait, a name. The component passes it on, compares against it or guards on it,
+  and no second class would hold "the other arm": both would be the same class with another number.
+
+```php
+// follows the rule: the wait is the pool's own setting, 0 is documented as "fail at once", the branch only refuses
+if ($this->connectionPoolWaitSeconds <= 0.0) {
+    throw ConnectionPoolExhausted::withAllConnectionsInUse(connectionName: $this->connectionName, connectionPoolSize: $this->size, waitedSeconds: 0.0);
+}
+$connection = $this->returnedToWaitingCoroutines->pop($this->connectionPoolWaitSeconds);
+```
+
+Four review sessions applied the rule to this branch of `ConnectionPool` and two of them disagreed, one reading
+it as configuration branched at runtime. It is not: the value is read at boot but the question is asked of each
+acquire that finds the pool exhausted, the answer is the pool's one behaviour for that wait, and `pop(0)` would
+wait forever on both runtimes, so the branch cannot be removed by choosing a collaborator.
 
 A guard is not a second path. `if (<not inside a coroutine>) { throw ... }` reads the runtime situation and is
 allowed, because every message that reaches it is treated the same way: it is refused, with the ways out
@@ -416,7 +439,10 @@ In order of preference, and in all three the other path already exists:
    chooses the entrypoint of a replay itself (the `targetChannel` argument, the polled channel, the first step of
    the stored routing slip) and no receiver is asked whether a message is a replay.
 2. **Compose for that flow only.** An interceptor or a decorator registered for the one flow, by the module that
-   owns the flow, so the component it wraps is unchanged for everyone else.
+   owns the flow, so the component it wraps is unchanged for everyone else. The registration is the selection: an
+   interceptor placed on every asynchronous endpoint that returns early unless the message's channel name is one
+   of its own, or one on a shared channel that drops a message when its payload matches, has moved the scenario
+   branch into the interceptor. Register it on the channels or endpoints it is for.
 3. **Choose at container build.** Two collaborators, one selected while compiling, by the module of the feature
    that needs the other one: `LicenceDecider::prepareDefinition()` for Enterprise (rule 2's table,
    `framework-enterprise-licensing` rule 7).
@@ -499,8 +525,8 @@ vocabularies defined once and read by the components they are inputs of, so wher
 nothing about who owns it. An allow-list would start at 139 entries and every legitimate contract read would add
 one. Two of the three places above read no header at all. The rule is decided by a reviewer (requirement GL51).
 
-Code that predates the rule has not been audited against it; `RecordExecutionCompilerPass` compares definition
-classes in eight more places. A review decides the rule on what a change adds (`framework-review-guidelines` rule
+Code that predates the rule has not been audited against it; `RecordExecutionCompilerPass` on `main` is built on
+comparing definition classes. A review decides the rule on what a change adds (`framework-review-guidelines` rule
 G4).
 
 ---

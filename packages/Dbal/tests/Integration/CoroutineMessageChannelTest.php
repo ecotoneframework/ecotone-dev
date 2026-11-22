@@ -207,6 +207,82 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(0, $deadLetter->count());
     }
 
+    public function test_replay_inside_a_coroutine_handles_the_message_in_the_replaying_coroutine_before_the_replay_call_returns(): void
+    {
+        $handler = new class () {
+            public bool $fail = true;
+            public array $handled = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload, #[Header('tenant')] string $tenant): void
+            {
+                if ($this->fail) {
+                    throw new RuntimeException('handling failed');
+                }
+                $this->handled[] = [$payload, $tenant, Coroutine::getCid()];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), PollingMetadata::create('async')->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $deadLetter = $ecotone->getGateway(DeadLetterGateway::class);
+        $deadLetter->deleteAll();
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload', metadata: ['tenant' => 'replayed-tenant']));
+        $handler->fail = false;
+        $handledWhenTheReplayReturned = [];
+        $replayedIn = 0;
+
+        CoroutineTesting::runAtOnce(static function () use ($deadLetter, $handler, &$handledWhenTheReplayReturned, &$replayedIn): void {
+            $replayedIn = Coroutine::getCid();
+            $deadLetter->replayAll();
+            $handledWhenTheReplayReturned = $handler->handled;
+        });
+
+        $this->assertSame([['payload', 'replayed-tenant', $replayedIn]], $handledWhenTheReplayReturned);
+        $this->assertSame(0, $deadLetter->count());
+    }
+
+    public function test_replay_that_fails_again_is_back_in_the_dead_letter(): void
+    {
+        $handler = new class () {
+            public int $attempts = 0;
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->attempts++;
+                throw new RuntimeException('handling failed');
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), PollingMetadata::create('async')->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $deadLetter = $ecotone->getGateway(DeadLetterGateway::class);
+        $deadLetter->deleteAll();
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
+
+        $deadLetter->replay($deadLetter->list(10, 0)[0]->getMessageId());
+        $attemptsAfterTheReplayOutsideACoroutine = $handler->attempts;
+        $storedAfterTheReplayOutsideACoroutine = $deadLetter->count();
+        CoroutineTesting::runAtOnce(static fn () => $deadLetter->replay($deadLetter->list(10, 0)[0]->getMessageId()));
+
+        $this->assertSame(2, $attemptsAfterTheReplayOutsideACoroutine);
+        $this->assertSame(1, $storedAfterTheReplayOutsideACoroutine);
+        $this->assertSame(3, $handler->attempts);
+        $this->assertSame(1, $deadLetter->count());
+        $this->assertSame('payload', $deadLetter->show($deadLetter->list(10, 0)[0]->getMessageId())->getPayload());
+    }
+
     public function test_concurrent_messages_keep_their_own_headers_and_transaction(): void
     {
         $factory = new DbalConnectionFactory(self::dsnOf('mysql'));

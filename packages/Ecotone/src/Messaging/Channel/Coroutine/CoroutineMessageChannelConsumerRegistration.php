@@ -10,6 +10,8 @@ use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Config\Container\PollingMetadataReference;
+use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Enterprise
@@ -31,6 +33,8 @@ use Ecotone\Messaging\Config\Container\PollingMetadataReference;
  */
 final class CoroutineMessageChannelConsumerRegistration implements CompilerPass
 {
+    private const MESSAGE_POLLER_ARGUMENT = 1;
+
     public function __construct(private array $channelNames)
     {
     }
@@ -47,7 +51,12 @@ final class CoroutineMessageChannelConsumerRegistration implements CompilerPass
             }
             $reference = (string) new EndpointRunnerReference($channelName);
             if ($builder->has($reference)) {
-                $builder->replace($reference, $builder->register(CoroutineMessageChannelConsumer::SERVICE_ID_PREFIX . $channelName, new Definition(CoroutineMessageChannelConsumer::class, [$channelName, $builder->getDefinition($reference)])));
+                $runner = $builder->getDefinition($reference);
+                $replayedMessage = $builder->register(CoroutineMessageChannelReplayedMessage::SERVICE_ID_PREFIX . $channelName, new Definition(CoroutineMessageChannelReplayedMessage::class, [$channelName, $runner->getArguments()[self::MESSAGE_POLLER_ARGUMENT], new Reference(MessageBuilder::class)]));
+                $runner->replaceArguments(array_replace($runner->getArguments(), [self::MESSAGE_POLLER_ARGUMENT => $replayedMessage]));
+                $consumer = $builder->register(CoroutineMessageChannelConsumer::SERVICE_ID_PREFIX . $channelName, new Definition(CoroutineMessageChannelConsumer::class, [$channelName, $runner]));
+                $builder->register(CoroutineMessageChannelReplay::SERVICE_ID_PREFIX . $channelName, new Definition(CoroutineMessageChannelReplay::class, [$replayedMessage, $consumer]));
+                $builder->replace($reference, $consumer);
             }
         }
     }

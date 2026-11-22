@@ -72,10 +72,6 @@ final class CoroutineMessageChannel extends QueueChannel implements ConsumedInTh
     private function enqueue(Message $message): void
     {
         parent::send($message);
-        if (Coroutine::getCid() < 1) {
-            $this->consumer()->createConsumer()->run();
-            return;
-        }
         if ($this->consumers >= $this->coroutines) {
             return;
         }

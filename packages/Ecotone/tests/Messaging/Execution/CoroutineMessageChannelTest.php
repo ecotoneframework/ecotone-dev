@@ -114,6 +114,31 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertContains('↳ taken by: process 2, on a coroutine of the sending process', $recorded);
     }
 
+    public function test_send_outside_a_coroutine_carrying_the_dead_letter_replay_header_is_refused(): void
+    {
+        $handler = new class () {
+            public array $handled = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        $refusal = null;
+        try {
+            $ecotone->sendCommandWithRouting('handle', 'payload', metadata: [ErrorContext::DLQ_MESSAGE_REPLIED => '1']);
+        } catch (ConfigurationException $exception) {
+            $refusal = $exception->getMessage();
+        }
+
+        $this->assertStringStartsWith('Coroutine message channel `async` cannot send outside a Swoole or OpenSwoole coroutine.', (string) $refusal);
+        $this->assertSame([], $handler->handled);
+    }
+
     public function test_a_failed_sender_starts_no_handler(): void
     {
         $handler = new class () {

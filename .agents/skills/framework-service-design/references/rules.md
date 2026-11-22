@@ -403,25 +403,28 @@ aggregate flow reads `AggregateMessage::AGGREGATE_ID`. These say what to do with
 where the message has been (`ecotone.dlq.message_replied`, `ecotone_retry_number`) belongs to the feature that
 wrote it, and any sender can set it: a receiver that changes its behaviour on it hands that switch to every sender.
 
-A value known at boot is not always a mode. The question is what the branch on it selects:
+A value known at boot is not always a mode. The question is what the branch on it selects. The examples are from
+the coroutine message channel's branch (pull request 779 at `ffee52a2e`), none of them is in the tree:
 
 - It is a **mode** when the two arms are two ways of doing the work, so that two classes could each hold one arm
-  and the container could pick: `extension_loaded('openswoole') ? 'OpenSwoole' : 'Swoole'` asked on every call of a
-  sleep service, a ternary on a `bool` the builder was given, asked on every send. Nothing about it can change
-  after boot, so the choice is made once, when the container is built.
+  and the container could pick: `extension_loaded('openswoole') ? 'OpenSwoole' : 'Swoole'` asked on every call of
+  that branch's `CoroutineMessageChannelSleep`. Nothing about it can change after boot, so the choice is made once,
+  when the container is built.
 - It is the component's **own setting** when the component is documented to take it and every message meets it
   the same way: a size, a limit, a wait, a name. The component passes it on, compares against it or guards on it,
   and no second class would hold "the other arm": both would be the same class with another number.
 
 ```php
-// follows the rule: the wait is the pool's own setting, 0 is documented as "fail at once", the branch only refuses
+// ConnectionPool::waitForReturnedConnection() as pull request 779 changes it: the pool gets a wait in seconds as a
+// setting, where the tree waits a constant. Follows the rule: the wait is the pool's own setting, 0 is documented
+// as "fail at once", the branch only refuses
 if ($this->connectionPoolWaitSeconds <= 0.0) {
     throw ConnectionPoolExhausted::withAllConnectionsInUse(connectionName: $this->connectionName, connectionPoolSize: $this->size, waitedSeconds: 0.0);
 }
 $connection = $this->returnedToWaitingCoroutines->pop($this->connectionPoolWaitSeconds);
 ```
 
-Four review sessions applied the rule to this branch of `ConnectionPool` and two of them disagreed, one reading
+Four review sessions applied the rule to that guard of pull request 779 and two of them disagreed, one reading
 it as configuration branched at runtime. It is not: the value is read at boot but the question is asked of each
 acquire that finds the pool exhausted, the answer is the pool's one behaviour for that wait, and `pop(0)` would
 wait forever on both runtimes, so the branch cannot be removed by choosing a collaborator.
@@ -441,8 +444,9 @@ In order of preference, and in all three the other path already exists:
 2. **Compose for that flow only.** An interceptor or a decorator registered for the one flow, by the module that
    owns the flow, so the component it wraps is unchanged for everyone else. The registration is the selection: an
    interceptor placed on every asynchronous endpoint that returns early unless the message's channel name is one
-   of its own, or one on a shared channel that drops a message when its payload matches, has moved the scenario
-   branch into the interceptor. Register it on the channels or endpoints it is for.
+   of its own, or one on a shared channel that drops a message when its payload matches (both were on pull request
+   779's branch), has moved the scenario branch into the interceptor. Register it on the channels or endpoints it
+   is for.
 3. **Choose at container build.** Two collaborators, one selected while compiling, by the module of the feature
    that needs the other one: `LicenceDecider::prepareDefinition()` for Enterprise (rule 2's table,
    `framework-enterprise-licensing` rule 7).
@@ -452,6 +456,9 @@ transaction, running an endpoint's interceptors) breaks the rule even when no `i
 the message can now be handled in two ways, not whether a keyword was added.
 
 ### Evidence: the coroutine message channel (pull request 779 at `ffee52a2e`)
+
+Every "wrong" snippet below is code of that pull request's branch, not of the tree; each "right" one is what the
+rule asks for, and only the one with a commit was written.
 
 The pre-PR reviews passed the first two of the following at `ffee52a2e`, because no requirement spoke about them.
 

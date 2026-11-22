@@ -123,9 +123,9 @@ a collaborator chosen at container build, as Enterprise features are. Registered
 registration selects: one placed on every flow that asks per message whether this is its flow (by channel name, by
 payload) is a scenario branch. Chosen at container build means chosen by the module of the feature that needs it:
 a pass of another feature that compares a definition's class with that feature's class has learned about it, and
-asks a contract it defines instead (an interface, an attribute), which the other side declares. In all three the other path already exists:
-a second implementation of something the framework already does (invoking a handler, acknowledging, opening a
-transaction) breaks the rule even with no `if`.
+asks a contract it defines instead (an interface, an attribute), which the other side declares. In all three the
+other path already exists: a second implementation of something the framework already does (invoking a handler,
+acknowledging, opening a transaction) breaks the rule even with no `if`.
 - **Expected:** a change that makes one flow behave differently adds no branch in the receiving component that
   reads another feature's header, a caller's or collaborator's class, or the runtime situation to pick how the
   message is handled or to skip a refusal; the flow is routed at its source, composed for that flow only, or chosen

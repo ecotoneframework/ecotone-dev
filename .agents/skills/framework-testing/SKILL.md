@@ -83,12 +83,16 @@ scenario catalogue (`packages/Ecotone/src/Test/Flow`, the scenarios the build-fl
 conformance tests run) exercises it, the change adds one: a scenario method in the matching `*FlowScenarios`
 class, listed in its `all()`, with the spans it must produce. The pull request leaves the baseline alone: the
 comparison shows the scenario as `runs only now`, and main's CI commits its baseline after the merge. A feature
-that cannot run in the catalogue (it needs OpenSwoole, an external broker, a second process) is said so in the pull
-request. [references/flow-scenario-catalogue.md](references/flow-scenario-catalogue.md) shows how to add one.
+that needs real coroutines (Swoole, OpenSwoole) is a scenario too, ended with `->needingACoroutineRuntime()`: it is
+left out where neither extension is loaded and recorded where one is, as in CI's flow comparison and baseline. Only
+a feature that needs an external broker or a second process cannot run in the catalogue, and the pull request says
+so. [references/flow-scenario-catalogue.md](references/flow-scenario-catalogue.md) shows how to add one.
 - **Expected:** for a change that adds a flow or a flow feature no scenario covers, the plan or the diff adds a
-  scenario method to a `*FlowScenarios` class, lists it in `all()`, states its expected spans, and leaves
-  `packages/Ecotone/tests/BuildFlow/baseline` untouched; or it names why the feature cannot be a scenario.
-- **Verified by:** `eval:new-flow-scenario`, `check:flow-catalogue`
+  scenario method to a `*FlowScenarios` class, lists it in `all()`, states its expected spans, ends it with
+  `->needingACoroutineRuntime()` when the feature needs real coroutines, and leaves
+  `packages/Ecotone/tests/BuildFlow/baseline` untouched; or it names the external broker or second process that
+  keeps the feature out of the catalogue.
+- **Verified by:** `eval:new-flow-scenario`, `eval:coroutine-flow-scenario`, `check:flow-catalogue`
 
 ## References
 

@@ -213,7 +213,10 @@ A scenario of the catalogue is a `FlowScenario` returned by a private static met
 listed in `FlowScenarioCatalogue::all()`. A scenario names itself, the classes and services to boot, the extension
 objects, and one `FlowStage::when(...)` per action with the spans it expects. Add one there; the pull request comment
 shows it as a new scenario, and main's CI commits its snapshot under `packages/Ecotone/tests/BuildFlow/baseline` after
-the merge. Contributors leave the baseline alone. The
+the merge. Contributors leave the baseline alone. A scenario ended with `->needingACoroutineRuntime()` runs only where
+`swoole` or `openswoole` is loaded: `build-flow-comparison.yml` and `build-flow-baseline.yml` load OpenSwoole, so the
+comment and the baseline hold it, and in the `app` container `snapshot`, `check` and `compare` leave it out and keep
+its stored file (run them in the `swoole` container to see it). The
 `ecotone:build-flow:*` commands and the snapshot tooling behind them are test code in `packages/Ecotone/tests/BuildFlow`
 (`Test\Ecotone\BuildFlow`): the package does not ship them, and only `bin/build-flow.php` and the framework's own
 tests register them. The catalogue stays testing support in `src/Test/Flow`, because other packages' conformance tests

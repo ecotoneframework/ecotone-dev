@@ -1889,3 +1889,24 @@ Not touched: BH4, BH7, BH8, BH9, BH11 (unchanged), BH20 (not-apply).
   path. 2 registrations change for every scenario.", var/rv11-compare-swoole.md
 - `bin/test-agent-skills ecotone-open-swoole`: incomplete (see BH13), var/rv11-skills.log
 
+
+## Re-check at 6e63c38a0 (range e35d30581..6e63c38a0)
+
+| Session | Not apply | Covered | Missing |
+|---|---|---|---|
+| Guidelines | 12 | 38 | 0 |
+| Breaking changes | 3 | 5 | 0 |
+| Developer experience | 0 | 10 | 0 |
+| Behaviour | 1 | 21 | 0 |
+
+GL42 is resolved by 605f92c3c: a replay leaves out every `#[DelayedRetry]`, also one without a dead letter channel,
+and the `#[ErrorChannel]` branch has its test. The one-path requirement (service-design rule 22, in review as its own
+pull request) is covered in every place the sessions had named; `ConnectionPool.php:153` is ruled covered, because it
+only refuses, on the pool's own setting.
+
+Behaviour runs at 6e63c38a0, one at a time: COROUTINE_TESTS on swoole OK (331 tests) and on openswoole OK (321 tests),
+Dbal `CoroutineMessageChannelTest` on swoole OK (24 tests), `DeadLetterTest` OK (21 tests), flow comparison 0 of 95
+changed without the extension and 1 of 96 with it, `bin/test-agent-skills ecotone-open-swoole` 1.00 / 1.00.
+
+Left to the maintainer, not counted: a message rejected with `RejectMessageException` is logged at error as dropped,
+where a queue channel logs it at info as rejected.

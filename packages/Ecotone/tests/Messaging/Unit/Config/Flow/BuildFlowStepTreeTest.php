@@ -74,7 +74,7 @@ final class BuildFlowStepTreeTest extends TestCase
             after: [self::process('batch', [[1, 'receive backfill'], ...$send, [2, 'acknowledge']])],
         );
 
-        self::assertStringContainsString("<details>\n<summary><code>📨 send backfill</code> · 2 steps of channel interceptors</summary>\n\n<blockquote>\n\n```diff\n  🪝 before send OutboundSerializationChannelInterceptor::preSend\n    📥 put on channel backfill\n```\n\n</blockquote>\n\n</details>", $whatRan);
+        self::assertStringContainsString("<details>\n<summary>📨 <code>send backfill</code> · 2 steps of channel interceptors</summary>\n\n<blockquote>\n\n```diff\n  🪝 before send OutboundSerializationChannelInterceptor::preSend\n    📥 put on channel backfill\n```\n\n</blockquote>\n\n</details>", $whatRan);
     }
 
     public function test_a_fold_holding_a_new_step_is_open_and_marked_green(): void
@@ -84,7 +84,7 @@ final class BuildFlowStepTreeTest extends TestCase
             after: [self::process('batch', [[1, 'receive backfill'], [2, 'send backfill'], [3, 'before send TracingChannelInterceptor::preSend'], [4, 'put on channel backfill']])],
         );
 
-        self::assertStringContainsString("<details open>\n<summary>🟢 <code>📨 send backfill</code> · 2 steps of channel interceptors</summary>", $whatRan);
+        self::assertStringContainsString("<details open>\n<summary>🟢 📨 <code>send backfill</code> · 2 steps of channel interceptors</summary>", $whatRan);
         self::assertStringContainsString("+ 🪝 before send TracingChannelInterceptor::preSend\n", $whatRan);
     }
 
@@ -95,7 +95,7 @@ final class BuildFlowStepTreeTest extends TestCase
             after: [self::process('batch', [[1, 'receive backfill'], [2, 'send backfill'], [3, 'put on channel backfill']])],
         );
 
-        self::assertStringContainsString("<details open>\n<summary>🔴 <code>📨 send backfill</code> · 2 steps of channel interceptors</summary>", $whatRan);
+        self::assertStringContainsString("<details open>\n<summary>🔴 📨 <code>send backfill</code> · 2 steps of channel interceptors</summary>", $whatRan);
     }
 
     public function test_interceptors_wrapping_one_another_fold_into_one_list_and_what_they_wrap_follows_where_the_first_stood(): void
@@ -104,7 +104,7 @@ final class BuildFlowStepTreeTest extends TestCase
 
         $whatRan = $this->whatRan(before: [self::process('placing', $steps)], after: [self::process('placing', [...$steps, [2, 'acknowledge']])]);
 
-        self::assertStringContainsString("<details>\n<summary>🪝 2 interceptors around <code>⚙️ handler place</code></summary>\n\n<blockquote>\n\n```diff\n  🪝 around TracingInterceptor::traceCommandBus\n    🪝 around MessageHeadersPropagatorInterceptor::storeHeaders\n      🔎 span send command order.place\n```\n\n</blockquote>\n\n</details>\n\n```diff\n  ⚙️ handler place\n    ➡️ direct channel orders\n+ ✅ acknowledge\n```", $whatRan);
+        self::assertStringContainsString("<details>\n<summary>🪝 2 interceptors around ⚙️ <code>handler place</code></summary>\n\n<blockquote>\n\n```diff\n  🪝 around TracingInterceptor::traceCommandBus\n    🪝 around MessageHeadersPropagatorInterceptor::storeHeaders\n      🔎 span send command order.place\n```\n\n</blockquote>\n\n</details>\n\n```diff\n  ⚙️ handler place\n    ➡️ direct channel orders\n+ ✅ acknowledge\n```", $whatRan);
     }
 
     public function test_a_gateway_call_with_steps_under_it_folds_as_the_steps_inside(): void
@@ -114,7 +114,7 @@ final class BuildFlowStepTreeTest extends TestCase
             after: [self::process('placing', [[1, 'handler place'], [2, 'gateway EventBus::publish'], [3, 'direct channel events'], [3, 'handler notify'], [2, 'acknowledge']])],
         );
 
-        self::assertStringContainsString("<details>\n<summary><code>🚪 gateway EventBus::publish</code> · 2 steps inside</summary>\n\n<blockquote>\n\n```diff\n  ➡️ direct channel events\n  ⚙️ handler notify\n```\n\n</blockquote>\n\n</details>", $whatRan);
+        self::assertStringContainsString("<details>\n<summary>🚪 <code>gateway EventBus::publish</code> · 2 steps inside</summary>\n\n<blockquote>\n\n```diff\n  ➡️ direct channel events\n  ⚙️ handler notify\n```\n\n</blockquote>\n\n</details>", $whatRan);
     }
 
     public function test_a_step_with_six_steps_under_it_among_siblings_folds_by_size(): void
@@ -124,7 +124,7 @@ final class BuildFlowStepTreeTest extends TestCase
 
         $whatRan = $this->whatRan(before: [self::process('batch', $steps)], after: [self::process('batch', [...$steps, [2, 'acknowledge']])]);
 
-        self::assertStringContainsString("<details>\n<summary><code>⚙️ handler executeBatch</code> · 6 steps inside</summary>", $whatRan);
+        self::assertStringContainsString("<details>\n<summary>⚙️ <code>handler executeBatch</code> · 6 steps inside</summary>", $whatRan);
     }
 
     public function test_four_unchanged_steps_in_a_row_fold_and_three_are_printed(): void
@@ -150,7 +150,7 @@ final class BuildFlowStepTreeTest extends TestCase
 
         $whatRan = $this->whatRan(before: [self::process('deep', $steps)], after: [self::process('deep', [...$steps, [11, 'handler added']])]);
 
-        self::assertSame(9, substr_count($whatRan, '<summary>🟢 <code>🔀 forward to channel'));
+        self::assertSame(9, substr_count($whatRan, '<summary>🟢 🔀 <code>forward to channel'));
         self::assertSame(6, self::deepestNestingOf($whatRan, 'blockquote'));
         self::assertBalancedWithBlankLinesAround($whatRan);
     }
@@ -174,8 +174,8 @@ final class BuildFlowStepTreeTest extends TestCase
 
         $whatRan = $this->whatRan(before: [self::process('batch', $steps)], after: [self::process('batch', [...$steps, [2, 'handler added']])]);
 
-        self::assertStringContainsString('<summary>🪝 2 interceptors around the next 5 steps, through <code>✅ acknowledge</code></summary>', $whatRan);
-        self::assertStringContainsString('<summary>🪝 2 interceptors around the next 2 steps, through <code>📨 release collected message to backfill</code></summary>', $whatRan);
+        self::assertStringContainsString('<summary>🪝 2 interceptors around the next 5 steps, through ✅ <code>acknowledge</code></summary>', $whatRan);
+        self::assertStringContainsString('<summary>🪝 2 interceptors around the next 2 steps, through 📨 <code>release collected message to backfill</code></summary>', $whatRan);
     }
 
     public function test_a_fold_of_a_step_that_is_itself_new_says_new_and_one_of_a_gone_step_says_gone(): void
@@ -185,8 +185,8 @@ final class BuildFlowStepTreeTest extends TestCase
         $added = $this->whatRan(before: [self::process('batch', [[1, 'receive backfill'], [2, 'acknowledge']])], after: [self::process('batch', [[1, 'receive backfill'], ...$send, [2, 'acknowledge']])]);
         $removed = $this->whatRan(before: [self::process('batch', [[1, 'receive backfill'], ...$send, [2, 'acknowledge']])], after: [self::process('batch', [[1, 'receive backfill'], [2, 'acknowledge']])]);
 
-        self::assertStringContainsString("<details open>\n<summary>🟢 new · <code>📨 send backfill</code> · 1 step of channel interceptors</summary>", $added);
-        self::assertStringContainsString("<details open>\n<summary>🔴 gone · <code>📨 send backfill</code> · 1 step of channel interceptors</summary>", $removed);
+        self::assertStringContainsString("<details open>\n<summary>🟢 new · 📨 <code>send backfill</code> · 1 step of channel interceptors</summary>", $added);
+        self::assertStringContainsString("<details open>\n<summary>🔴 gone · 📨 <code>send backfill</code> · 1 step of channel interceptors</summary>", $removed);
     }
 
     public function test_a_fold_where_nothing_changed_does_not_fold_its_unchanged_steps_again(): void
@@ -195,7 +195,7 @@ final class BuildFlowStepTreeTest extends TestCase
 
         $whatRan = $this->whatRan(before: [self::process('batch', [[1, 'receive backfill'], ...$send])], after: [self::process('batch', [[1, 'receive backfill'], ...$send, [2, 'acknowledge']])]);
 
-        self::assertStringContainsString('<summary><code>📨 send backfill</code> · 5 steps of channel interceptors</summary>', $whatRan);
+        self::assertStringContainsString('<summary>📨 <code>send backfill</code> · 5 steps of channel interceptors</summary>', $whatRan);
         self::assertStringNotContainsString('… 5 unchanged steps', $whatRan);
     }
 

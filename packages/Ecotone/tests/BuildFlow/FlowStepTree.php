@@ -99,6 +99,13 @@ final class FlowStepTree
         return '';
     }
 
+    private static function codeWithIcon(string $label): string
+    {
+        $icon = self::iconOf($label);
+
+        return ($icon === '' ? '' : $icon . ' ') . '<code>' . htmlspecialchars($label) . '</code>';
+    }
+
     private static function withIcon(string $label): string
     {
         $icon = self::iconOf($label);
@@ -134,9 +141,9 @@ final class FlowStepTree
             $inside = $this->end[$position] - $position - 1;
             $chain = $this->wrappingChainOf($position);
             if (in_array($kind, self::SENDS, true) && $inside > 0) {
-                $items[] = ['html', $this->foldOfSteps(position: $position, base: $base, foldingRuns: $foldingRuns, summary: '<code>' . htmlspecialchars(self::withIcon($label)) . '</code> · ' . self::steps($inside) . ' of channel interceptors', quotes: $quotes)];
+                $items[] = ['html', $this->foldOfSteps(position: $position, base: $base, foldingRuns: $foldingRuns, summary: self::codeWithIcon($label) . ' · ' . self::steps($inside) . ' of channel interceptors', quotes: $quotes)];
             } elseif (in_array($kind, self::CALLS, true) && $inside > 0) {
-                $items[] = ['html', $this->foldOfSteps(position: $position, base: $base, foldingRuns: $foldingRuns, summary: '<code>' . htmlspecialchars(self::withIcon($label)) . '</code> · ' . self::steps($inside) . ' inside', quotes: $quotes)];
+                $items[] = ['html', $this->foldOfSteps(position: $position, base: $base, foldingRuns: $foldingRuns, summary: self::codeWithIcon($label) . ' · ' . self::steps($inside) . ' inside', quotes: $quotes)];
             } elseif ($kind === 'around' && $chain !== null) {
                 $last = $chain[count($chain) - 1];
                 $wrapped = $this->childrenOf($last);
@@ -146,15 +153,15 @@ final class FlowStepTree
                     array_push($listed, ...$this->linesOf(from: $member, to: $member + 1, base: $quotes < self::DEEPEST_QUOTE ? $this->rows[$position]['depth'] : $base));
                 }
                 $around = count($wrapped) === 1
-                    ? '<code>' . htmlspecialchars(self::withIcon($this->rows[$wrapped[0]]['label'])) . '</code>'
-                    : 'the next ' . self::steps($this->end[$last] - $last - 1) . ', through <code>' . htmlspecialchars(self::withIcon($this->rows[$wrapped[count($wrapped) - 1]]['label'])) . '</code>';
+                    ? self::codeWithIcon($this->rows[$wrapped[0]]['label'])
+                    : 'the next ' . self::steps($this->end[$last] - $last - 1) . ', through ' . self::codeWithIcon($this->rows[$wrapped[count($wrapped) - 1]]['label']);
                 $summary = '🪝 ' . $this->aroundsIn($chain) . ' interceptors around ' . $around;
                 $items[] = ['html', self::fold(open: $changed !== [], summary: self::dotted(summary: $summary, status: $this->rows[$position]['status'], changed: $changed !== [], onlyGone: $changed !== [] && array_unique(array_map(fn (int $member): string => $this->rows[$member]['status'], $changed)) === ['gone']), inner: self::quoted(self::fenced($listed), $quotes))];
                 foreach ($this->level(from: $last + 1, to: $this->end[$last], base: $base + count($chain), quotes: $quotes, foldingRuns: $foldingRuns) as $item) {
                     self::addItem($items, $item);
                 }
             } elseif ($this->foldsBySize($position, $quotes)) {
-                $items[] = ['html', $this->foldOfSteps(position: $position, base: $base, foldingRuns: $foldingRuns, summary: '<code>' . htmlspecialchars(self::withIcon($label)) . '</code> · ' . self::steps($inside) . ' inside', quotes: $quotes)];
+                $items[] = ['html', $this->foldOfSteps(position: $position, base: $base, foldingRuns: $foldingRuns, summary: self::codeWithIcon($label) . ' · ' . self::steps($inside) . ' inside', quotes: $quotes)];
             } else {
                 self::addLines($items, $this->linesOf(from: $position, to: $position + 1, base: $base));
                 $under = $this->level(from: $position + 1, to: $this->end[$position], base: $base, quotes: $quotes, foldingRuns: $foldingRuns);

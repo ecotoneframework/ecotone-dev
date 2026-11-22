@@ -40,21 +40,21 @@ $cases = [
     },
     'a comparison over the comment limit keeps whole scenarios from the top and says how many were left out' => function (): ?string {
         $scenarios = [];
-        for ($index = 1; $index <= 40; $index++) {
-            $scenarios[] = scenario('scenario ' . $index, str_repeat('x', 3_000));
+        for ($index = 1; $index <= 2; $index++) {
+            $scenarios[] = scenario('scenario ' . $index, str_repeat('x', 40_000));
         }
         $result = run(comparison(...$scenarios));
         $comment = read($result['output']);
         preg_match_all('/^### `scenario (\d+)`$/m', $comment['body'], $kept);
         $keptNumbers = array_map('intval', $kept[1]);
-        $leftOut = 40 - count($keptNumbers);
+        $leftOut = 2 - count($keptNumbers);
 
         return expectAll([
             [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
             [mb_strlen($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . mb_strlen($comment['body'])],
             [$keptNumbers === range(1, count($keptNumbers)) && $keptNumbers !== [], 'whole scenarios kept from the top'],
-            [substr_count($comment['body'], str_repeat('x', 3_000)) === count($keptNumbers), 'no scenario cut in the middle'],
-            [str_contains($comment['body'], "{$leftOut} of 40 changed scenarios are left out"), 'says how many were left out'],
+            [substr_count($comment['body'], str_repeat('x', 40_000)) === count($keptNumbers), 'no scenario cut in the middle'],
+            [$leftOut === 1 && str_contains($comment['body'], '1 of 2 changed scenarios is left out'), 'says how many were left out'],
             [str_contains($comment['body'], RUN_URL) && str_contains($comment['body'], 'build-flow-comparison'), 'points to the artifact of the run'],
         ]);
     },
@@ -71,8 +71,8 @@ $cases = [
     },
     'over the limit, whole scenarios are cut from the end and the scenarios shown stay whole' => function (): ?string {
         $scenarios = [];
-        for ($index = 1; $index <= 6; $index++) {
-            $scenarios[] = pathScenario('scenario ' . $index, str_repeat('y', 100), processBlocks(5, str_repeat('p', 2_500)));
+        for ($index = 1; $index <= 2; $index++) {
+            $scenarios[] = pathScenario('scenario ' . $index, str_repeat('y', 100), processBlocks(5, str_repeat('p', 8_000)));
         }
         $result = run(comparison(...$scenarios));
         $comment = read($result['output']);
@@ -81,9 +81,9 @@ $cases = [
         return expectAll([
             [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
             [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . utf16Length($comment['body'])],
-            [count($shown[1]) > 0 && substr_count($comment['body'], str_repeat('p', 2_500)) === 5 * count($shown[1]), 'every shown scenario keeps all its processes'],
+            [count($shown[1]) > 0 && substr_count($comment['body'], str_repeat('p', 8_000)) === 5 * count($shown[1]), 'every shown scenario keeps all its processes'],
             [! str_contains($comment['body'], 'The rest of') && ! str_contains($comment['body'], "in the run's artifact"), 'no shown scenario is cut or emptied'],
-            [str_contains($comment['body'], (6 - count($shown[1])) . ' of 6 changed scenarios are left out'), 'says how many scenarios were left out'],
+            [str_contains($comment['body'], (2 - count($shown[1])) . ' of 2 changed scenarios is left out'), 'says how many scenarios were left out'],
             [structureProblemOf($comment['body']) === null, 'balanced, with blank lines around blocks: ' . structureProblemOf($comment['body'])],
         ]);
     },
@@ -136,6 +136,100 @@ $cases = [
             [str_contains($comment['body'], 'The rest of `large`, from its message path on, is left out') || str_contains($comment['body'], 'The rest of `large`, from process'), 'says where it is cut'],
             [substr_count($comment['body'], str_repeat('p', 9_000)) === substr_count($comment['body'], '<details open>'), 'no tree cut in the middle'],
             [structureProblemOf($comment['body']) === null, 'balanced, with blank lines around blocks: ' . structureProblemOf($comment['body'])],
+        ]);
+    },
+    'no changed scenario prints no scenario and says nothing is not shown' => function (): ?string {
+        $comment = read(run("## Message flow: what changed\n\nNo scenario of 94 changes its message path.\n")['output']);
+
+        return expectAll([
+            [! str_contains($comment['body'], 'not shown'), 'nothing is said not shown: ' . $comment['body']],
+        ]);
+    },
+    'one changed scenario is shown whole and nothing is not shown' => function (): ?string {
+        $comment = read(run(selectionComparison([changedScenario('first', 3)]))['output']);
+
+        return expectAll([
+            [shownNames($comment['body']) === ['first'], 'shown: ' . implode(', ', shownNames($comment['body']))],
+            [! str_contains($comment['body'], 'not shown'), 'nothing is said not shown'],
+        ]);
+    },
+    'two changed scenarios are both shown' => function (): ?string {
+        $comment = read(run(selectionComparison([changedScenario('first', 1), changedScenario('second', 2)]))['output']);
+
+        return expectAll([
+            [shownNames($comment['body']) === ['first', 'second'], 'shown: ' . implode(', ', shownNames($comment['body']))],
+            [! str_contains($comment['body'], 'not shown'), 'nothing is said not shown'],
+        ]);
+    },
+    'of three changed scenarios the two with the most changed steps are shown and the third is marked not shown in the singular' => function (): ?string {
+        $comment = read(run(selectionComparison([changedScenario('alpha', 1), changedScenario('beta', 5), changedScenario('gamma', 3)]))['output']);
+
+        return expectAll([
+            [shownNames($comment['body']) === ['beta', 'gamma'], 'shown in comparison order: ' . implode(', ', shownNames($comment['body']))],
+            [str_contains($comment['body'], "- `alpha`: 1 of 2 processes changed · not shown here\n"), 'alpha marked in the list: ' . substr($comment['body'], 0, 900)],
+            [str_contains($comment['body'], '1 changed scenario is not shown here'), 'singular sentence'],
+            [str_contains($comment['body'], 'php bin/build-flow.php compare --presentation=build') && str_contains($comment['body'], RUN_URL), 'names the artifact and the local command'],
+        ]);
+    },
+    'thirty changed scenarios and two new ones show the two most changed and the first new one, and say the rest are not shown in the plural' => function (): ?string {
+        $scenarios = [];
+        for ($index = 1; $index <= 30; $index++) {
+            $scenarios[] = changedScenario(sprintf('changed %02d', $index), $index === 7 ? 9 : ($index === 21 ? 9 : 1));
+        }
+        $scenarios[] = newScenario('new first');
+        $scenarios[] = newScenario('new second');
+        $comment = read(run(selectionComparison($scenarios))['output']);
+
+        return expectAll([
+            [shownNames($comment['body']) === ['changed 07', 'changed 21', 'new first'], 'shown: ' . implode(', ', shownNames($comment['body']))],
+            [str_contains($comment['body'], '29 changed scenarios are not shown here'), 'plural sentence: ' . substr($comment['body'], -700)],
+            [substr_count($comment['body'], ' · not shown here') === 29, 'each not shown one is marked in the list'],
+        ]);
+    },
+    'a scenario changing only its wiring ranks after one with changed steps' => function (): ?string {
+        $comment = read(run(selectionComparison([wiringOnlyScenario('alpha'), changedScenario('beta', 1), changedScenario('gamma', 1)]))['output']);
+
+        return expectAll([
+            [shownNames($comment['body']) === ['beta', 'gamma'], 'shown: ' . implode(', ', shownNames($comment['body']))],
+        ]);
+    },
+    'two changed scenarios with the same number of changed steps keep the order the comparison prints them in' => function (): ?string {
+        $comment = read(run(selectionComparison([changedScenario('alpha', 2), changedScenario('beta', 2), changedScenario('gamma', 2)]))['output']);
+
+        return expectAll([
+            [shownNames($comment['body']) === ['alpha', 'beta'], 'shown: ' . implode(', ', shownNames($comment['body']))],
+        ]);
+    },
+    'a scenario that is gone is not shown but marked in the list' => function (): ?string {
+        $comment = read(run(selectionComparison([changedScenario('alpha', 2), goneScenario('retired')]))['output']);
+
+        return expectAll([
+            [shownNames($comment['body']) === ['alpha'], 'shown: ' . implode(', ', shownNames($comment['body']))],
+            [str_contains($comment['body'], "- `retired`: 1 of 1 process changed · not shown here\n"), 'the gone one is marked'],
+            [str_contains($comment['body'], '1 changed scenario is not shown here'), 'singular sentence'],
+        ]);
+    },
+    'a group of scenarios with the same change that is not shown counts each of its scenarios' => function (): ?string {
+        $group = ['name' => 'grouped one', 'kind' => 'changed', 'text' => "### 2 scenarios with the same change\n\nApplies to: `grouped one`, `grouped two`. Shown for `one`; the same holds with `two` in its place.\n\nBefore: it was sent.\n\nNow: it is also audited.\n"];
+        $identical = ['name' => 'same one', 'kind' => 'changed', 'text' => "### 2 scenarios with the same change\n\nApplies to: `same one`, `same two`.\n\nBefore: it was sent.\n\nNow: it is also audited.\n"];
+        $comparison = str_replace(
+            ["- `grouped one`: 1 of 2 processes changed\n", "- `same one`: 1 of 2 processes changed\n"],
+            ["- `grouped one`: 1 of 2 processes changed\n- `grouped two`: 1 of 2 processes changed\n- `one`: 1 of 2 processes changed\n", "- `same one`: 1 of 2 processes changed\n- `same two`: 1 of 2 processes changed\n"],
+            selectionComparison([changedScenario('alpha', 3), changedScenario('beta', 2), $group, $identical]),
+        );
+        $comment = read(run($comparison)['output']);
+
+        return expectAll([
+            [str_contains($comment['body'], '4 changed scenarios are not shown here'), 'counts every scenario of both groups: ' . substr($comment['body'], -500)],
+            [substr_count($comment['body'], ' · not shown here') === 4, 'marks them, and not a scenario a group only names'],
+        ]);
+    },
+    'only new scenarios show the first one' => function (): ?string {
+        $comment = read(run(selectionComparison([newScenario('new first'), newScenario('new second')]))['output']);
+
+        return expectAll([
+            [shownNames($comment['body']) === ['new first'], 'shown: ' . implode(', ', shownNames($comment['body']))],
+            [str_contains($comment['body'], '1 changed scenario is not shown here'), 'singular sentence'],
         ]);
     },
     'the build tree opens the comment and is not taken for a scenario' => function (): ?string {
@@ -208,8 +302,8 @@ $cases = [
     },
     'a message path diagram too large to render does not move the cut inside the collapsed wiring' => function (): ?string {
         $scenarios = [];
-        for ($index = 1; $index <= 6; $index++) {
-            $scenarios[] = pathScenario('scenario ' . $index, str_repeat("  a -->|\"step\"| b\n", $index === 4 ? 4_000 : 100), str_repeat('z', 13_000), "```mermaid\nflowchart LR\n" . str_repeat("  a --> b\n", 300) . "```\n");
+        for ($index = 1; $index <= 2; $index++) {
+            $scenarios[] = pathScenario('scenario ' . $index, str_repeat("  a -->|\"step\"| b\n", $index === 1 ? 4_000 : 100), str_repeat('z', 30_000), "```mermaid\nflowchart LR\n" . str_repeat("  a --> b\n", 300) . "```\n");
         }
         $comment = read(run(comparison(...$scenarios))['output']);
 
@@ -356,6 +450,46 @@ function structureProblemOf(string $markdown): ?string
     }
 
     return $inFence ? 'a fence is left open' : ($open === [] ? null : 'left open: ' . implode(', ', $open));
+}
+
+/**
+ * @param list<array{name: string, text: string}> $scenarios
+ */
+function selectionComparison(array $scenarios): string
+{
+    $list = implode("\n", array_map(fn (array $scenario): string => '- `' . $scenario['name'] . '`: ' . ($scenario['kind'] === 'new' || $scenario['kind'] === 'gone' ? '1 of 1 process changed' : '1 of 2 processes changed'), $scenarios));
+
+    return "## Message flow: what changed\n\n" . count($scenarios) . " of 94 scenarios change their message path.\n\n" . $list . "\n\n" . implode("\n", array_map(fn (array $scenario): string => $scenario['text'], $scenarios));
+}
+
+function changedScenario(string $name, int $newSteps): array
+{
+    return ['name' => $name, 'kind' => 'changed', 'text' => "### `{$name}`\n\nBefore: it was sent.\n\nNow: it is also audited.\n\n#### What ran, process by process\n\n**Flow · process 1 of 2** · unchanged · 40 steps\n`process zero`\n\n**Sub-flow · process 2 of 2** · sent by process 1 · {$newSteps} new step" . ($newSteps === 1 ? '' : 's') . ', 1 step gone · 10 → ' . (9 + $newSteps) . " steps\n`process one`\n\n<details open>\n<summary>Steps of process 1</summary>\n\n```diff\n+ step\n```\n\n</details>\n\n#### The message's path\n\n```mermaid\nflowchart LR\n  a -->|\"step\"| b\n```\n"];
+}
+
+function wiringOnlyScenario(string $name): array
+{
+    return ['name' => $name, 'kind' => 'changed', 'text' => "### `{$name}`\n\nBefore: it was sent.\n\nNow: it is routed differently.\n\n<details><summary>Marked wiring and traced spans</summary>\n\n#### Wiring\n\nChanged.\n\n</details>\n"];
+}
+
+function newScenario(string $name): array
+{
+    return ['name' => $name, 'kind' => 'new', 'text' => "### `{$name}`\n\nBefore: this scenario was not in the catalogue.\n\nNow: it is, with 3 traced spans.\n\n#### What ran, process by process\n\n**Flow · process 1 of 1** · runs only now · 12 steps\n`process one`\n\n<details open>\n<summary>Steps of process 1</summary>\n\n```diff\n+ step\n```\n\n</details>\n"];
+}
+
+function goneScenario(string $name): array
+{
+    return ['name' => $name, 'kind' => 'gone', 'text' => "### `{$name}`\n\nBefore: this scenario was in the catalogue, with 3 traced spans.\n\nNow: it is not.\n"];
+}
+
+/**
+ * @return list<string>
+ */
+function shownNames(string $body): array
+{
+    preg_match_all('/^### `([^`]+)`$/m', $body, $names);
+
+    return $names[1];
 }
 
 function utf16Length(string $text): int

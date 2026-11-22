@@ -13,6 +13,8 @@ const GITHUB_MERMAID_LIMIT = 50_000;
 const COMPARISON_ARTIFACT = 'build-flow-comparison';
 const BUILD_TREE_HEADING = '### Build: what changes';
 const BUILD_TREE_LIMIT = 16_000;
+const CHANGED_SCENARIOS_SHOWN = 2;
+const NEW_SCENARIOS_SHOWN = 1;
 const USAGE = <<<'USAGE'
     Builds the pull request comment that shows how the message flow changed.
 
@@ -137,6 +139,12 @@ function withBoundedBuildTree(string $preamble, string $runUrl): string
 function commentOf(string $preamble, array $scenarios, string $runUrl): string
 {
     $scenarios = array_map(fn (string $scenario): string => withRenderableDiagrams($scenario, $runUrl), $scenarios);
+    [$scenarios, $notShown] = scenariosShownOf($scenarios);
+    foreach ($notShown as $scenario) {
+        foreach (namesOf($scenario) as $name) {
+            $preamble = (string) preg_replace('/^(- ' . preg_quote($name, '/') . ': .*)$/m', '$1 · not shown here', $preamble, 1);
+        }
+    }
     $shown = [];
     $length = lengthOf(COMMENT_MARKER . "\n" . $preamble);
     foreach ($scenarios as $position => $scenario) {
@@ -163,7 +171,7 @@ function commentOf(string $preamble, array $scenarios, string $runUrl): string
         $preamble = $name === null ? $preamble : (string) preg_replace('/^(- ' . preg_quote($name, '/') . ': .*)$/m', '$1 · left out of this comment', $preamble, 1);
     }
 
-    return COMMENT_MARKER . "\n" . $preamble . implode('', $shown) . leftOutNote(leftOut: $leftOut, all: count($scenarios), runUrl: $runUrl);
+    return COMMENT_MARKER . "\n" . $preamble . implode('', $shown) . notShownNote(notShown: count(array_merge(...array_map(namesOf(...), $notShown))), runUrl: $runUrl) . leftOutNote(leftOut: $leftOut, all: count($scenarios), runUrl: $runUrl);
 }
 
 function withUnchangedStepsLeftOut(string $scenario, int $room, string $runUrl): string
@@ -249,6 +257,60 @@ function noteOfTheRest(string $name, string $section, string $runUrl): string
     };
 
     return "\n\nThe rest of {$name}, {$from}, is left out to stay within GitHub's 65,536 character limit for a comment; it is in the `" . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n";
+}
+
+/**
+ * @param list<string> $scenarios
+ * @return array{0: list<string>, 1: list<string>}
+ */
+function scenariosShownOf(array $scenarios): array
+{
+    $changed = [];
+    $new = [];
+    foreach ($scenarios as $position => $scenario) {
+        if (str_contains($scenario, "\nBefore: this scenario was not in the catalogue.")) {
+            $new[] = $position;
+        } elseif (! str_contains($scenario, "\nBefore: this scenario was in the catalogue, with ")) {
+            $changed[$position] = changedStepsOf($scenario);
+        }
+    }
+    uksort($changed, fn (int $first, int $second): int => [$changed[$second], $first] <=> [$changed[$first], $second]);
+    $shown = array_flip([...array_slice(array_keys($changed), 0, CHANGED_SCENARIOS_SHOWN), ...array_slice($new, 0, NEW_SCENARIOS_SHOWN)]);
+
+    return [array_values(array_intersect_key($scenarios, $shown)), array_values(array_diff_key($scenarios, $shown))];
+}
+
+function changedStepsOf(string $scenario): int
+{
+    preg_match_all('/^\*\*(?:Flow|Sub-flow) · process \d+ of \d+(?: before)?\*\*.*$/m', $scenario, $headings);
+    $steps = 0;
+    foreach ($headings[0] as $heading) {
+        preg_match_all('/(\d+) (?:new steps?|steps? gone)|(?:runs only now|no longer runs) · (\d+) steps?/', $heading, $counts, PREG_SET_ORDER);
+        foreach ($counts as $count) {
+            $steps += (int) ($count[1] ?: $count[2] ?? 0);
+        }
+    }
+
+    return $steps;
+}
+
+/**
+ * @return list<string>
+ */
+function namesOf(string $scenario): array
+{
+    if (preg_match('/^### (`+) ?(.+?) ?\1$/m', $scenario, $heading) === 1) {
+        return ['`' . $heading[2] . '`'];
+    }
+    preg_match('/^Applies to: (.*?)(?:\. Shown for |\.$)/m', $scenario, $appliesTo);
+    preg_match_all('/(`+) ?(.+?) ?\1/', $appliesTo[1] ?? '', $names);
+
+    return array_map(fn (string $name): string => '`' . $name . '`', $names[2]);
+}
+
+function notShownNote(int $notShown, string $runUrl): string
+{
+    return $notShown === 0 ? '' : "\n---\n\n{$notShown} changed scenario" . ($notShown === 1 ? ' is' : 's are') . ' not shown here: this comment shows at most the ' . CHANGED_SCENARIOS_SHOWN . ' changed scenarios with the most changed steps and the first new one. The whole comparison is in the `' . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}), and `docker compose exec -T app php bin/build-flow.php compare --presentation=build` prints it locally.\n";
 }
 
 function leftOutNote(int $leftOut, int $all, string $runUrl): string

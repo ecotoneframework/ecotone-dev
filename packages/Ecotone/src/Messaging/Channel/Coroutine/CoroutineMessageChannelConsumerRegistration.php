@@ -11,6 +11,8 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Config\Container\PollingMetadataReference;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncHandlerAnnotationRegistry;
+use Ecotone\Messaging\Handler\Recoverability\DeadLetterChannels;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
@@ -42,6 +44,7 @@ final class CoroutineMessageChannelConsumerRegistration implements CompilerPass
         if (! $builder->has(CoroutineMessageChannelSleep::SERVICE_ID)) {
             $builder->register(CoroutineMessageChannelSleep::SERVICE_ID, new Definition(CoroutineMessageChannelSleep::class));
         }
+        $builder->register(CoroutineMessageChannelConsumer::REPLAY_HANDLER_ANNOTATIONS, new Definition(className: AsyncHandlerAnnotationRegistry::class, arguments: [new Reference(DeadLetterChannels::class)], factory: [AsyncHandlerAnnotationRegistry::class, 'withoutDelayedRetries']));
         foreach ($this->channelNames as $channelName) {
             $pollingMetadata = (string) new PollingMetadataReference($channelName);
             if ($builder->has($pollingMetadata)) {
@@ -49,7 +52,13 @@ final class CoroutineMessageChannelConsumerRegistration implements CompilerPass
             }
             $reference = (string) new EndpointRunnerReference($channelName);
             if ($builder->has($reference)) {
-                $builder->replace($reference, $builder->register(CoroutineMessageChannelConsumer::SERVICE_ID_PREFIX . $channelName, new Definition(CoroutineMessageChannelConsumer::class, [$channelName, $builder->getDefinition($reference), new Reference(MessageBuilder::class)])));
+                $builder->replace($reference, $builder->register(CoroutineMessageChannelConsumer::SERVICE_ID_PREFIX . $channelName, new Definition(CoroutineMessageChannelConsumer::class, [
+                    $channelName,
+                    $builder->getDefinition($reference),
+                    new Reference(MessageBuilder::class),
+                    new Definition(className: PollingMetadata::class, arguments: [new Reference($pollingMetadata), new Reference(DeadLetterChannels::class)], factory: [CoroutineMessageChannelConsumer::class, 'withoutDelayedRetries']),
+                    new Reference(CoroutineMessageChannelConsumer::REPLAY_HANDLER_ANNOTATIONS),
+                ])));
             }
         }
     }

@@ -30,7 +30,7 @@ Test names below are in `packages/Ecotone/tests/Messaging/Execution/CoroutineMes
 | A replay that fails again is back in the dead letter | Dbal `test_replay_that_fails_again_is_back_in_the_dead_letter` |
 | A send carrying the headers of a dead-letter replay is an ordinary send: refused outside a coroutine, handled on another coroutine inside one | Core `test_send_outside_a_coroutine_carrying_the_headers_of_a_dead_letter_replay_is_refused`, `test_send_inside_a_coroutine_carrying_the_headers_of_a_dead_letter_replay_is_handled_on_another_coroutine_like_any_send` |
 | Replaying all replays a message that fails again once | Dbal `test_replaying_all_replays_a_message_that_fails_again_once` |
-| A replay outside a coroutine that fails again on an endpoint with delayed retries is refused with the way out and stays in the dead letter | Dbal `test_replay_outside_a_coroutine_that_fails_again_on_an_endpoint_with_delayed_retries` |
+| A replay that fails again does not use delayed retries: it is back in the dead letter with the handler's failure, outside and inside a coroutine, and replaying all goes on | Dbal `test_replay_that_fails_again_on_an_endpoint_with_delayed_retries_goes_straight_back_to_the_dead_letter_with_the_handlers_failure`, `test_replay_that_fails_again_skips_the_delayed_retries_configured_behind_the_endpoints_error_channel` |
 | A delay with less than a millisecond left waits without a warning | Core `test_delayed_message_due_in_less_than_a_millisecond_is_handled_without_a_warning` |
 | Independent headers and transactions | Dbal `test_concurrent_messages_keep_their_own_headers_and_transaction` |
 | Tenant connections and deduplication | Dbal `test_each_message_uses_its_tenants_connection`, `test_deduplicated_handler_runs_once_for_the_same_deduplication_key` |
@@ -68,9 +68,17 @@ case for a kind of channel. `CoroutineMessageChannelBuilder` declares `ecotone.c
 a direct channel whose handler is `CoroutineMessageChannelConsumer::replay()`: it hands the message to
 `InterceptedConsumerRunner::handleReceived()`, the endpoint's own pipeline for a message that is already received
 (transaction, instant retries, error channel, tracing), in the replaying code. The channel, its interceptors and its
-message source know nothing about replay: a send carrying the replay headers is an ordinary send. A delayed retry is
-not a replay: it is sent to the channel, so a replay outside a coroutine that fails again on an endpoint with delayed
-retries is refused there, and the refusal names replaying inside a coroutine.
+message source know nothing about replay: a send carrying the replay headers is an ordinary send.
+
+A replay does not use delayed retries, and that is decided when the container is built, not per message.
+`DeadLetterChannels` (open core, built from every `ErrorHandlerConfiguration`, the per-handler `#[DelayedRetry]` ones
+included) answers which dead letter channel is behind an error channel. The channel's consumer gets its replay inputs
+from it once: its polling metadata with the error channel replaced by that dead letter channel
+(`CoroutineMessageChannelConsumer::withoutDelayedRetries()`), and the handler annotations with `#[DelayedRetry]` and
+`#[ErrorChannel]` replaced the same way (`AsyncHandlerAnnotationRegistry::withoutDelayedRetries()`).
+`InterceptedConsumerRunner::handleReceived()` takes both, so a replay that fails again is sent straight to the dead
+letter with the handler's exception. It is stored as a new entry with no retry count; nothing is sent to the
+coroutine channel from a replay.
 
 ## Engine runs
 

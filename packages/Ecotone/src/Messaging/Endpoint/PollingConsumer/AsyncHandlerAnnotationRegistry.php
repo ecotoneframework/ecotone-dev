@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
+use Ecotone\Api\Attribute\DelayedRetry;
+use Ecotone\Api\Attribute\ErrorChannel;
+use Ecotone\Messaging\Handler\Recoverability\DeadLetterChannels;
+
 /**
  * licence Enterprise
  *
@@ -29,6 +33,21 @@ class AsyncHandlerAnnotationRegistry
      */
     public function __construct(private array $channelToAnnotations)
     {
+    }
+
+    public function withoutDelayedRetries(DeadLetterChannels $deadLetterChannels): self
+    {
+        return new self(array_map(
+            static fn (array $annotations): array => array_map(
+                static fn (object $annotation): object => match (true) {
+                    $annotation instanceof DelayedRetry && $annotation->deadLetterChannel !== null => new ErrorChannel($annotation->deadLetterChannel),
+                    $annotation instanceof ErrorChannel => new ErrorChannel($deadLetterChannels->of($annotation->errorChannelName)),
+                    default => $annotation,
+                },
+                $annotations,
+            ),
+            $this->channelToAnnotations,
+        ));
     }
 
     /**

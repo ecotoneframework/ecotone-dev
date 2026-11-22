@@ -25,17 +25,19 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Test\CoroutineTesting;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -329,7 +331,7 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(1, $deadLetter->count());
     }
 
-    public function test_replay_outside_a_coroutine_that_fails_again_on_an_endpoint_with_delayed_retries(): void
+    public function test_replay_that_fails_again_on_an_endpoint_with_delayed_retries_goes_straight_back_to_the_dead_letter_with_the_handlers_failure(): void
     {
         $handler = new class () {
             public int $attempts = 0;
@@ -339,7 +341,7 @@ final class CoroutineMessageChannelTest extends TestCase
             public function handle(string $payload): void
             {
                 $this->attempts++;
-                throw new RuntimeException('handling failed');
+                throw new RuntimeException("handling {$payload} failed");
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
@@ -351,25 +353,66 @@ final class CoroutineMessageChannelTest extends TestCase
         );
         $deadLetter = $ecotone->getGateway(DeadLetterGateway::class);
         $deadLetter->deleteAll();
+        $failures = static function () use ($deadLetter): array {
+            $failures = array_map(static fn (ErrorContext $failed): string => $failed->getMessage(), $deadLetter->list(10, 0));
+            sort($failures);
+
+            return $failures;
+        };
+        CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
+            $ecotone->sendCommandWithRouting('handle', 'first');
+            $ecotone->sendCommandWithRouting('handle', 'second');
+        });
+        $attemptsBeforeTheReplays = $handler->attempts;
+
+        $deadLetter->replayAll();
+        $attemptsAfterTheReplayOutsideACoroutine = $handler->attempts;
+        $failuresAfterTheReplayOutsideACoroutine = $failures();
+        CoroutineTesting::runAtOnce(static fn () => $deadLetter->replayAll());
+
+        $this->assertSame(4, $attemptsBeforeTheReplays);
+        $this->assertSame(6, $attemptsAfterTheReplayOutsideACoroutine);
+        $this->assertSame(['handling first failed', 'handling second failed'], $failuresAfterTheReplayOutsideACoroutine);
+        $this->assertSame(8, $handler->attempts);
+        $this->assertSame(['handling first failed', 'handling second failed'], $failures());
+    }
+
+    public function test_replay_that_fails_again_skips_the_delayed_retries_configured_behind_the_endpoints_error_channel(): void
+    {
+        $handler = new class () {
+            public int $attempts = 0;
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->attempts++;
+                throw new RuntimeException('handling failed');
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
+            extensionObjects: [
+                CoroutineMessageChannelBuilder::create('async'),
+                DbalConfiguration::createWithDefaults(),
+                PollingMetadata::create('async')->withErrorChannelName('retried'),
+                ErrorHandlerConfiguration::createWithDeadLetterChannel('retried', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1), DbalDeadLetterBuilder::STORE_CHANNEL),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $deadLetter = $ecotone->getGateway(DeadLetterGateway::class);
+        $deadLetter->deleteAll();
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
         $attemptsBeforeTheReplay = $handler->attempts;
-        $storedBeforeTheReplay = $deadLetter->count();
 
-        $stored = $deadLetter->list(10, 0)[0]->getMessageId();
-
-        $refusal = null;
-        try {
-            $deadLetter->replay($stored);
-        } catch (ConfigurationException $exception) {
-            $refusal = $exception->getMessage();
-        }
+        $deadLetter->replayAll();
 
         $this->assertSame(2, $attemptsBeforeTheReplay);
-        $this->assertSame(1, $storedBeforeTheReplay);
         $this->assertSame(3, $handler->attempts);
-        $this->assertStringStartsWith('Coroutine message channel `async` cannot send outside a Swoole or OpenSwoole coroutine. This can happen in a console command, a consumer started without --coroutines, an HTTP server with enable_coroutine disabled, or a dead letter replay outside a coroutine that failed again and is retried with a delay.', (string) $refusal);
-        $this->assertStringContainsString('for a dead letter replay on an endpoint with delayed retries replay inside a coroutine.', (string) $refusal);
-        $this->assertSame([$stored], array_map(static fn ($failed) => $failed->getMessageId(), $deadLetter->list(10, 0)));
+        $this->assertSame(['handling failed'], array_map(static fn (ErrorContext $failed): string => $failed->getMessage(), $deadLetter->list(10, 0)));
     }
 
     public function test_concurrent_messages_keep_their_own_headers_and_transaction(): void

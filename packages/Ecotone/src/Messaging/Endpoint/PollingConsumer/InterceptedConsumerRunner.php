@@ -60,16 +60,16 @@ class InterceptedConsumerRunner implements EndpointRunner
         );
     }
 
-    public function handleReceived(Message $message, ExecutionPollingMetadata $executionPollingMetadata): void
+    public function handleReceived(Message $message, PollingMetadata $pollingMetadata, AsyncHandlerAnnotationRegistry $handlerAnnotations): void
     {
         (new PollToGatewayTaskExecutor(
             messagePoller: new ReceivedMessage($message),
             gateway: $this->gateway,
             messagingEntrypoint: $this->messagingEntrypoint,
-            asyncHandlerAnnotationRegistry: $this->asyncHandlerAnnotationRegistry,
+            asyncHandlerAnnotationRegistry: $handlerAnnotations,
             asyncEndpointAnnotationContext: $this->asyncEndpointAnnotationContext,
             messageBuilder: $this->messageBuilder,
-        ))->execute($this->defaultPollingMetadata->applyExecutionPollingMetadata($executionPollingMetadata));
+        ))->execute($pollingMetadata);
     }
 
     public function createConsumer(?ExecutionPollingMetadata $executionPollingMetadata): ConsumerLifecycle

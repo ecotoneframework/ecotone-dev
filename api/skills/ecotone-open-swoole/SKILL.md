@@ -260,7 +260,9 @@ coroutine: enable `enable_coroutine=true` for HTTP requests (§5), start a sendi
 `ecotone:run <source-channel> --coroutines=N`, or execute a sending console command inside a coroutine. A send
 outside a coroutine is refused; an uncaught failure rolls back the sender's Ecotone transaction. A dead-letter
 replay does not go through the channel: the handler runs in the code that replays, inside or outside a coroutine,
-before the replay call returns, with the endpoint's transaction, instant retries and error channel.
+before the replay call returns, with the endpoint's transaction and instant retries. A replay does not use delayed
+retries: one that fails again goes straight back to the dead letter with the handler's exception, as a new entry
+with no retry count, and `replayAll` goes on to the next message.
 
 Error channels, instant retries, delayed retries and dead letter use the ordinary asynchronous consumer pipeline.
 Without an error channel, the channel and endpoint are logged with the exception and message headers, then the

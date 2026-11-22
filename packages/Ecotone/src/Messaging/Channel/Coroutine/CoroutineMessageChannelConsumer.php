@@ -11,7 +11,9 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
+use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncHandlerAnnotationRegistry;
 use Ecotone\Messaging\Endpoint\PollingConsumer\InterceptedConsumerRunner;
+use Ecotone\Messaging\Handler\Recoverability\DeadLetterChannels;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
@@ -36,8 +38,9 @@ final class CoroutineMessageChannelConsumer implements EndpointRunner
 {
     public const SERVICE_ID_PREFIX = 'ecotone.coroutine_message_channel.consumer.';
     public const REPLAY_CHANNEL_PREFIX = 'ecotone.coroutine_message_channel.replay.';
+    public const REPLAY_HANDLER_ANNOTATIONS = 'ecotone.coroutine_message_channel.replay_handler_annotations';
 
-    public function __construct(private string $channelName, private InterceptedConsumerRunner $runner, private MessageBuilder $messageBuilder)
+    public function __construct(private string $channelName, private InterceptedConsumerRunner $runner, private MessageBuilder $messageBuilder, private PollingMetadata $replayPollingMetadata, private AsyncHandlerAnnotationRegistry $replayHandlerAnnotations)
     {
     }
 
@@ -56,11 +59,17 @@ final class CoroutineMessageChannelConsumer implements EndpointRunner
         return $this->runner->createConsumer($this->executionPollingMetadata());
     }
 
+    public static function withoutDelayedRetries(PollingMetadata $pollingMetadata, DeadLetterChannels $deadLetterChannels): PollingMetadata
+    {
+        return $pollingMetadata->withErrorChannelName($deadLetterChannels->of($pollingMetadata->getErrorChannelName()));
+    }
+
     public function replay(Message $message): void
     {
         $this->runner->handleReceived(
             message: $this->messageBuilder->fromMessage($message)->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, $this->channelName)->build(),
-            executionPollingMetadata: $this->executionPollingMetadata(),
+            pollingMetadata: $this->replayPollingMetadata->applyExecutionPollingMetadata($this->executionPollingMetadata()),
+            handlerAnnotations: $this->replayHandlerAnnotations,
         );
     }
 

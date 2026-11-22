@@ -326,6 +326,26 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $this->assertErrorMessageCount($ecotone, 0);
     }
 
+    public function test_replaying_all_replays_every_dead_letter_when_more_are_stored_than_are_listed_at_once(): void
+    {
+        [$ecotone, $handler] = $this->failedAsynchronousOrder();
+        foreach (range(2, 205) as $order) {
+            $ecotone->sendCommandWithRouting('order.place', "order-{$order}");
+        }
+        $ecotone->run($handler::QUEUE, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 300, executionTimeLimitInMilliseconds: 60000, stopOnError: false));
+        $storedBeforeTheReplay = $this->deadLetters($ecotone)->count();
+        $handler->fail = false;
+
+        $this->deadLetters($ecotone)->replayAll();
+        $ecotone->run($handler::QUEUE, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 300, executionTimeLimitInMilliseconds: 60000, stopOnError: false));
+
+        $placed = $handler->placed;
+        sort($placed, SORT_NATURAL);
+        $this->assertSame(array_map(static fn (int $order): string => "order-{$order}", range(1, 205)), $placed);
+        $this->assertSame(205, $storedBeforeTheReplay);
+        $this->assertSame(0, $this->deadLetters($ecotone)->count());
+    }
+
     public function test_the_console_replays_a_dead_letter_to_another_asynchronous_channel_and_the_original_handler_runs(): void
     {
         [$ecotone, $handler] = $this->failedAsynchronousOrder();

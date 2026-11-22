@@ -13,6 +13,7 @@ use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Messaging\Channel\ConsumedInTheSendingProcess;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConsumerCoroutines;
@@ -39,7 +40,7 @@ use Swoole\Event;
  *
  * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
-final class CoroutineMessageChannel extends QueueChannel
+final class CoroutineMessageChannel extends QueueChannel implements ConsumedInTheSendingProcess
 {
     private int $consumers = 0;
 

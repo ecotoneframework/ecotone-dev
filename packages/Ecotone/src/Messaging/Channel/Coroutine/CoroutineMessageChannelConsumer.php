@@ -8,7 +8,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Messaging\PollableChannel;
+use Ecotone\Api\Messaging\MessagePoller;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncHandlerAnnotationRegistry;
@@ -43,7 +43,7 @@ final class CoroutineMessageChannelConsumer implements EndpointRunner
     public function __construct(
         private string $channelName,
         private InterceptedConsumerRunner $runner,
-        private PollableChannel $channel,
+        private MessagePoller $waitingMessages,
         private MessageBuilder $messageBuilder,
         private PollingMetadata $pollingMetadata,
         private AsyncHandlerAnnotationRegistry $handlerAnnotations,
@@ -70,23 +70,21 @@ final class CoroutineMessageChannelConsumer implements EndpointRunner
 
     public function consumeWaiting(): void
     {
-        while (($message = $this->channel->receive()) !== null) {
-            $received = $this->received($message);
+        while (($message = $this->waitingMessages->receiveWithTimeout($this->pollingMetadata)) !== null) {
             $this->failureLogger->loggingADroppedMessage(
                 channelName: $this->channelName,
-                message: $received,
-                handle: fn () => $this->runner->handleReceived(message: $received, pollingMetadata: $this->pollingMetadata, handlerAnnotations: $this->handlerAnnotations),
+                message: $message,
+                handle: fn () => $this->runner->handleReceived(message: $message, pollingMetadata: $this->pollingMetadata, handlerAnnotations: $this->handlerAnnotations),
             );
         }
     }
 
     public function replay(Message $message): void
     {
-        $this->runner->handleReceived(message: $this->received($message), pollingMetadata: $this->replayPollingMetadata, handlerAnnotations: $this->replayHandlerAnnotations);
-    }
-
-    private function received(Message $message): Message
-    {
-        return $this->messageBuilder->fromMessage($message)->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, $this->channelName)->build();
+        $this->runner->handleReceived(
+            message: $this->messageBuilder->fromMessage($message)->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, $this->channelName)->build(),
+            pollingMetadata: $this->replayPollingMetadata,
+            handlerAnnotations: $this->replayHandlerAnnotations,
+        );
     }
 }

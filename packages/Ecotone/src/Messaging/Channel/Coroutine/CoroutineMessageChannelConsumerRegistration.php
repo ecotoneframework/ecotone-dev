@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Config\Container\PollingMetadataReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncHandlerAnnotationRegistry;
+use Ecotone\Messaging\Endpoint\PollingConsumer\MessagePoller\PollableChannelPollerAdapter;
 use Ecotone\Messaging\Handler\Recoverability\DeadLetterChannels;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -53,7 +54,7 @@ final class CoroutineMessageChannelConsumerRegistration implements CompilerPass
                 $builder->replace($reference, $builder->register(CoroutineMessageChannelConsumer::SERVICE_ID_PREFIX . $channelName, new Definition(CoroutineMessageChannelConsumer::class, [
                     $channelName,
                     $builder->getDefinition($reference),
-                    new ChannelReference($channelName),
+                    new Definition(PollableChannelPollerAdapter::class, [$channelName, new ChannelReference($channelName), new Reference(MessageBuilder::class)]),
                     new Reference(MessageBuilder::class),
                     new Definition(className: PollingMetadata::class, arguments: [$pollingMetadata], factory: [CoroutineMessageChannelConsumer::class, 'goingOnAfterAFailure']),
                     new Reference(AsyncHandlerAnnotationRegistry::class),

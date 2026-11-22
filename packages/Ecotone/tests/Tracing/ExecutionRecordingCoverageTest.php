@@ -117,11 +117,11 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
 
     public function test_a_consumed_message_starts_its_process_at_the_receive_with_what_the_channel_applied(): void
     {
-        $lines = $this->recorded([ExecutionRecordedOrders::class], [new ExecutionRecordedOrders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
+        $lines = $this->recorded([$this->orders()::class], [$this->orders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', 'order-1', metadata: [MessageHeaders::PRIORITY => 5]);
             $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         });
-        $receive = array_search('sub-flow process 2: receive orders, ExecutionRecordedOrders::place', $lines, true);
+        $receive = array_search('sub-flow process 2: receive orders, class@anonymous::place', $lines, true);
 
         self::assertIsInt($receive);
         self::assertSame(['receive orders', '↳ sent by: process 1, the command order.place', 'take from channel orders', '↳ received with: priority 5'], array_slice($lines, $receive + 1, 4));
@@ -129,7 +129,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
 
     public function test_the_receive_and_send_phases_of_channel_interceptors_are_recorded(): void
     {
-        $lines = $this->recorded([ExecutionRecordedOrders::class], [new ExecutionRecordedOrders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
+        $lines = $this->recorded([$this->orders()::class], [$this->orders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', 'order-1');
             $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         });
@@ -141,7 +141,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
 
     public function test_the_acknowledgement_of_a_consumed_message_is_recorded_with_the_strategy_that_decided_it(): void
     {
-        $lines = $this->recorded([ExecutionRecordedOrders::class], [new ExecutionRecordedOrders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
+        $lines = $this->recorded([$this->orders()::class], [$this->orders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', 'order-1');
             $ecotone->sendCommandWithRouting('order.place', 'failing');
             $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withHandledMessageLimit(2));
@@ -303,7 +303,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
 
     public function test_a_consumer_that_stops_on_a_failure_is_recorded_releasing_the_message(): void
     {
-        $lines = $this->recorded([ExecutionRecordedOrders::class], [new ExecutionRecordedOrders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
+        $lines = $this->recorded([$this->orders()::class], [$this->orders()], [SimpleMessageChannelBuilder::createQueueChannel('orders')], function (FlowTestSupport $ecotone): void {
             $ecotone->sendCommandWithRouting('order.place', 'failing');
             try {
                 $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
@@ -386,23 +386,27 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
         }
         self::fail("No scenario named {$scenarioName} in the flow scenario catalogue");
     }
+
+    private function orders(): object
+    {
+        return new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'placeOrder')]
+            public function place(string $order): void
+            {
+                if ($order === 'failing') {
+                    throw new RuntimeException('placing failed');
+                }
+            }
+        };
+    }
+
 }
 
 final class ExecutionRecordedPlaceOrder
 {
 }
 
-final class ExecutionRecordedOrders
-{
-    #[Asynchronous('orders')]
-    #[CommandHandler('order.place', endpointId: 'placeOrder')]
-    public function place(string $order): void
-    {
-        if ($order === 'failing') {
-            throw new RuntimeException('placing failed');
-        }
-    }
-}
 
 #[EventSourcingAggregate]
 final class ExecutionRecordedEventSourcedOrder

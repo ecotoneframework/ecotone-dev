@@ -598,9 +598,29 @@ final class ExecutionRecordingTest extends TracingTestCase
 
     public function test_the_reply_of_an_asynchronous_aggregate_action_is_recorded_as_dropped(): void
     {
+        $order = new #[Aggregate] class () {
+            #[Identifier]
+            public string $orderId = '';
+
+            #[CommandHandler('order.place')]
+            public static function place(string $orderId): self
+            {
+                $order = new self();
+                $order->orderId = $orderId;
+
+                return $order;
+            }
+
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.confirm', endpointId: 'order.confirm.endpoint', identifierMapping: ['orderId' => 'payload'])]
+            public function confirm(): string
+            {
+                return 'confirmed';
+            }
+        };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ExecutionRecordedOrder::class],
+            [$order::class],
             [],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
@@ -611,9 +631,9 @@ final class ExecutionRecordingTest extends TracingTestCase
             ->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $lines = self::trimmed($ecotone->popExecutionRecording()->lines);
 
-        $consumed = array_slice($lines, (int) array_search('sub-flow process 3: receive orders, ExecutionRecordedOrder::confirm', $lines, true));
+        $consumed = array_slice($lines, (int) array_search('sub-flow process 3: receive orders, class@anonymous::confirm', $lines, true));
 
-        self::assertStep($consumed, 'no hand-over', ['outcome: string returned by ExecutionRecordedOrder::confirm, not taken']);
+        self::assertStep($consumed, 'no hand-over', ['outcome: string returned by class@anonymous::confirm, not taken']);
         self::assertNotContains('reply to the reply channel of the request', $consumed);
     }
 
@@ -773,28 +793,5 @@ final class ExecutionRecordingTest extends TracingTestCase
             return $withEveryHint ? $recording->linesWithEveryHint : $recording->lines;
         }
         self::fail("No scenario named {$scenarioName} in the flow scenario catalogue");
-    }
-}
-
-#[Aggregate]
-final class ExecutionRecordedOrder
-{
-    #[Identifier]
-    public string $orderId = '';
-
-    #[CommandHandler('order.place')]
-    public static function place(string $orderId): self
-    {
-        $order = new self();
-        $order->orderId = $orderId;
-
-        return $order;
-    }
-
-    #[Asynchronous('orders')]
-    #[CommandHandler('order.confirm', endpointId: 'order.confirm.endpoint', identifierMapping: ['orderId' => 'payload'])]
-    public function confirm(): string
-    {
-        return 'confirmed';
     }
 }

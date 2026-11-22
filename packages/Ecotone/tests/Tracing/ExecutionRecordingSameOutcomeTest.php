@@ -85,7 +85,26 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
             $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         };
 
-        $this->assertSameOutcomeWithRecordingOnAndOff([ExecutionRecordedBinaryOrder::class], fn (): array => [], $run, fn (): array => [], [SimpleMessageChannelBuilder::createQueueChannel('orders')]);
+        $this->assertSameOutcomeWithRecordingOnAndOff([(new #[Aggregate] class () {
+            #[Identifier]
+            public string $orderId = '';
+
+            #[CommandHandler('order.place')]
+            public static function place(string $orderId): self
+            {
+                $order = new self();
+                $order->orderId = $orderId;
+
+                return $order;
+            }
+
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.confirm', endpointId: 'order.confirm.endpoint', identifierMapping: ['orderId' => 'payload'])]
+            public function confirm(): string
+            {
+                return 'confirmed';
+            }
+        })::class], fn (): array => [], $run, fn (): array => [], [SimpleMessageChannelBuilder::createQueueChannel('orders')]);
     }
 
     public function test_recording_the_execution_keeps_each_traced_span_under_the_traced_span_it_had_without_it_with_the_steps_between_them(): void
@@ -319,28 +338,5 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         }
 
         self::assertSame($outcomes[0], $outcomes[1]);
-    }
-}
-
-#[Aggregate]
-final class ExecutionRecordedBinaryOrder
-{
-    #[Identifier]
-    public string $orderId = '';
-
-    #[CommandHandler('order.place')]
-    public static function place(string $orderId): self
-    {
-        $order = new self();
-        $order->orderId = $orderId;
-
-        return $order;
-    }
-
-    #[Asynchronous('orders')]
-    #[CommandHandler('order.confirm', endpointId: 'order.confirm.endpoint', identifierMapping: ['orderId' => 'payload'])]
-    public function confirm(): string
-    {
-        return 'confirmed';
     }
 }

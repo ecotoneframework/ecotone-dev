@@ -38,11 +38,11 @@ final class CoroutineFlowScenarios
         };
 
         return (new FlowScenario(
-            'asynchronous handler on a coroutine message channel runs in the sending process',
-            [$notifier::class],
-            [$notifier],
-            [CoroutineMessageChannelBuilder::create('notifications')],
-            [
+            name: 'asynchronous handler on a coroutine message channel runs in the sending process',
+            classesToResolve: [$notifier::class],
+            services: [$notifier],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('notifications')],
+            stages: [
                 FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => CoroutineTesting::runAtOnce(fn () => $ecotone->sendCommandWithRouting('order.notify', '1', metadata: $metadata)))
                     ->expect(
                         ExpectedSpan::named('send command')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'order.notify'])->containing(

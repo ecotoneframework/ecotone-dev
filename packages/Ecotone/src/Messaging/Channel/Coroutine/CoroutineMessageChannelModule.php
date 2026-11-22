@@ -82,7 +82,7 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
         $this->refuseUnsupportedDeliveryAttributes($handlers, $interfaceToCallRegistry);
         $this->registerFailureLogging(configuration: $messagingConfiguration, registry: $interfaceToCallRegistry, channelNames: $channelNames, handlers: $handlers);
         $this->registerConsumers($messagingConfiguration, $channelNames);
-        $this->registerReplay($messagingConfiguration, $interfaceToCallRegistry, $channels);
+        $this->registerReplay(configuration: $messagingConfiguration, registry: $interfaceToCallRegistry, channels: $channels);
         $this->waitOnThePinnedTestClock($messagingConfiguration, $extensionObjects);
     }
 

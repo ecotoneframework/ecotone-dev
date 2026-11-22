@@ -12,7 +12,7 @@ You're the guidelines reviewer for a change in the Ecotone framework monorepo (e
 @@
  use Ecotone\Messaging\Channel\DirectChannel;
 +use Ecotone\Messaging\Channel\InProcess\InProcessMessageChannel;
- use Ecotone\Messaging\Config\Container\CompilerPass;
+ use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 @@
  final class HandOverRecordingCompilerPass implements CompilerPass
  {

@@ -409,7 +409,8 @@ the coroutine message channel's branch (pull request 779 at `ffee52a2e`), none o
 - It is a **mode** when the two arms are two ways of doing the work, so that two classes could each hold one arm
   and the container could pick: `extension_loaded('openswoole') ? 'OpenSwoole' : 'Swoole'` asked on every call of
   that branch's `CoroutineMessageChannelSleep`. Nothing about it can change after boot, so the choice is made once,
-  when the container is built.
+  when the container is built. It is the decision rule 2's table makes for a null that meant two different
+  behaviours: two classes, one picked in the container.
 - It is the component's **own setting** when the component is documented to take it and every message meets it
   the same way: a size, a limit, a wait, a name. The component passes it on, compares against it or guards on it,
   and no second class would hold "the other arm": both would be the same class with another number.
@@ -443,9 +444,10 @@ In order of preference, and in all three the other path already exists:
    the stored routing slip) and no receiver is asked whether a message is a replay.
 2. **Compose for that flow only.** An interceptor or a decorator registered for the one flow, by the module that
    owns the flow, so the component it wraps is unchanged for everyone else. The registration is the selection: an
-   interceptor placed on every asynchronous endpoint that returns early unless the message's channel name is one
-   of its own, or one on a shared channel that drops a message when its payload matches (both were on pull request
-   779's branch), has moved the scenario branch into the interceptor. Register it on the channels or endpoints it
+   interceptor placed on every asynchronous endpoint that logs a failure only when the message's polled channel is
+   one of its own, or one on a shared channel that drops a message when its payload matches (both were on pull
+   request 779's branch, in `CoroutineMessageChannelFailureLogger` and
+   `CoroutineMessageChannelConsumerStopInterceptor`), has moved the scenario branch into the interceptor. Register it on the channels or endpoints it
    is for.
 3. **Choose at container build.** Two collaborators, one selected while compiling, by the module of the feature
    that needs the other one: `LicenceDecider::prepareDefinition()` for Enterprise (rule 2's table,

@@ -123,7 +123,7 @@ final class MessageFlowBuildWiringDiscovery
                 'interface' => $gateway->getInterfaceName(),
                 'method' => $gateway->getRelatedMethodName(),
                 'requestChannel' => $this->stable($gateway->getRequestChannelName()),
-                'build' => true,
+                'framework' => true,
                 'registeredBy' => $this->configuration->getRegisteringModule(Configuration::GATEWAY, $gateway->getInterfaceName() . '::' . $gateway->getRelatedMethodName()),
             ]);
         }
@@ -149,7 +149,7 @@ final class MessageFlowBuildWiringDiscovery
                     'class' => $invoked?->getInterfaceName(),
                     'method' => $invoked?->getMethodName(),
                     'inputChannel' => $this->stable($inputChannel),
-                    'build' => true,
+                    'framework' => true,
                     'registeredBy' => $this->configuration->getRegisteringModule(Configuration::HANDLER, (string) $handler->getEndpointId()),
                 ], fn (mixed $value): bool => $value !== null),
             );
@@ -181,7 +181,7 @@ final class MessageFlowBuildWiringDiscovery
             }
         }
         $id = $this->endpointNodeId($endpointId);
-        $this->nodes[$id] = new FlowNode(id: $id, kind: FlowNodeKind::INTERNAL_HANDLER, label: $endpointId, attributes: ['endpointId' => $endpointId, 'consumer' => 'inboundChannelAdapter', 'build' => true, 'registeredBy' => $this->configuration->getRegisteringModule(Configuration::CONSUMER, $endpointId)]);
+        $this->nodes[$id] = new FlowNode(id: $id, kind: FlowNodeKind::INTERNAL_HANDLER, label: $endpointId, attributes: ['endpointId' => $endpointId, 'consumer' => 'inboundChannelAdapter', 'framework' => true, 'registeredBy' => $this->configuration->getRegisteringModule(Configuration::CONSUMER, $endpointId)]);
     }
 
     /**
@@ -208,7 +208,7 @@ final class MessageFlowBuildWiringDiscovery
                         'class' => $class,
                         'method' => $method,
                         'position' => $position,
-                        'build' => true,
+                        'framework' => true,
                         'registeredBy' => $this->configuration->getRegisteringModule(Configuration::INTERCEPTOR, (string) spl_object_id($interceptor)),
                     ]);
                 }
@@ -283,7 +283,7 @@ final class MessageFlowBuildWiringDiscovery
         $id = 'channel:' . $name;
         $this->nodes[$id] ??= $this->declared->hasNode($id)
             ? $this->declared->node($id)
-            : new FlowNode(id: $id, kind: FlowNodeKind::CHANNEL, label: $name, attributes: ['name' => $name, 'pollable' => $this->configuration->isPollableChannel($channelName), 'build' => true, 'registeredBy' => $this->configuration->getRegisteringModule(Configuration::CHANNEL, $channelName)]);
+            : new FlowNode(id: $id, kind: FlowNodeKind::CHANNEL, label: $name, attributes: ['name' => $name, 'pollable' => $this->configuration->isPollableChannel($channelName), 'framework' => true, 'registeredBy' => $this->configuration->getRegisteringModule(Configuration::CHANNEL, $channelName)]);
 
         return $id;
     }
@@ -293,7 +293,7 @@ final class MessageFlowBuildWiringDiscovery
      */
     private function edge(string $from, string $to, FlowEdgeKind $kind, array $attributes): void
     {
-        $edge = new FlowEdge(from: $from, to: $to, kind: $kind, attributes: $attributes + ['build' => true]);
+        $edge = new FlowEdge(from: $from, to: $to, kind: $kind, attributes: $attributes + ['framework' => true]);
         $this->edges[$edge->identity()] ??= $edge;
     }
 

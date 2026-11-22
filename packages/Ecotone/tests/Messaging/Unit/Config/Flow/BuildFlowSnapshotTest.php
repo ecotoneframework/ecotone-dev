@@ -132,7 +132,7 @@ final class BuildFlowSnapshotTest extends TestCase
         $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location]);
         $wiring = MessageFlowGraph::fromArray($this->storedSnapshot('placing-an-order')['wiring']);
 
-        self::assertTrue($wiring->node('channel:placeOrder.target')->attributes['build']);
+        self::assertTrue($wiring->node('channel:placeOrder.target')->attributes['framework']);
         self::assertSame('class@anonymous#1', $wiring->node('handler:placeOrder')->attributes['class']);
         self::assertTrue($wiring->hasNode('handler:whenOrderWasPlaced'));
     }

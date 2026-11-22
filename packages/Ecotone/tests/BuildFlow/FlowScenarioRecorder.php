@@ -53,7 +53,7 @@ final class FlowScenarioRecorder
     {
         $spanRecorder = new InMemorySpanRecorder();
         $ecotone = self::applicationOf(scenario: $scenario, spanRecorder: $spanRecorder, tracing: TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework));
-        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
+        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'framework' => true]);
         $dump = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
         $spanRecorder->clear();
         foreach (array_keys($scenario->stages) as $stageIndex) {
@@ -63,7 +63,7 @@ final class FlowScenarioRecorder
             }
         }
 
-        return FlowSnapshot::of(scenario: $scenario->name, wiring: MessageFlowGraph::fromJson($dump), spans: $spanRecorder->recordedSpans(), build: json_decode($dump, true, flags: JSON_THROW_ON_ERROR)['build']);
+        return FlowSnapshot::of(scenario: $scenario->name, wiring: MessageFlowGraph::fromJson($dump), spans: $spanRecorder->recordedSpans(), build: json_decode($dump, true, flags: JSON_THROW_ON_ERROR)['framework']);
     }
 
     private static function applicationOf(FlowScenario $scenario, InMemorySpanRecorder $spanRecorder, TracingConfiguration $tracing): FlowTestSupport

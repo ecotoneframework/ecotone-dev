@@ -142,8 +142,8 @@ final class MessageFlowBuildTest extends TestCase
     {
         $first = $this->dumpOf($this->orderingApplication());
 
-        self::assertSame(json_decode($this->dumpOf($this->orderingApplication()), true)['build']['ledger'], json_decode($first, true)['build']['ledger']);
-        self::assertDoesNotMatchRegularExpression('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/', json_encode(json_decode($first, true)['build']));
+        self::assertSame(json_decode($this->dumpOf($this->orderingApplication()), true)['framework']['ledger'], json_decode($first, true)['framework']['ledger']);
+        self::assertDoesNotMatchRegularExpression('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/', json_encode(json_decode($first, true)['framework']));
     }
 
     public function test_a_handler_with_a_generated_endpoint_id_is_named_after_what_it_invokes(): void
@@ -166,7 +166,7 @@ final class MessageFlowBuildTest extends TestCase
         $ecotone = $this->orderingApplication();
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json']);
 
-        self::assertArrayNotHasKey('build', json_decode($ecotone->getInMemoryConsoleWriter()->getWrittenContent(), true));
+        self::assertArrayNotHasKey('framework', json_decode($ecotone->getInMemoryConsoleWriter()->getWrittenContent(), true));
     }
 
     public function test_the_chain_of_a_command_handler_starts_at_its_consumer_and_ends_with_where_the_result_goes(): void
@@ -281,7 +281,7 @@ final class MessageFlowBuildTest extends TestCase
 
     public function test_every_handler_of_the_ledger_has_a_chain_and_no_chain_holds_a_generated_id(): void
     {
-        $build = json_decode($this->dumpOf($this->splittingApplication()), true)['build'];
+        $build = json_decode($this->dumpOf($this->splittingApplication()), true)['framework'];
 
         $handlers = array_column(array_filter($build['ledger'], fn (array $entry): bool => $entry['kind'] === 'handler'), 'name');
         sort($handlers);
@@ -289,7 +289,7 @@ final class MessageFlowBuildTest extends TestCase
         sort($withChain);
         self::assertSame($handlers, $withChain);
         self::assertDoesNotMatchRegularExpression('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{64}/', json_encode($build['chains']));
-        self::assertSame($build['chains'], json_decode($this->dumpOf($this->splittingApplication()), true)['build']['chains']);
+        self::assertSame($build['chains'], json_decode($this->dumpOf($this->splittingApplication()), true)['framework']['chains']);
     }
 
     public function test_no_layer_of_these_applications_is_left_unrecognised(): void
@@ -361,7 +361,7 @@ final class MessageFlowBuildTest extends TestCase
 
     private function dumpOf(FlowTestSupport $ecotone): string
     {
-        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
+        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'framework' => true]);
 
         return $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
     }
@@ -372,7 +372,7 @@ final class MessageFlowBuildTest extends TestCase
     private function ledgerOf(FlowTestSupport $ecotone): array
     {
         $ledger = [];
-        foreach (json_decode($this->dumpOf($ecotone), true)['build']['ledger'] as $entry) {
+        foreach (json_decode($this->dumpOf($ecotone), true)['framework']['ledger'] as $entry) {
             $ledger[$entry['kind'] . ':' . $entry['name']] = $entry;
         }
 
@@ -384,7 +384,7 @@ final class MessageFlowBuildTest extends TestCase
      */
     private function chainsOf(FlowTestSupport $ecotone): array
     {
-        return json_decode($this->dumpOf($ecotone), true)['build']['chains'];
+        return json_decode($this->dumpOf($ecotone), true)['framework']['chains'];
     }
 
     private function wiringOf(FlowTestSupport $ecotone): MessageFlowGraph

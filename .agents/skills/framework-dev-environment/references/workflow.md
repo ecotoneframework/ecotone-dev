@@ -258,11 +258,13 @@ handler's process. The text prints flows in run order and each sub-flow as `sub-
 in the order the sender sent them; process numbers stay the run order. `compare` states a new, gone or re-attached
 sub-flow and shows each one right after its sender.
 
-The build wiring (`ecotone:flow:dump --build`, and the wiring and build of a snapshot) is read only at the
+The framework wiring (`ecotone:flow:dump --framework`, and the wiring and build of a snapshot) is read only at the
 framework tracing level, and needs no span recorder. `MessageFlowModule` adds the step that reads it before the
 recording step, so it is the wiring the application declared, never the recording's wrappers. At the application
-level, `--build` and `ecotone:build-flow:record` are refused; `ecotone:flow:dump` without `--build` is the same at
-both levels.
+level, `--framework` and `ecotone:build-flow:record` are refused; `ecotone:flow:dump` without `--framework` is the
+same at both levels. In the dump the part Ecotone registers itself is under the JSON key `framework`, its nodes and
+edges carry the attribute `framework: true`, and Mermaid draws them with `classDef framework`; the repository's own
+build-flow snapshots keep the word `build` for their sections.
 
 A test reads the recording with `$ecotone->popExecutionRecording()` on its `FlowTestSupport`, which returns what ran
 since the last pop. In flow testing the framework level needs one line,

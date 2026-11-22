@@ -79,7 +79,7 @@ final class MessageFlowModule implements AnnotationModule
             $distributedBusParameters,
             new Definition(HandlerSourceScanner::class),
         ]));
-        $dumpCommands = MessageFlowConsoleCommandsWithoutBuild::class;
+        $dumpCommands = MessageFlowConsoleCommandsWithoutFramework::class;
         if ($frameworkLevel) {
             $messagingConfiguration->addCompilerPass(new MessageFlowBuildCompilerPass(configuration: $messagingConfiguration, interfaceToCallRegistry: $interfaceToCallRegistry, declared: $declared->graph));
             $dumpCommands = MessageFlowConsoleCommands::class;
@@ -96,7 +96,7 @@ final class MessageFlowModule implements AnnotationModule
             new InterfaceToCallReference($dumpCommands, 'dump'),
             'ecotone:flow:dump',
             $interfaceToCallRegistry,
-            'Dumps the message flow graph of the application: commands, events, queries, handlers, aggregates, sagas, projections, gateways and channels, with what each handler emits, as Mermaid or JSON; --build adds what Ecotone itself registers for the application: its buses, interceptors, routing, channels and consumers',
+            'Dumps the message flow graph of the application: commands, events, queries, handlers, aggregates, sagas, projections, gateways and channels, with what each handler emits, as Mermaid or JSON; --framework adds what Ecotone itself registers for the application: its buses, interceptors, routing, channels and consumers',
         );
         $messagingConfiguration
             ->registerMessageHandler($messageHandlerBuilder)

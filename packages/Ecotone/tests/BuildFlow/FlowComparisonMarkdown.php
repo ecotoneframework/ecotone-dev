@@ -515,7 +515,7 @@ final class FlowComparisonMarkdown
         $isDrawn = fn (array $changedNodes, array $changedEdges): bool => array_filter($changedNodes, fn (FlowNode $node): bool => isset($drawnNodes[$node->id])) !== []
             || array_filter($changedEdges, fn (FlowEdge $edge): bool => isset($drawnEdges[$edge->identity()])) !== [];
         $hasArrow = fn (FlowEdgeKind $kind): bool => array_filter($edges, fn (FlowEdge $edge): bool => $edge->kind === $kind) !== [];
-        $registeredByEcotone = array_filter($nodes, fn (FlowNode $node): bool => ($node->attributes['build'] ?? false) === true);
+        $registeredByEcotone = array_filter($nodes, fn (FlowNode $node): bool => ($node->attributes['framework'] ?? false) === true);
         $groups = array_filter([
             $marked === null ? '' : implode(', ', array_filter([
                 $isDrawn($marked->wiring->addedNodes, $marked->wiring->addedEdges) ? 'green = added' : null,

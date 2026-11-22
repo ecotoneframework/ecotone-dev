@@ -28,6 +28,6 @@ final class MessageFlowBuildNotRead implements MessageFlowBuildReader
 
     private function refusal(): ConfigurationException
     {
-        return ConfigurationException::create('The build wiring Ecotone registers for this application was asked for, but ' . $this->reason);
+        return ConfigurationException::create('The framework wiring Ecotone registers for this application was asked for, but ' . $this->reason);
     }
 }

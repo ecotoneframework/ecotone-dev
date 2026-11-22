@@ -36,7 +36,7 @@ final class MessageFlowBuildWiringTest extends TestCase
 
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json']);
         $withoutOption = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
-        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => false]);
+        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'framework' => false]);
 
         self::assertSame($ecotone->getMessageFlowGraph()->toJson() . "\n", $withoutOption);
         self::assertSame($withoutOption . $withoutOption, $ecotone->getInMemoryConsoleWriter()->getWrittenContent());
@@ -51,7 +51,7 @@ final class MessageFlowBuildWiringTest extends TestCase
         $ecotone->runConsoleCommand('ecotone:flow:dump');
 
         self::assertSame($ecotone->getMessageFlowGraph()->toMermaid(), $ecotone->getInMemoryConsoleWriter()->getWrittenContent());
-        self::assertStringNotContainsString('classDef build', $ecotone->getInMemoryConsoleWriter()->getWrittenContent());
+        self::assertStringNotContainsString('classDef framework', $ecotone->getInMemoryConsoleWriter()->getWrittenContent());
     }
 
     public function test_build_dump_keeps_every_node_and_arrow_of_the_application_graph(): void
@@ -75,7 +75,7 @@ final class MessageFlowBuildWiringTest extends TestCase
 
         $commandBus = $build->node('gateway:' . CommandBus::class . '::sendWithRouting');
         self::assertSame(FlowNodeKind::GATEWAY, $commandBus->kind);
-        self::assertTrue($commandBus->attributes['build']);
+        self::assertTrue($commandBus->attributes['framework']);
         self::assertSame(
             ['gateway', 'channel', 'internalHandler', 'channel', 'commandHandler'],
             $this->kindsOnShortestPath($build, $commandBus->id, 'handler:placeOrder'),
@@ -115,7 +115,7 @@ final class MessageFlowBuildWiringTest extends TestCase
         self::assertNotEmpty($interceptors);
         foreach ($interceptors as $interceptor) {
             self::assertSame(FlowNodeKind::INTERCEPTOR, $interceptor->kind);
-            self::assertTrue($interceptor->attributes['build']);
+            self::assertTrue($interceptor->attributes['framework']);
             self::assertContains($interceptor->attributes['position'], ['before', 'around', 'after']);
         }
     }
@@ -128,10 +128,10 @@ final class MessageFlowBuildWiringTest extends TestCase
 
         self::assertSame([], array_values(array_map(
             fn (FlowNode $node): string => $node->id,
-            array_filter($build->nodes(), fn (FlowNode $node): bool => (! in_array($node->id, $applicationNodeIds, true)) !== (($node->attributes['build'] ?? false) === true)),
+            array_filter($build->nodes(), fn (FlowNode $node): bool => (! in_array($node->id, $applicationNodeIds, true)) !== (($node->attributes['framework'] ?? false) === true)),
         )));
-        self::assertTrue($build->node('channel:placeOrder.target')->attributes['build']);
-        self::assertArrayNotHasKey('build', $build->node('channel:notifications')->attributes);
+        self::assertTrue($build->node('channel:placeOrder.target')->attributes['framework']);
+        self::assertArrayNotHasKey('framework', $build->node('channel:notifications')->attributes);
     }
 
     public function test_build_dump_keeps_a_channel_the_application_registers_without_connecting_it_in_its_own_graph(): void
@@ -145,7 +145,7 @@ final class MessageFlowBuildWiringTest extends TestCase
         $build = $this->buildGraphOf($ecotone);
 
         self::assertFalse($ecotone->getMessageFlowGraph()->hasNode('channel:unconnected'));
-        self::assertArrayNotHasKey('build', $build->node('channel:unconnected')->attributes);
+        self::assertArrayNotHasKey('framework', $build->node('channel:unconnected')->attributes);
         self::assertCount(1, $build->edgesOfKind(FlowEdgeKind::INPUT, 'channel:unconnected', 'endpoint:unconnected'));
     }
 
@@ -191,13 +191,13 @@ final class MessageFlowBuildWiringTest extends TestCase
     {
         $ecotone = $this->orderingApplication();
 
-        $ecotone->runConsoleCommand('ecotone:flow:dump', ['build' => true]);
+        $ecotone->runConsoleCommand('ecotone:flow:dump', ['framework' => true]);
         $mermaid = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
 
         self::assertStringStartsWith("flowchart LR\n", $mermaid);
         self::assertStringContainsString('CommandBus::send', $mermaid);
-        self::assertStringContainsString('    classDef build stroke-dasharray:2 3,color:#57606a', $mermaid);
-        self::assertMatchesRegularExpression('/^    class n\d+(,n\d+)* build$/m', $mermaid);
+        self::assertStringContainsString('    classDef framework stroke-dasharray:2 3,color:#57606a', $mermaid);
+        self::assertMatchesRegularExpression('/^    class n\d+(,n\d+)* framework$/m', $mermaid);
     }
 
     private function orderingApplication(): FlowTestSupport
@@ -233,7 +233,7 @@ final class MessageFlowBuildWiringTest extends TestCase
     private function buildDumpOf(FlowTestSupport $ecotone): string
     {
         $alreadyWritten = strlen($ecotone->getInMemoryConsoleWriter()->getWrittenContent());
-        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
+        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'framework' => true]);
 
         return substr($ecotone->getInMemoryConsoleWriter()->getWrittenContent(), $alreadyWritten);
     }

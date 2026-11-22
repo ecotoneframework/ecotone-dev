@@ -29,9 +29,9 @@ final class MessageFlowBuildTracingLevelTest extends TestCase
     {
         $ecotone = $this->application(TracingLevel::Application);
 
-        $this->expectExceptionMessage('ecotone:flow:dump --build shows what Ecotone itself registers (buses, interceptors, routing, channels, consumers) and needs the framework tracing level. Return TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework) from a #[ServiceContext] with #[Environment([...])] naming your development and test environments (Symfony dev, test; Laravel local, testing). At that level every step is also exported as a span, many more per message, so keep it out of production. Or run ecotone:flow:dump without --build.');
+        $this->expectExceptionMessage('ecotone:flow:dump --framework shows what Ecotone itself registers (buses, interceptors, routing, channels, consumers) and needs the framework tracing level. Return TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework) from a #[ServiceContext] with #[Environment([...])] naming your development and test environments (Symfony dev, test; Laravel local, testing). At that level every step is also exported as a span, many more per message, so keep it out of production. Or run ecotone:flow:dump without --framework.');
 
-        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
+        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'framework' => true]);
     }
 
     public function test_the_flow_dump_without_its_build_part_is_the_same_at_both_tracing_levels(): void
@@ -52,7 +52,7 @@ final class MessageFlowBuildTracingLevelTest extends TestCase
     {
         $ecotone = $this->application(TracingLevel::Framework);
 
-        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
+        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'framework' => true]);
         $dump = $ecotone->getInMemoryConsoleWriter()->getWrittenContent();
 
         self::assertStringContainsString('around interceptor Ecotone\\\\Tracing\\\\TracingInterceptor::traceHandlerEndpoint', $dump);
@@ -64,7 +64,7 @@ final class MessageFlowBuildTracingLevelTest extends TestCase
     {
         $ecotone = $this->application(TracingLevel::Application);
 
-        $this->expectExceptionMessage('The build wiring Ecotone registers for this application was asked for, but it is read only at the framework tracing level. Switch it on with TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework) returned from a #[ServiceContext].');
+        $this->expectExceptionMessage('The framework wiring Ecotone registers for this application was asked for, but it is read only at the framework tracing level. Switch it on with TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework) returned from a #[ServiceContext].');
 
         $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => sys_get_temp_dir() . '/ecotone-build-flow-refused']);
     }
@@ -101,9 +101,9 @@ final class MessageFlowBuildTracingLevelTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'build' => true]);
+        $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'framework' => true]);
 
-        self::assertStringContainsString('"build": {', $ecotone->getInMemoryConsoleWriter()->getWrittenContent());
+        self::assertStringContainsString('"framework": {', $ecotone->getInMemoryConsoleWriter()->getWrittenContent());
     }
 
     public function test_without_an_enterprise_licence_the_framework_level_records_and_the_flow_dump_is_not_registered(): void
@@ -134,7 +134,7 @@ final class MessageFlowBuildTracingLevelTest extends TestCase
             enabledModules: [],
         );
 
-        $this->expectExceptionMessage('The build wiring Ecotone registers for this application was asked for, but it is read only with an Ecotone Enterprise licence. Provide a licence key; see https://docs.ecotone.tech/enterprise for details.');
+        $this->expectExceptionMessage('The framework wiring Ecotone registers for this application was asked for, but it is read only with an Ecotone Enterprise licence. Provide a licence key; see https://docs.ecotone.tech/enterprise for details.');
 
         $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => sys_get_temp_dir() . '/ecotone-build-flow-unlicensed']);
     }

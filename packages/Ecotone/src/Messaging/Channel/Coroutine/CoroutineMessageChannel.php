@@ -42,6 +42,8 @@ use Swoole\Event;
  */
 final class CoroutineMessageChannel extends QueueChannel implements ConsumedInTheSendingProcess
 {
+    public const SLEEP_SERVICE_ID = 'ecotone.coroutine_message_channel.sleep';
+
     private int $consumers = 0;
 
     public function __construct(private string $name, private ContainerInterface $container, private int $coroutines, private EcotoneClockInterface $clock, private MessageBuilder $messageBuilder, private SleepInterface $sleep)

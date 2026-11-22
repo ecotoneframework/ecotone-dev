@@ -41,8 +41,8 @@ final class CoroutineMessageChannelConsumerRegistration implements CompilerPass
 
     public function process(ContainerBuilder $builder): void
     {
-        if (! $builder->has(CoroutineMessageChannelSleep::SERVICE_ID)) {
-            $builder->register(CoroutineMessageChannelSleep::SERVICE_ID, new Definition(CoroutineMessageChannelSleep::class));
+        if (! $builder->has(CoroutineMessageChannel::SLEEP_SERVICE_ID)) {
+            $builder->register(CoroutineMessageChannel::SLEEP_SERVICE_ID, new Definition(extension_loaded('openswoole') ? CoroutineMessageChannelOpenSwooleSleep::class : CoroutineMessageChannelSwooleSleep::class));
         }
         $builder->register(CoroutineMessageChannelConsumer::REPLAY_HANDLER_ANNOTATIONS, new Definition(className: AsyncHandlerAnnotationRegistry::class, arguments: [new Reference(DeadLetterChannels::class)], factory: [AsyncHandlerAnnotationRegistry::class, 'withoutDelayedRetries']));
         foreach ($this->channelNames as $channelName) {

@@ -89,7 +89,7 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
     private function waitOnThePinnedTestClock(Configuration $configuration, array $extensions): void
     {
         if (ExtensionObjectResolver::resolveUnique(className: TestConfiguration::class, extensionObjects: $extensions, default: TestConfiguration::createWithDefaults())->timeAt !== null) {
-            $configuration->registerServiceDefinition(CoroutineMessageChannelSleep::SERVICE_ID, new Reference(EcotoneClockInterface::class));
+            $configuration->registerServiceDefinition(CoroutineMessageChannel::SLEEP_SERVICE_ID, new Reference(EcotoneClockInterface::class));
         }
     }
 

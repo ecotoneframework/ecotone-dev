@@ -43,6 +43,6 @@ You're the guidelines reviewer for a change in the Ecotone framework monorepo (e
  }
 ```
 
-Both classes already exist on main, are `final`, declare strict types and take their dependencies as required constructor parameters. `$this->consumers` is the feature's `BackgroundConsumers` (`wake()`, `wakeAfter()` and `runNow()`, which runs the channel's consumer in the calling code until the queue is empty) and `$this->eventLoop` its `EventLoop`; both exist on main. A test in the diff (not shown) replays a dead letter message through `EcotoneLite::bootstrapFlowTesting()` and asserts the handler ran.
+Both classes belong to the in-process channel feature this change builds on (take them as given: they are not in the Ecotone tree you may know), are `final`, declare strict types and take their dependencies as required constructor parameters. `$this->consumers` is the feature's `BackgroundConsumers` (`wake()`, `wakeAfter()` and `runNow()`, which runs the channel's consumer in the calling code until the queue is empty) and `$this->eventLoop` its `EventLoop`, given the same way. A test in the diff (not shown) replays a dead letter message through `EcotoneLite::bootstrapFlowTesting()` and asserts the handler ran.
 
 Write your review report.

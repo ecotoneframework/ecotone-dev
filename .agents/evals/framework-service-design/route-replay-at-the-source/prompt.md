@@ -33,7 +33,7 @@ final class InProcessMessageChannel extends QueueChannel
 }
 ```
 
-`BackgroundConsumers::wake()` only works while the event loop runs. Problem: an operator replays a failed message from the dead letter with the `ecotone:deadletter:replay` console command. The dead letter sends the replayed message to the channel it was originally polled from, this one, with the header `ErrorContext::DLQ_MESSAGE_REPLIED` set:
+`InProcessMessageChannel` and `BackgroundConsumers` are ours, written for this feature and not in the tree yet; `BackgroundConsumers::wake()` only works while the event loop runs. Problem: an operator replays a failed message from the dead letter with the `ecotone:deadletter:replay` console command. The dead letter sends the replayed message to the channel it was originally polled from, this one, with the header `ErrorContext::DLQ_MESSAGE_REPLIED` set:
 
 ```php
 // Ecotone\Dbal\Recoverability\DeadLetterHandler::replayMessage(), shortened
@@ -43,7 +43,7 @@ $message = $this->messageBuilder->fromMessage($message)
     ->setHeader(ErrorContext::DLQ_MESSAGE_REPLIED, '1')
     ->setHeader(MessagingEntrypointService::ENTRYPOINT, $entrypoint)
     ->build();
-$messagingEntrypoint->send($message);
+$messagingEntrypoint->sendMessage($message);
 ```
 
 In the console there is no event loop, so the replayed message sits on the queue and the command exits without the handler having run. I want a replayed message to be handled synchronously, before the console command returns.

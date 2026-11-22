@@ -4,8 +4,8 @@ description: >-
   How tests are written in the Ecotone framework repository: test-first with
   EcotoneLite::bootstrapFlowTesting(), userland-only assertions (no SQL on Ecotone tables,
   no reflection, no internal classes), every path a guarantee must hold on, inline anonymous
-  fixtures, snake_case names, pinned time, and channels reached only through handlers. Use
-  when writing, changing or reviewing a test, or fixing a bug or adding a feature that
+  fixtures, snake_case names, pinned time, channels reached only through handlers, and a flow scenario
+  for every new flow. Use when writing, changing or reviewing a test, or fixing a bug or adding a feature that
   needs one, in the ecotone-dev repository.
 ---
 
@@ -19,6 +19,8 @@ fixtures.
 
 - Adding a feature or fixing a bug (the test comes first)
 - Writing, moving or reviewing any test under `packages/*/tests`
+- Adding or changing a message flow, or a feature that takes part in one: an attribute, a channel type, an
+  interceptor point, a module, an endpoint kind, a routing or delivery behaviour
 
 ## Rules
 
@@ -74,10 +76,25 @@ with `$ecotone->now()`, moved with `advanceTimeBy()`; assert exact timestamps, n
 - **Expected:** a time-dependent test pins the clock at bootstrap and asserts exact values.
 - **Verified by:** `eval:write-feature-test`
 
+### T4. A new or changed flow joins the flow scenario catalogue
+When a change adds or changes a message flow, or a feature that takes part in one, and no scenario of the flow
+scenario catalogue (`packages/Ecotone/src/Test/Flow`, the scenarios the build-flow baseline and the tracing
+conformance tests run) exercises it, the change adds one: a scenario method in the matching `*FlowScenarios`
+class, listed in its `all()`, with the spans it must produce. The pull request leaves the baseline alone: the
+comparison shows the scenario as `runs only now`, and main's CI commits its baseline after the merge. A feature
+that cannot run in the catalogue (it needs OpenSwoole, an external broker, a second process) is said so in the pull
+request. [references/flow-scenario-catalogue.md](references/flow-scenario-catalogue.md) shows how to add one.
+- **Expected:** for a change that adds a flow or a flow feature no scenario covers, the plan or the diff adds a
+  scenario method to a `*FlowScenarios` class, lists it in `all()`, states its expected spans, and leaves
+  `packages/Ecotone/tests/BuildFlow/baseline` untouched; or it names why the feature cannot be a scenario.
+- **Verified by:** `eval:new-flow-scenario`, `check:flow-catalogue`
+
 ## References
 
 - [references/rules.md](references/rules.md) — rules 10, 10a, 11 in full, the worked example, what is wrongly
   believed to force a named fixture. Load when writing a test.
 - [references/testing-guidelines.md](references/testing-guidelines.md) — storages, channels, time,
   `StaticMessageBuilder`, flaky tests.
+- [references/flow-scenario-catalogue.md](references/flow-scenario-catalogue.md) — how to add a flow scenario, where
+  it runs, and what the pull request shows. Load when a change adds or changes a message flow.
 - In-memory vs storage parity suites: `framework-storage-and-transactions` rule 9.

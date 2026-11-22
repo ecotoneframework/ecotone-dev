@@ -110,7 +110,7 @@ final class BuildFlowPresentationTest extends TestCase
         self::assertSame(count(array_unique(preg_grep('/^  p\d+ -/', explode("\n", $diagrams[0])))), count(preg_grep('/^  p\d+ -/', explode("\n", $diagrams[0]))));
         self::assertMatchesRegularExpression('/^  classDef new fill:#2ea04333,stroke:#2ea043,stroke-width:2px$/m', $diagrams[0]);
         self::assertMatchesRegularExpression('/^  linkStyle \d+ stroke:#2ea043,stroke-width:2\.5px$/m', $diagrams[0]);
-        self::assertStringContainsString("Before: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### The message's path\n\nGreen is a hand-over that happens only now, red one that happened only before, plain one that happens both before and now, and a dashed arrow is taken from the wiring because no span is recorded.\n\n```mermaid\nflowchart LR\n", $markdown);
+        self::assertStringContainsString("Before: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### The message's path\n\nGreen marks what happens only now and red what happened only before: a green or red arrow is such a hand-over, a green or red box a step only such hand-overs reach; a plain arrow or box is there before and now, and a dashed arrow is taken from the wiring because no span is recorded.\n\n```mermaid\nflowchart LR\n", $markdown);
     }
 
     public function test_message_path_draws_a_gone_hand_over_red_after_the_ones_that_happen_now(): void

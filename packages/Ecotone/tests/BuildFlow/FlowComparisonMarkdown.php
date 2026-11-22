@@ -653,7 +653,7 @@ final class FlowComparisonMarkdown
         $lines[] = '  classDef new fill:#2ea04333,stroke:#2ea043,stroke-width:2px';
         $lines[] = '  classDef gone fill:#f8514933,stroke:#f85149,stroke-width:2px';
 
-        return "#### The message's path\n\nGreen is a hand-over that happens only now, red one that happened only before, plain one that happens both before and now, and a dashed arrow is taken from the wiring because no span is recorded.\n\n```mermaid\n" . implode("\n", [...$lines, ...$styles]) . "\n```\n\n";
+        return "#### The message's path\n\nGreen marks what happens only now and red what happened only before: a green or red arrow is such a hand-over, a green or red box a step only such hand-overs reach; a plain arrow or box is there before and now, and a dashed arrow is taken from the wiring because no span is recorded.\n\n```mermaid\n" . implode("\n", [...$lines, ...$styles]) . "\n```\n\n";
     }
 
     /**

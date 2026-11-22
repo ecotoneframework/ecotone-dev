@@ -155,7 +155,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
             );
             self::assertStringNotContainsString('not on this path', $markdown, $presentation);
             self::assertStringNotContainsString('Build: what', $markdown, $presentation);
-            self::assertStringContainsString($presentation === 'path' ? "\nGreen is a hand-over that happens only now" : "\n_Legend: ", $markdown, $presentation);
+            self::assertStringContainsString($presentation === 'path' ? "\nGreen marks what happens only now" : "\n_Legend: ", $markdown, $presentation);
             self::assertStringNotContainsString('class@anonymous', $markdown, $presentation);
             self::assertStringNotContainsString('Bridge::handle', $markdown, $presentation);
             self::assertStringNotContainsString('ecotone.channel.ecotone:', $markdown, $presentation);
@@ -214,7 +214,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
         self::assertStringNotContainsString('sequenceDiagram', $path);
         self::assertStringNotContainsString('nodes added', $path);
         self::assertStringNotContainsString('- Traced spans:', $path);
-        self::assertStringContainsString("Green is a hand-over that happens only now, red one that happened only before, plain one that happens both before and now, and a dashed arrow is taken from the wiring because no span is recorded.\n", $path);
+        self::assertStringContainsString("Green marks what happens only now and red what happened only before: a green or red arrow is such a hand-over, a green or red box a step only such hand-overs reach; a plain arrow or box is there before and now, and a dashed arrow is taken from the wiring because no span is recorded.\n", $path);
     }
 
     public function test_the_sentence_the_marked_wiring_and_the_traced_steps_name_the_same_sender(): void

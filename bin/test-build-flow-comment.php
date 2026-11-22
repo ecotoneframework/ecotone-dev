@@ -54,7 +54,7 @@ $cases = [
             [mb_strlen($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . mb_strlen($comment['body'])],
             [$keptNumbers === range(1, count($keptNumbers)) && $keptNumbers !== [], 'whole scenarios kept from the top'],
             [substr_count($comment['body'], str_repeat('x', 40_000)) === count($keptNumbers), 'no scenario cut in the middle'],
-            [$leftOut === 1 && str_contains($comment['body'], '1 of 2 changed scenarios is left out'), 'says how many were left out'],
+            [$leftOut === 1 && str_contains($comment['body'], '1 scenario is not shown here (1 changed).') && str_contains($comment['body'], "of those, 1 is left out to stay within GitHub's 65,536 character limit for a comment"), 'says how many were left out: ' . substr($comment['body'], -700)],
             [str_contains($comment['body'], RUN_URL) && str_contains($comment['body'], 'build-flow-comparison'), 'points to the artifact of the run'],
         ]);
     },
@@ -83,7 +83,7 @@ $cases = [
             [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . utf16Length($comment['body'])],
             [count($shown[1]) > 0 && substr_count($comment['body'], str_repeat('p', 8_000)) === 5 * count($shown[1]), 'every shown scenario keeps all its processes'],
             [! str_contains($comment['body'], 'The rest of') && ! str_contains($comment['body'], "in the run's artifact"), 'no shown scenario is cut or emptied'],
-            [str_contains($comment['body'], (2 - count($shown[1])) . ' of 2 changed scenarios is left out'), 'says how many scenarios were left out'],
+            [count($shown[1]) === 1 && str_contains($comment['body'], "of those, 1 is left out to stay within GitHub's 65,536 character limit for a comment"), 'says how many scenarios were left out'],
             [structureProblemOf($comment['body']) === null, 'balanced, with blank lines around blocks: ' . structureProblemOf($comment['body'])],
         ]);
     },
@@ -93,7 +93,7 @@ $cases = [
         $comment = read(run($comparison)['output']);
 
         return expectAll([
-            [str_contains($comment['body'], '1 of 2 changed scenarios is left out'), 'singular: ' . substr($comment['body'], -400)],
+            [str_contains($comment['body'], '1 scenario is not shown here (1 changed).'), 'singular: ' . substr($comment['body'], -400)],
             [str_contains($comment['body'], "- `first`: 1 of 1 process changed\n- `second`: 1 of 1 process changed · left out of this comment\n"), 'the left-out scenario is marked in the list'],
         ]);
     },
@@ -167,22 +167,23 @@ $cases = [
         return expectAll([
             [shownNames($comment['body']) === ['beta', 'gamma'], 'shown in comparison order: ' . implode(', ', shownNames($comment['body']))],
             [str_contains($comment['body'], "- `alpha`: 1 of 2 processes changed · not shown here\n"), 'alpha marked in the list: ' . substr($comment['body'], 0, 900)],
-            [str_contains($comment['body'], '1 changed scenario is not shown here'), 'singular sentence'],
+            [str_contains($comment['body'], '1 scenario is not shown here (1 changed).'), 'singular sentence: ' . substr($comment['body'], -700)],
             [str_contains($comment['body'], 'php bin/build-flow.php compare --presentation=build') && str_contains($comment['body'], RUN_URL), 'names the artifact and the local command'],
         ]);
     },
-    'thirty changed scenarios and two new ones show the two most changed and the first new one, and say the rest are not shown in the plural' => function (): ?string {
+    'thirty changed scenarios, two new ones and a gone one show the two most changed and both new ones, and count the rest by kind' => function (): ?string {
         $scenarios = [];
         for ($index = 1; $index <= 30; $index++) {
             $scenarios[] = changedScenario(sprintf('changed %02d', $index), $index === 7 ? 9 : ($index === 21 ? 9 : 1));
         }
         $scenarios[] = newScenario('new first');
         $scenarios[] = newScenario('new second');
+        $scenarios[] = goneScenario('retired');
         $comment = read(run(selectionComparison($scenarios))['output']);
 
         return expectAll([
-            [shownNames($comment['body']) === ['changed 07', 'changed 21', 'new first'], 'shown: ' . implode(', ', shownNames($comment['body']))],
-            [str_contains($comment['body'], '29 changed scenarios are not shown here'), 'plural sentence: ' . substr($comment['body'], -700)],
+            [shownNames($comment['body']) === ['changed 07', 'changed 21', 'new first', 'new second'], 'shown: ' . implode(', ', shownNames($comment['body']))],
+            [str_contains($comment['body'], '29 scenarios are not shown here (28 changed, 1 gone).'), 'plural sentence by kind: ' . substr($comment['body'], -700)],
             [substr_count($comment['body'], ' · not shown here') === 29, 'each not shown one is marked in the list'],
         ]);
     },
@@ -206,7 +207,7 @@ $cases = [
         return expectAll([
             [shownNames($comment['body']) === ['alpha'], 'shown: ' . implode(', ', shownNames($comment['body']))],
             [str_contains($comment['body'], "- `retired`: 1 of 1 process changed · not shown here\n"), 'the gone one is marked'],
-            [str_contains($comment['body'], '1 changed scenario is not shown here'), 'singular sentence'],
+            [str_contains($comment['body'], '1 scenario is not shown here (1 gone).'), 'singular sentence by kind: ' . substr($comment['body'], -700)],
         ]);
     },
     'a group of scenarios with the same change that is not shown counts each of its scenarios' => function (): ?string {
@@ -220,16 +221,36 @@ $cases = [
         $comment = read(run($comparison)['output']);
 
         return expectAll([
-            [str_contains($comment['body'], '4 changed scenarios are not shown here'), 'counts every scenario of both groups: ' . substr($comment['body'], -500)],
+            [str_contains($comment['body'], '4 scenarios are not shown here (4 changed).'), 'counts every scenario of both groups: ' . substr($comment['body'], -500)],
             [substr_count($comment['body'], ' · not shown here') === 4, 'marks them, and not a scenario a group only names'],
         ]);
     },
-    'only new scenarios show the first one' => function (): ?string {
+    'two new scenarios are both shown' => function (): ?string {
         $comment = read(run(selectionComparison([newScenario('new first'), newScenario('new second')]))['output']);
 
         return expectAll([
-            [shownNames($comment['body']) === ['new first'], 'shown: ' . implode(', ', shownNames($comment['body']))],
-            [str_contains($comment['body'], '1 changed scenario is not shown here'), 'singular sentence'],
+            [shownNames($comment['body']) === ['new first', 'new second'], 'shown: ' . implode(', ', shownNames($comment['body']))],
+            [! str_contains($comment['body'], 'not shown'), 'nothing is said not shown'],
+        ]);
+    },
+    'three changed and two new scenarios show the two most changed, then both new ones in the order of their names' => function (): ?string {
+        $comment = read(run(selectionComparison([newScenario('a new'), changedScenario('alpha', 1), changedScenario('beta', 3), newScenario('b new'), changedScenario('gamma', 2)]))['output']);
+
+        return expectAll([
+            [shownNames($comment['body']) === ['beta', 'gamma', 'a new', 'b new'], 'shown: ' . implode(', ', shownNames($comment['body']))],
+            [str_contains($comment['body'], '1 scenario is not shown here (1 changed).'), 'only the third changed one is not shown: ' . substr($comment['body'], -700)],
+        ]);
+    },
+    'a new scenario the size limit cuts is named in the not shown note' => function (): ?string {
+        $big = fn (string $name): array => ['name' => $name, 'kind' => 'new', 'text' => str_replace("\n</details>\n", "\n" . str_repeat('n', 40_000) . "\n</details>\n", newScenario($name)['text'])];
+        $comment = read(run(selectionComparison([changedScenario('alpha', 1), $big('new one'), $big('new two')]))['output']);
+
+        return expectAll([
+            [shownNames($comment['body']) === ['alpha', 'new one'], 'shown: ' . implode(', ', shownNames($comment['body']))],
+            [str_contains($comment['body'], '1 scenario is not shown here (1 new).'), 'counts the cut one by kind: ' . substr($comment['body'], -800)],
+            [str_contains($comment['body'], "of those, 1 is left out to stay within GitHub's 65,536 character limit for a comment, among them the new `new two`."), 'names the cut new one'],
+            [str_contains($comment['body'], "- `new two`: 1 of 1 process changed · left out of this comment\n"), 'marks it in the list'],
+            [utf16Length($comment['body']) <= 65_536, 'within the limit'],
         ]);
     },
     'the build tree opens the comment and is not taken for a scenario' => function (): ?string {
@@ -309,7 +330,7 @@ $cases = [
 
         return expectAll([
             [substr_count($comment['body'], '<details>') === substr_count($comment['body'], '</details>'), 'every <details> is closed: ' . substr_count($comment['body'], '<details>') . ' open, ' . substr_count($comment['body'], '</details>') . ' closed'],
-            [str_contains($comment['body'], 'changed scenarios are left out') || str_contains($comment['body'], 'is left out to stay within'), 'the left-out note is there'],
+            [str_contains($comment['body'], 'is left out to stay within'), 'the left-out note is there'],
             [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters'],
         ]);
     },

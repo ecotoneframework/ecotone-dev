@@ -2610,13 +2610,20 @@ use Ecotone\Api\Scheduling\Duration;
 | `$timeSpan->toMilliseconds()` | `$duration->inMilliseconds()` |
 | `$timeSpan->toDuration()` | the value itself |
 | `$timeSpan->seconds`, `->minutes`, `->hours`, `->days`, `->milliseconds` | removed: a `Duration` is one length, read with `inMicroseconds()`, `inMilliseconds()` or `inSeconds()` |
-| `TimeSpan::fromDateInterval($interval)` — months and years were dropped without a word | `Duration::fromDateInterval($interval)` — an interval holding months or years is refused, because their length depends on the calendar |
+| `TimeSpan::fromDateInterval($interval)` — months and years were dropped without a word, and so was the direction of an interval pointing into the past (`$later->diff($earlier)`) | `Duration::fromDateInterval($interval)` — an interval holding months or years is refused, because their length depends on the calendar; an interval pointing into the past gives a negative `Duration` |
 | `new Duration($microseconds)` | `Duration::microseconds($microseconds)` or `new Duration(microseconds: $microseconds)` |
 
-**How to adapt:** apply the table. Every row but the last fails loudly when left as it was — a missing class, or
-`Call to undefined method`. The last one does not: `Duration`'s first constructor parameter was microseconds and is
-now milliseconds, so a positional `new Duration(1000)` that meant one millisecond now means one second. Search for
-`new Duration(` and name the unit. The static factories (`Duration::seconds(5)` and the others) are unchanged.
+**How to adapt:** apply the table. A left-over `TimeSpan` import, constructor, factory, `toMilliseconds()` or
+`toDuration()` fails loudly — a missing class, or `Call to undefined method`. Three rows do not, so search for them:
+
+- **`new Duration(`** — the first constructor parameter was microseconds and is now milliseconds, so a positional
+  `new Duration(1000)` that meant one millisecond now means one second. Name the unit. The static factories
+  (`Duration::seconds(5)` and the others) are unchanged.
+- **`fromDateInterval(`** — an interval pointing into the past was read as a positive length and is now negative,
+  and a negative delivery delay is no delay: the message is delivered at once. Diff in the other order
+  (`$now->diff($deliverAt)`), or call `->absolute()` on the result.
+- **`->seconds`, `->minutes`, `->hours`, `->days`, `->milliseconds`** read from the value — PHP only warns about an
+  undefined property and carries on with `null`.
 
 ## 14. Smaller behaviour changes
 

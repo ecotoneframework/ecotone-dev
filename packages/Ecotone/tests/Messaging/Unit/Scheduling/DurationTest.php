@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Scheduling;
 
 use DateInterval;
+use DateTimeImmutable;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -45,9 +45,25 @@ final class DurationTest extends TestCase
         $this->assertSame(93_784, $duration->inSeconds());
     }
 
+    public function test_fraction_of_a_second_of_a_date_interval_is_kept(): void
+    {
+        $interval = (new DateTimeImmutable('2026-03-01 12:00:00.000000'))->diff(new DateTimeImmutable('2026-03-01 12:00:01.250000'));
+
+        $this->assertSame(1_250_000, Duration::fromDateInterval($interval)->inMicroseconds());
+    }
+
+    public function test_date_interval_pointing_into_the_past_gives_a_negative_duration(): void
+    {
+        $interval = (new DateTimeImmutable('2026-03-01 13:00:00'))->diff(new DateTimeImmutable('2026-03-01 12:00:00'));
+
+        $duration = Duration::fromDateInterval($interval);
+
+        $this->assertSame(-3600, $duration->inSeconds());
+        $this->assertSame(3600, $duration->absolute()->inSeconds());
+    }
+
     public function test_date_interval_with_months_or_years_is_refused(): void
     {
-        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Duration can not be created from a DateInterval of 0 years and 1 months, as their length depends on the calendar. Pass a DateInterval made of days, hours, minutes and seconds, or build the Duration from those units: new Duration(days: 30).');
 
         Duration::fromDateInterval(new DateInterval('P1M'));

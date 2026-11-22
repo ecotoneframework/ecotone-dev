@@ -112,7 +112,7 @@ class NotificationService
     public function send(OrderWasPlaced $event): void { }
 
     // TTL with Duration
-    #[TimeToLive(time: Duration::minutes(5))]
+    #[TimeToLive(new Duration(minutes: 5))]
     #[Asynchronous('notifications')]
     #[EventHandler(endpointId: 'sendUrgentNotification')]
     public function sendUrgent(UrgentEvent $event): void { }

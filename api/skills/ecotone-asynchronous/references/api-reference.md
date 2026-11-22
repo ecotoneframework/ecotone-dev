@@ -55,7 +55,7 @@ use Ecotone\Api\Scheduling\Duration;
 #[TimeToLive(60000)]
 
 // Duration object
-#[TimeToLive(time: Duration::minutes(5))]
+#[TimeToLive(new Duration(minutes: 5))]
 
 // Expression-based
 #[TimeToLive(expression: "reference('config').getTtl()")]

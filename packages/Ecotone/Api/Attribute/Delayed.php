@@ -30,7 +30,7 @@ class Delayed extends AddHeader
         int $hours = 0,
         int $days = 0,
     ) {
-        $namedDuration = new Duration($milliseconds, $seconds, $minutes, $hours, $days);
+        $namedDuration = new Duration(milliseconds: $milliseconds, seconds: $seconds, minutes: $minutes, hours: $hours, days: $days);
         if ($namedDuration->isPositive()) {
             Assert::isTrue($time === null && $expression === null, '#[Delayed] takes either $time or named durations (milliseconds, seconds, minutes, hours, days), not both.');
             $time = $namedDuration;

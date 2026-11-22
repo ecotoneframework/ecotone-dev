@@ -118,7 +118,7 @@ completed without returning a result.
 
 ## Timeout and retention
 
-`#[Gathered(timeout: new TimeSpan(minutes: 30))]` schedules a delayed trigger at the split on the gathered
+`#[Gathered(timeout: new Duration(minutes: 30))]` schedules a delayed trigger at the split on the gathered
 handler's own asynchronous channel. Consuming that trigger closes the group and invokes the ordinary handler in
 that consumption's transaction. The payload includes only accounted results, the missing part numbers, the
 original split payload and `GatheredReleaseReason::TIMEOUT`. The deadline is stored when the group opens;
@@ -134,7 +134,7 @@ Closed groups are retained for seven days from release or discard by default. Th
 [`DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS`](../../../packages/Dbal/src/Deduplication/DeduplicationModule.php)
 and its default use in
 [`DbalConfiguration`](../../../packages/Dbal/Api/ExtensionObject/DbalConfiguration.php).
-An application may return `GatheringConfiguration::createWithDefaults()->withRetention(new TimeSpan(days: 14))`
+An application may return `GatheringConfiguration::createWithDefaults()->withRetention(new Duration(days: 14))`
 from a `#[ServiceContext]` method. `GatheredGroups::cleanupClosedGroups()` and `ecotone:gathering:cleanup` remove
 expired closed groups together with their parts; cleanup never removes an open group. A part referencing a
 removed group is refused with a message naming that retention setting and the cleanup command.
@@ -224,7 +224,7 @@ The explicit-id guard and runtime router guard are implemented. The public `#[Ro
 ## Delayed-channel capability
 
 The optional public `DelayedMessageChannelBuilder` interface lives in `Api/ExtensionObject`. It declares
-`supportsDelayedMessages(): bool` and `maximumDelay(): ?TimeSpan`; `null` means no fixed broker maximum within
+`supportsDelayedMessages(): bool` and `maximumDelay(): ?Duration`; `null` means no fixed broker maximum within
 the framework's representable duration range. The timeout guard runs at bootstrap. A builder without this
 interface, a channel declaring no support, or a timeout above a declared maximum is refused with the ways out.
 No timeout means no new capability requirement for the channel.

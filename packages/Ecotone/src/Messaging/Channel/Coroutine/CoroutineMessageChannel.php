@@ -15,8 +15,6 @@ use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Channel\ConsumedInTheSendingProcess;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
-use Ecotone\Messaging\Endpoint\PollingConsumer\ConsumerCoroutines;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Psr\Container\ContainerInterface;
 use Swoole\Coroutine;
@@ -80,15 +78,9 @@ final class CoroutineMessageChannel extends QueueChannel implements ConsumedInTh
         $this->consumers++;
         $this->schedule(function (): void {
             try {
-                $runner = $this->consumer();
+                $consumer = $this->consumer();
                 do {
-                    ConsumerCoroutines::consume(
-                        endpointId: $this->name,
-                        coroutines: 1,
-                        drainsAQueue: true,
-                        streamsConsumed: [],
-                        createConsumer: static fn (): ConsumerLifecycle => $runner->createConsumer(),
-                    );
+                    $consumer->consumeWaiting();
                 } while ($this->hasWaitingMessage());
             } finally {
                 $this->consumers--;

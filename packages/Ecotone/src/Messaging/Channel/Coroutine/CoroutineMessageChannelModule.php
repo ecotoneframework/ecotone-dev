@@ -16,14 +16,12 @@ use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\Priority;
 use Ecotone\Api\Attribute\TimeToLive;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\Precedence;
-use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeInterceptorBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -207,7 +205,7 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
 
     private function registerFailureLogging(Configuration $configuration, InterfaceToCallRegistry $registry, array $channelNames, array $handlers): void
     {
-        $configuration->registerServiceDefinition(CoroutineMessageChannelFailureLogger::class, new Definition(CoroutineMessageChannelFailureLogger::class, [$channelNames, new Reference(LoggingGateway::class)]));
+        $configuration->registerServiceDefinition(CoroutineMessageChannelFailureLogger::class, new Definition(CoroutineMessageChannelFailureLogger::class, [new Reference(LoggingGateway::class)]));
         if ($handlers !== []) {
             $pointcuts = array_map(static fn (array $entry) => $entry[0]->getClassName() . '::' . $entry[0]->getMethodName(), $handlers);
             $configuration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
@@ -217,12 +215,6 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
                 pointcut: implode('||', array_unique($pointcuts)),
             ));
         }
-        $configuration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
-            referenceName: CoroutineMessageChannelFailureLogger::class,
-            interfaceToCall: $registry->getFor(CoroutineMessageChannelFailureLogger::class, 'log'),
-            precedence: Precedence::EXCEPTION_LOGGING_PRECEDENCE,
-            pointcut: AsynchronousRunningEndpoint::class,
-        ));
     }
 
     /**
@@ -241,14 +233,8 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
     private function registerConsumers(Configuration $configuration, array $channelNames): void
     {
         $configuration->addCompilerPass(new CoroutineMessageChannelConsumerRegistration($channelNames));
-        $configuration->registerChannelInterceptor(new CoroutineMessageChannelConsumerStopInterceptorBuilder($channelNames));
         foreach ($channelNames as $channelName) {
             $configuration->registerChannelInterceptor(new CoroutineMessageChannelHoldingInterceptorBuilder($channelName));
-            $configuration->registerChannelInterceptor(new InMemoryQueueAcknowledgeInterceptorBuilder(
-                relatedChannel: $channelName,
-                finalFailureStrategy: FinalFailureStrategy::IGNORE,
-                isAutoAcked: true,
-            ));
         }
     }
 

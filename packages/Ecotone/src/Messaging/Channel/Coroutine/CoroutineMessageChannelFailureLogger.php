@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\Coroutine;
 
+use Closure;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
-use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Attribute\EndpointId;
 use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
@@ -32,7 +32,7 @@ use Throwable;
  */
 final class CoroutineMessageChannelFailureLogger
 {
-    public function __construct(private array $channelNames, private LoggingGateway $logger)
+    public function __construct(private LoggingGateway $logger)
     {
     }
 
@@ -46,19 +46,15 @@ final class CoroutineMessageChannelFailureLogger
         }
     }
 
-    public function log(MethodInvocation $invocation, Message $message): mixed
+    public function loggingADroppedMessage(string $channelName, Message $message, Closure $handle): void
     {
         $failure = $this->failure();
         $failure->endpointId = '';
         try {
-            return $invocation->proceed();
+            $handle();
         } catch (Throwable $exception) {
-            $channelName = $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) ? $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME) : '';
-            if (in_array(needle: $channelName, haystack: $this->channelNames, strict: true)) {
-                $endpointId = $failure->endpointId !== '' ? $failure->endpointId : $channelName;
-                $this->logger->error("Coroutine message channel `{$channelName}` dropped a message after endpoint `{$endpointId}` failed. Configure #[Asynchronous('{$channelName}', asynchronousExecution: [new ErrorChannel('failures')])] or PollingMetadata::create('{$channelName}')->withErrorChannelName('failures') to route failed messages to an error channel; connect that error channel to a durable queue or dead letter to keep them.", ['headers' => $message->getHeaders()->headers(), 'exception' => $exception, 'channel' => $channelName, 'endpoint_id' => $endpointId]);
-            }
-            throw $exception;
+            $endpointId = $failure->endpointId !== '' ? $failure->endpointId : $channelName;
+            $this->logger->error("Coroutine message channel `{$channelName}` dropped a message after endpoint `{$endpointId}` failed. Configure #[Asynchronous('{$channelName}', asynchronousExecution: [new ErrorChannel('failures')])] or PollingMetadata::create('{$channelName}')->withErrorChannelName('failures') to route failed messages to an error channel; connect that error channel to a durable queue or dead letter to keep them.", ['headers' => $message->getHeaders()->headers(), 'exception' => $exception, 'channel' => $channelName, 'endpoint_id' => $endpointId]);
         } finally {
             $failure->endpointId = '';
         }

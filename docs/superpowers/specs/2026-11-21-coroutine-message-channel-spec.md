@@ -60,6 +60,15 @@ the limit taken and stayed on the queue. No guarantee is claimed here, because n
 evidence is the test in commit 69baba3a5, which reached the window through a yielding `#[OnConsumerStop]` handler,
 and those handlers are no longer called for the channel (432edbfbd), so the userland surface cannot open it any more.
 
+The channel's consumer is `CoroutineMessageChannelConsumer`: it receives each waiting message from the channel and
+hands it to `InterceptedConsumerRunner::handleReceived()`, the endpoint's own pipeline for one message, the same call
+a replay makes. It does not run a polling consumer loop, so there is no consumer to stop: no `#[OnConsumerStop]`
+event is published for the channel, no signal interceptor is created, and the message carries no acknowledgement
+callback. A failure the endpoint's error handling did not take comes back to the consumer, which logs the dropped
+message with its channel, endpoint, headers and exception (`CoroutineMessageChannelFailureLogger`) and goes on. That
+log is written by the channel's own consumer only; the framework's log of the exception for every asynchronous
+endpoint (`LoggingInterceptor`) is separate and unchanged.
+
 A dead-letter replay is routed where it starts and never reaches the channel. A channel builder that implements
 `DeclaresReplayChannel` names the channel its messages are replayed to; `ReplayChannels`, built once with the
 container from the registered builders, answers for every channel, and for one that declares nothing the answer is

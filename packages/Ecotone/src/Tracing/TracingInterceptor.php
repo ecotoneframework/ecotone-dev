@@ -129,25 +129,27 @@ final class TracingInterceptor
 
     public function provideContextForDistributedBus(Message $message): Message
     {
+        $applicationSpan = $this->tracer->currentApplicationSpan();
         $currentSpan = $this->tracer->currentSpan();
-        if ($currentSpan === null) {
+        if ($applicationSpan === null || $currentSpan === null) {
             return $message;
         }
 
         return $this->messageBuilder->fromMessage($message)
-            ->setMultipleHeaders(self::carrierOf($currentSpan))
+            ->setMultipleHeaders(self::carrierOf(span: $currentSpan, trackedBy: $applicationSpan))
             ->build();
     }
 
     /**
      * @return array<string, string>
      */
-    public static function carrierOf(ActiveSpan $span): array
+    public static function carrierOf(ActiveSpan $span, ?ActiveSpan $trackedBy = null): array
     {
         $carrier = [MessageHeaders::TRACEPARENT => $span->context()->toTraceparent()];
+        $tracking = ($trackedBy ?? $span)->attributes();
         $traceState = match (true) {
-            (bool) ($span->attributes()[SpanAttribute::TRACE_UNTRACKED] ?? false) => TraceState::withUntracked($span->context()->traceState),
-            (bool) ($span->attributes()[SpanAttribute::TRACE_CARRIED] ?? false) => TraceState::withCarried($span->context()->traceState),
+            (bool) ($tracking[SpanAttribute::TRACE_UNTRACKED] ?? false) => TraceState::withUntracked($span->context()->traceState),
+            (bool) ($tracking[SpanAttribute::TRACE_CARRIED] ?? false) => TraceState::withCarried($span->context()->traceState),
             default => $span->context()->traceState,
         };
         if ($traceState !== '') {
@@ -162,7 +164,7 @@ final class TracingInterceptor
      */
     public static function trackingAttributesOf(Tracer $tracer, Message $message, bool $startsTheTraceHere): array
     {
-        $current = $tracer->currentSpan();
+        $current = $tracer->currentApplicationSpan();
         if ($current === null) {
             return self::trackingAttributesCarriedBy($message, $startsTheTraceHere);
         }
@@ -235,11 +237,11 @@ final class TracingInterceptor
         try {
             $result = $this->trace($name, $methodInvocation, $message, SpanKind::Server, $attributes);
         } catch (Throwable $failure) {
-            $this->tracer->currentSpan()?->markUnitOfWorkFailed();
+            $this->tracer->currentApplicationSpan()?->markUnitOfWorkFailed();
 
             throw $failure;
         }
-        $this->tracer->currentSpan()?->markUnitOfWorkRecovered();
+        $this->tracer->currentApplicationSpan()?->markUnitOfWorkRecovered();
 
         return $result;
     }
@@ -273,7 +275,7 @@ final class TracingInterceptor
      */
     private function traceEntry(string $name, MethodInvocation $methodInvocation, Message $message, SpanKind $kind, array $attributes): mixed
     {
-        $currentSpan = $this->tracer->currentSpan();
+        $currentSpan = $this->tracer->currentApplicationSpan();
         $headers = $message->getHeaders();
         if ($currentSpan !== null && $headers->containsKey(MessageHeaders::TRACING_ID) && TracingId::normalizedOrNull((string) $headers->get(MessageHeaders::TRACING_ID)) !== $currentSpan->context()->traceId) {
             $flow = $currentSpan->context()->traceId;
@@ -289,7 +291,7 @@ final class TracingInterceptor
      */
     private function trace(string $name, MethodInvocation $methodInvocation, Message $message, SpanKind $kind, array $attributes): mixed
     {
-        $isLocalRoot = $this->tracer->currentSpan() === null;
+        $isLocalRoot = $this->tracer->currentApplicationSpan() === null;
         $remoteParent = ! $isLocalRoot ? null : ($kind === SpanKind::Consumer ? self::remoteParentOf($message) : self::entryParentOf($message));
         if ($isLocalRoot && ($kind !== SpanKind::Consumer || $remoteParent === null)) {
             $attributes[SpanAttribute::TRACE_ROOT] = true;

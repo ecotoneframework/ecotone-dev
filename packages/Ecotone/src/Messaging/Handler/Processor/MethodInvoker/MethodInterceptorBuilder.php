@@ -85,6 +85,11 @@ class MethodInterceptorBuilder implements InterceptorWithPointCut
             ->compile($builder);
     }
 
+    public function getInterceptingInterfaceReference(): InterfaceToCallReference
+    {
+        return $this->interceptorInterfaceReference;
+    }
+
     public function getPrecedence(): int
     {
         return $this->precedence;

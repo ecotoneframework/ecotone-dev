@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing;
 
+use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanKind;
 
@@ -22,5 +23,12 @@ interface Tracer
      */
     public function startRootSpan(string $name, SpanKind $kind, array $attributes = []): ActiveSpan;
 
+    /**
+     * @param array<string, scalar> $attributes
+     */
+    public function startDetachedSpan(string $name, SpanKind $kind, array $attributes, ?SpanContext $parent, DatePoint $startedAt): ActiveSpan;
+
     public function currentSpan(): ?ActiveSpan;
+
+    public function currentApplicationSpan(): ?ActiveSpan;
 }

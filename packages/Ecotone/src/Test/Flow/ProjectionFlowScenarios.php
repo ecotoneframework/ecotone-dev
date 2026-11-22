@@ -7,12 +7,14 @@ namespace Ecotone\Test\Flow;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\FromTaggedStream;
 use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionBackfill;
@@ -20,6 +22,7 @@ use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Projecting\ProjectionOperationEndpoint;
+use Ecotone\Test\Flow\Fixture\FlowCourseDefined;
 
 /**
  * licence Apache-2.0
@@ -42,6 +45,7 @@ final class ProjectionFlowScenarios
             self::projectionOperation('projection rebuilt from the console', ProjectionOperationEndpoint::REBUILD, fn (FlowTestSupport $ecotone) => $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'orders'])),
             self::projectionBackfilledAsynchronously(),
             self::projectionRebuiltAsynchronously(),
+            self::tagPartitionedProjectionBackfilledAsynchronouslyInTwoBatches(),
             self::projectionInitializedAndDeleted(),
         ];
     }
@@ -93,6 +97,51 @@ final class ProjectionFlowScenarios
         return self::projectionReplayedAsynchronously('projection rebuilt asynchronously', ProjectionOperationEndpoint::REBUILD, $projection);
     }
 
+    private static function tagPartitionedProjectionBackfilledAsynchronouslyInTwoBatches(): FlowScenario
+    {
+        $projection = new #[Projection('course_seats'), FromTaggedStream('course'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 1, asyncChannelName: 'backfill')] class () {
+            #[EventHandler(endpointId: 'course_seats.defined')]
+            public function whenDefined(FlowCourseDefined $event): void
+            {
+            }
+        };
+        $batchHandledAndReported = fn (): array => [
+            ExpectedSpan::named('process partition batch course_seats')->ofKind(SpanKind::Internal)->withAttributes([SpanAttribute::PROJECTION_NAME => 'course_seats'])->containing(
+                ExpectedSpan::named('process class@anonymous::whenDefined'),
+            ),
+            ExpectedSpan::named('send backfill')->ofKind(SpanKind::Producer)->containing(
+                ExpectedSpan::named('receive backfill')->ofKind(SpanKind::Consumer),
+            ),
+        ];
+
+        return new FlowScenario(
+            name: 'tag-partitioned projection backfilled asynchronously in two batches',
+            classesToResolve: [$projection::class, FlowCourseDefined::class],
+            services: [$projection],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('backfill'), DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
+            stages: [
+                FlowStage::when(function (FlowTestSupport $ecotone): void {
+                    $ecotone->withEvents([new FlowCourseDefined('course-1', 5), new FlowCourseDefined('course-2', 5)]);
+                    $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'course_seats']);
+                })->leavingWorkPending()
+                    ->expect(
+                        ExpectedSpan::named('backfill course_seats')->asRoot()->ofKind(SpanKind::Server)->containing(
+                            ExpectedSpan::named('send backfill')->ofKind(SpanKind::Producer),
+                            ExpectedSpan::named('send backfill')->ofKind(SpanKind::Producer),
+                        ),
+                    )
+                    ->expectNoSpanNamed('process class@anonymous::whenDefined')
+                    ->withNoOtherSpans(),
+                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('backfill', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
+                    ->expect(
+                        ExpectedSpan::named('receive backfill')->ofKind(SpanKind::Consumer)->containing(...$batchHandledAndReported()),
+                        ExpectedSpan::named('receive backfill')->ofKind(SpanKind::Consumer)->containing(...$batchHandledAndReported()),
+                    )
+                    ->withNoOtherSpans(),
+            ],
+        );
+    }
+
     private static function projectionReplayedAsynchronously(string $name, string $operation, object $projection): FlowScenario
     {
         return new FlowScenario($name, [$projection::class], [$projection], [SimpleMessageChannelBuilder::createQueueChannel($operation)], [
@@ -107,7 +156,7 @@ final class ProjectionFlowScenarios
                 )
                 ->expectNoSpanNamed('process class@anonymous::whenPlaced')
                 ->withNoOtherSpans(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run($operation, ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run($operation, ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('receive ' . $operation)->ofKind(SpanKind::Consumer)->containing(
                         self::projectionHandled($operation),
@@ -195,7 +244,7 @@ final class ProjectionFlowScenarios
                     ),
                 )
                 ->expectNoSpanNamed('process orders'),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('projections', ExecutionPollingMetadata::createWithTestingSetup()))
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('projections', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                 ->expect(
                     ExpectedSpan::named('receive projections')->ofKind(SpanKind::Consumer)->containing(
                         ExpectedSpan::named('process orders')->ofKind(SpanKind::Consumer)->withAttributes([SpanAttribute::PROJECTION_NAME => 'orders']),
@@ -216,7 +265,7 @@ final class ProjectionFlowScenarios
         return new FlowScenario('polling projection reading its stream', [$projection::class], [$projection], [], [
             FlowStage::when(function (FlowTestSupport $ecotone): void {
                 $ecotone->withEventStream('board_stream', [Event::createWithType('order.placed', ['orderId' => '1'])]);
-                $ecotone->run('order_board_poller', ExecutionPollingMetadata::createWithTestingSetup());
+                $ecotone->run('order_board_poller', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             })
                 ->expect(
                     ExpectedSpan::named('poll order_board_poller')->asRoot()->ofKind(SpanKind::Consumer)->containing(

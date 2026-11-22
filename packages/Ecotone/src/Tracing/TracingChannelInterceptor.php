@@ -14,7 +14,7 @@ use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanKind;
-use Ecotone\Messaging\Channel\ChannelInterceptor;
+use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Execution\ExecutionList;
 use Ecotone\Messaging\Execution\ExecutionScope;
@@ -25,7 +25,7 @@ use Throwable;
 /**
  * licence Apache-2.0
  */
-final class TracingChannelInterceptor implements ChannelInterceptor
+final class TracingChannelInterceptor extends AbstractChannelInterceptor
 {
     public function __construct(
         private string $channelName,
@@ -38,12 +38,12 @@ final class TracingChannelInterceptor implements ChannelInterceptor
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
         $payload = $message->getPayload();
-        if ($payload instanceof BatchMessage && $this->tracer->currentSpan() === null) {
+        if ($payload instanceof BatchMessage && $this->tracer->currentApplicationSpan() === null) {
             return $this->relayBatch($message, $payload);
         }
 
         $isFirstChannel = self::deliveryChannelOf($message) === null;
-        $span = $this->startSendSpan($message, $isFirstChannel ? $this->deliveryAttributes($message) : [], $this->tracer->currentSpan() === null);
+        $span = $this->startSendSpan($message, $isFirstChannel ? $this->deliveryAttributes($message) : [], $this->tracer->currentApplicationSpan() === null);
         $this->openSendSpans()->items[] = [$span];
 
         $carrier = TracingInterceptor::carrierOf($span);
@@ -194,10 +194,6 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         return BusRoutingMapBuilder::endpointIdOfDestinationChannel(substr($executionChannel, 0, -strlen(AsynchronousModule::HANDLER_EXECUTION_CHANNEL_SUFFIX)));
     }
 
-    public function postSend(Message $message, MessageChannel $messageChannel): void
-    {
-    }
-
     public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): bool
     {
         foreach (array_reverse(array_pop($this->openSendSpans()->items) ?? []) as $span) {
@@ -209,11 +205,6 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         }
 
         return false;
-    }
-
-    public function preReceive(MessageChannel $messageChannel): bool
-    {
-        return true;
     }
 
     public function afterReceiveCompletion(?Message $message, MessageChannel $messageChannel, ?Throwable $exception): void
@@ -231,11 +222,6 @@ final class TracingChannelInterceptor implements ChannelInterceptor
                 ...TracingInterceptor::trackingAttributesCarriedBy($message, false),
             ], TracingInterceptor::remoteParentOf($message))
             ->fail($exception);
-    }
-
-    public function postReceive(Message $message, MessageChannel $messageChannel): ?Message
-    {
-        return $message;
     }
 
     private function openSendSpans(): ExecutionList

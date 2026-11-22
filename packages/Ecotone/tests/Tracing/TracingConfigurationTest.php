@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tracing;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -43,7 +44,7 @@ final class TracingConfigurationTest extends TracingTestCase
             {
             }
         };
-        EcotoneLite::bootstrapFlowTesting([$order::class], self::recordingSpansInto($recorder), [self::tracingConfiguration()], enabledModules: [])
+        EcotoneLite::bootstrapFlowTesting([$order::class], self::recordingSpansInto($recorder), [self::tracingConfiguration()], enabledModules: [], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'))
             ->sendCommandWithRouting('order.place', ['orderId' => '1'])
             ->sendCommandWithRouting('order.place', ['orderId' => '1']);
         $processSpans = array_values(array_filter($recorder->recordedSpans(), fn ($span) => str_starts_with($span->name, 'process ')));
@@ -72,9 +73,10 @@ final class TracingConfigurationTest extends TracingTestCase
             [$users::class],
             [$users, ...self::recordingSpansInto($recorder)],
             [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )
             ->sendCommandWithRouting('user.register', '1')
-            ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+            ->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $this->assertSame([], $recorder->recordedSpans());
         $this->assertArrayNotHasKey(MessageHeaders::TRACEPARENT, $users->headers);
@@ -98,9 +100,10 @@ final class TracingConfigurationTest extends TracingTestCase
             [$users::class],
             [$users, ...self::recordingSpansInto($recorder)],
             [self::tracingConfiguration(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )
             ->sendCommandWithRouting('user.register', '1')
-            ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+            ->run('async_channel', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $this->assertMatchesRegularExpression('/^00-[0-9a-f]{32}-[0-9a-f]{16}-01$/', $users->headers[MessageHeaders::TRACEPARENT]);
     }
@@ -119,6 +122,7 @@ final class TracingConfigurationTest extends TracingTestCase
             [$users::class],
             [$users, ...self::recordingSpansInto($recorder)],
             [self::tracingConfiguration()->withSpanAttributesFromHeaders('tenant')],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )
             ->sendCommandWithRouting('user.register', '1', metadata: ['tenant' => 'a', 'authorization' => 'Bearer secret']);
 
@@ -142,6 +146,7 @@ final class TracingConfigurationTest extends TracingTestCase
             [$users::class],
             [$users, ...self::recordingSpansInto($recorder)],
             [self::tracingConfiguration()],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )
             ->sendCommandWithRouting('user.register', '1', metadata: ['ecotone.endpoint.id' => 'forged', 'ecotone.trace.root' => true, 'messaging.system' => 'forged']);
 

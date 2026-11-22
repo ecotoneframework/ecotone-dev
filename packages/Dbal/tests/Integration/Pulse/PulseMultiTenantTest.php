@@ -38,6 +38,8 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionDeployment;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Tracing\SpanContext;
+use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Projecting\ProjectionOperations;
@@ -275,6 +277,30 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         self::assertSame([self::TRACE_OF_TENANT_B], array_column($ofTenantB['traces'], 'traceId'));
     }
 
+    public function test_pulse_shows_a_tenant_the_same_flow_types_traces_and_failed_steps_at_both_tracing_levels(): void
+    {
+        $shown = [];
+        foreach ([TracingLevel::Application, TracingLevel::Framework] as $level) {
+            $this->bootstrap(tracing: TracingConfiguration::createWithDefaults()->withLevel($level));
+            $this->orderService->sendCommandWithRouting('ticket.create', 'first', metadata: ['tenant' => 'tenant_a', MessageHeaders::TRACEPARENT => (new SpanContext(self::TRACE_OF_TENANT_A, self::CALLER_SPAN))->toTraceparent()]);
+            $this->failOrder('milk', 'tenant_a');
+            $flowTypes = $this->requestSnapshot('tenant_a')['tracing']['flowTypes'];
+            $traces = [];
+            foreach (array_column($flowTypes, 'flowType') as $flowType) {
+                foreach ($this->ask('ecotone.pulse.traces.list', json_encode(['flowType' => $flowType]), 'tenant_a')['traces'] as $trace) {
+                    $spans = $this->ask('ecotone.pulse.traces.trace', json_encode(['traceId' => $trace['traceId']]), 'tenant_a')['spans'];
+                    $nameOf = array_column($spans, 'name', 'spanId');
+                    $traces[] = [$flowType, $trace['status'], array_map(fn (array $span): array => [$span['name'], $span['kind'], $span['status'], $nameOf[$span['parentSpanId'] ?? ''] ?? (($span['parentSpanId'] ?? null) === null ? null : 'outside the trace')], $spans)];
+                }
+            }
+            $shown[$level->name] = ['flowTypes' => $flowTypes, 'traces' => $traces];
+            $this->orderService->runConsoleCommand('ecotone:migration:database:delete', ['force' => true]);
+        }
+
+        self::assertNotSame([], $shown['Application']['traces']);
+        self::assertSame($shown['Application'], $shown['Framework']);
+    }
+
     public function test_asking_for_a_trace_finds_it_only_in_the_tenant_it_ran_for(): void
     {
         $this->bootstrap();
@@ -498,7 +524,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         return json_decode($this->pulse->replies[$queryId], true, flags: JSON_THROW_ON_ERROR);
     }
 
-    private function bootstrap(?string $pulseChannelsConnection = null, bool $withDefaultConnection = false, ?DbalConfiguration $dbalConfiguration = null, bool $flowTracking = true, ?ConnectionFactory $unpreparedTenantB = null, bool $applicationHandlers = true, string $multiTenantReferenceName = DbalConnectionReference::DEFAULT, bool $inMemoryTrackings = false): void
+    private function bootstrap(?string $pulseChannelsConnection = null, bool $withDefaultConnection = false, ?DbalConfiguration $dbalConfiguration = null, bool $flowTracking = true, ?ConnectionFactory $unpreparedTenantB = null, bool $applicationHandlers = true, string $multiTenantReferenceName = DbalConnectionReference::DEFAULT, bool $inMemoryTrackings = false, ?TracingConfiguration $tracing = null): void
     {
         $this->orders = new class () {
             public array $replayed = [];
@@ -580,6 +606,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
                 ...($flowTracking ? [FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($inMemoryTrackings)] : []),
                 ServiceConfiguration::createWithDefaults()->withServiceName('order_service')->withDefaultErrorChannel('dbal_dead_letter'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
+                ...($tracing === null ? [] : [$tracing]),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,

@@ -19,7 +19,7 @@ final class TracingMessageCollectionObserver implements MessageCollectionObserve
 
     public function collected(Message $message): void
     {
-        $span = $this->tracer->currentSpan();
+        $span = $this->tracer->currentApplicationSpan();
         if ($span !== null && str_starts_with($span->name(), TracedRouteProcessor::SPAN_NAME_PREFIX)) {
             $span->setAttribute(SpanAttribute::ROUTE_COLLECTED, true);
         }

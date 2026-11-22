@@ -61,7 +61,7 @@ final class AsynchronousFlowScenarios
                     )
                     ->expectNoSpanNamed('process class@anonymous::notify')
                     ->withNoOtherSpans(),
-                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup()))
+                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                     ->expect(
                         ExpectedSpan::named('receive notifications')->ofKind(SpanKind::Consumer)->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'notifications'])->containing(
                             ExpectedSpan::named('process class@anonymous::notify')->withAttributes([SpanAttribute::ENDPOINT_ID => 'merchant.notifying']),
@@ -108,7 +108,7 @@ final class AsynchronousFlowScenarios
                     )
                     ->expectNoSpanNamed('process class@anonymous::notify')
                     ->withNoOtherSpans(),
-                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup()))
+                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages()))
                     ->expect(
                         ExpectedSpan::named('receive notifications')->ofKind(SpanKind::Consumer)->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'notifications'])->containing(
                             ExpectedSpan::named('process class@anonymous::notify')->withAttributes([SpanAttribute::ENDPOINT_ID => 'order.notifying']),

@@ -165,6 +165,7 @@ Owned by `framework-review-behaviour`.
 | BH19 | A consumer that cannot be run by several coroutines is refused by `ConsumerCoroutines` | adds an endpoint or an inbound adapter | the test asserting the refusal, or the test consuming on several coroutines | `framework-error-handling`, `framework-testing` |
 | BH20 | Only read-only context is copied into a coroutine a handler starts (`CopiedToChildExecution`) | copies state to a child execution | the test | `framework-service-design` |
 | BH21 | A new test that runs in real coroutines is listed in `COROUTINE_TESTS` of `.github/workflows/test-monorepo.yml` | adds such a test file | the file is in the list | `framework-dev-environment` |
+| BH22 | A flow or a flow feature the change adds or changes is exercised by a scenario of the flow scenario catalogue, so the pull request's flow comparison shows its before and after | adds or changes a message flow, or a feature that takes part in one (an attribute, a channel type, an interceptor point, a module, an endpoint kind, a routing or delivery behaviour); `not-apply` when it touches no flow | per flow or feature: the scenario (class and method, listed in `all()`), or why it cannot be one (needs real coroutines, an external broker, a second process); the baseline is left to main's CI | `framework-testing T4` |
 
 ## Developer experience
 

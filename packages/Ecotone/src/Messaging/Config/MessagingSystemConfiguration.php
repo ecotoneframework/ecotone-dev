@@ -196,6 +196,13 @@ final class MessagingSystemConfiguration implements Configuration
 
     private ?ContainerInterface $externalContainer = null;
 
+    private string $registeringModule = self::REGISTERED_OUTSIDE_A_MODULE;
+
+    /**
+     * @var array<string, string>
+     */
+    private array $registeringModules = [];
+
     /**
      * @param object[] $extensionObjects
      */
@@ -433,7 +440,6 @@ final class MessagingSystemConfiguration implements Configuration
     }
 
     /**
-     * @param string $name
      *
      * @return bool
      */
@@ -480,6 +486,7 @@ final class MessagingSystemConfiguration implements Configuration
         $this->verifyBatchForwardingSourceChannelsAreNotUsedForExecution($this->batchForwardingSourceChannels);
 
         foreach ($this->asynchronousEndpoints as $targetEndpointId => $asynchronousMessageChannels) {
+            $this->registerOnBehalfOf($this->getRegisteringModule(self::ASYNCHRONOUS_ENDPOINT, $targetEndpointId));
             $asynchronousMessageChannel = array_shift($asynchronousMessageChannels);
             if (! isset($this->channelBuilders[$asynchronousMessageChannel]) && ! isset($this->defaultChannelBuilders[$asynchronousMessageChannel])) {
                 throw ConfigurationException::create("Registered asynchronous endpoint `{$targetEndpointId}`, however channel configuration for `{$asynchronousMessageChannel}` was not provided. Register it with SimpleMessageChannelBuilder::createQueueChannel('{$asynchronousMessageChannel}') as a ServiceConfiguration extension object or from a #[ServiceContext] method.");
@@ -588,6 +595,7 @@ final class MessagingSystemConfiguration implements Configuration
             }
         }
 
+        $this->registerOnBehalfOf(self::REGISTERED_OUTSIDE_A_MODULE);
         $this->registerServiceDefinition(
             AsyncHandlerAnnotationRegistry::class,
             new Definition(AsyncHandlerAnnotationRegistry::class, [$asyncHandlerAnnotations])
@@ -620,6 +628,7 @@ final class MessagingSystemConfiguration implements Configuration
             $this->messageHandlerBuilders[$asynchronousChannel] = BridgeBuilder::create()
                 ->withInputChannelName($asynchronousChannel)
                 ->withEndpointId($asynchronousChannel);
+            $this->registeringModules[self::HANDLER . ':' . $asynchronousChannel] ??= $this->getRegisteringModule(self::CHANNEL, $asynchronousChannel);
         }
 
         $this->asynchronousEndpoints = [];
@@ -677,6 +686,7 @@ final class MessagingSystemConfiguration implements Configuration
                     $this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()] = $this->defaultChannelBuilders[$messageHandlerBuilder->getInputMessageChannelName()];
                 } else {
                     $this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()] = SimpleMessageChannelBuilder::createDirectMessageChannel($messageHandlerBuilder->getInputMessageChannelName());
+                    $this->registeringModules[self::CHANNEL . ':' . $messageHandlerBuilder->getInputMessageChannelName()] ??= $this->getRegisteringModule(self::HANDLER, (string) $messageHandlerBuilder->getEndpointId());
                 }
             }
         }
@@ -781,6 +791,21 @@ final class MessagingSystemConfiguration implements Configuration
         );
     }
 
+    public function registerOnBehalfOf(string $moduleClass): void
+    {
+        $this->registeringModule = $moduleClass;
+    }
+
+    public function getRegisteringModule(string $kind, string $name): string
+    {
+        return $this->registeringModules[$kind . ':' . $name] ?? self::REGISTERED_OUTSIDE_A_MODULE;
+    }
+
+    private function registeredNow(string $kind, string $name): void
+    {
+        $this->registeringModules[$kind . ':' . $name] ??= $this->registeringModule;
+    }
+
     public function requireConsumer(string $endpointId): Configuration
     {
         $this->requiredConsumerEndpointIds[] = $endpointId;
@@ -822,6 +847,7 @@ final class MessagingSystemConfiguration implements Configuration
     public function registerBeforeSendInterceptor(MethodInterceptorBuilder $methodInterceptor): Configuration
     {
         $this->beforeSendInterceptors[] = $methodInterceptor;
+        $this->registeredNow(self::INTERCEPTOR, (string) spl_object_id($methodInterceptor));
 
         return $this;
     }
@@ -854,6 +880,7 @@ final class MessagingSystemConfiguration implements Configuration
     public function registerBeforeMethodInterceptor(MethodInterceptorBuilder $methodInterceptor): Configuration
     {
         $this->beforeCallMethodInterceptors[] = $methodInterceptor;
+        $this->registeredNow(self::INTERCEPTOR, (string) spl_object_id($methodInterceptor));
 
         return $this;
     }
@@ -861,6 +888,7 @@ final class MessagingSystemConfiguration implements Configuration
     public function registerAfterMethodInterceptor(MethodInterceptorBuilder $methodInterceptor): Configuration
     {
         $this->afterCallMethodInterceptors[] = $methodInterceptor;
+        $this->registeredNow(self::INTERCEPTOR, (string) spl_object_id($methodInterceptor));
 
         return $this;
     }
@@ -873,6 +901,7 @@ final class MessagingSystemConfiguration implements Configuration
     public function registerAroundMethodInterceptor(AroundInterceptorBuilder $aroundInterceptorReference): Configuration
     {
         $this->aroundMethodInterceptors[] = $aroundInterceptorReference;
+        $this->registeredNow(self::INTERCEPTOR, (string) spl_object_id($aroundInterceptorReference));
 
         return $this;
     }
@@ -891,6 +920,7 @@ final class MessagingSystemConfiguration implements Configuration
     public function registerAsynchronousEndpoint(array|string $asynchronousChannelNames, string $targetEndpointId): Configuration
     {
         $this->asynchronousEndpoints[$targetEndpointId] = is_string($asynchronousChannelNames) ? [$asynchronousChannelNames] : $asynchronousChannelNames;
+        $this->registeredNow(self::ASYNCHRONOUS_ENDPOINT, $targetEndpointId);
 
         return $this;
     }
@@ -917,6 +947,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $this->messageHandlerBuilders[$messageHandlerBuilder->getEndpointId()] = $messageHandlerBuilder;
+        $this->registeredNow(self::HANDLER, $messageHandlerBuilder->getEndpointId());
 
         return $this;
     }
@@ -955,6 +986,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $this->channelBuilders[$messageChannelBuilder->getMessageChannelName()] = $messageChannelBuilder;
+        $this->registeredNow(self::CHANNEL, $messageChannelBuilder->getMessageChannelName());
 
         return $this;
     }
@@ -965,6 +997,7 @@ final class MessagingSystemConfiguration implements Configuration
     public function registerDefaultChannelFor(MessageChannelBuilder $messageChannelBuilder): Configuration
     {
         $this->defaultChannelBuilders[$messageChannelBuilder->getMessageChannelName()] = $messageChannelBuilder;
+        $this->registeredNow(self::CHANNEL, $messageChannelBuilder->getMessageChannelName());
 
         return $this;
     }
@@ -979,6 +1012,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $this->channelAdapters[$consumerBuilder->getEndpointId()] = $consumerBuilder;
+        $this->registeredNow(self::CONSUMER, $consumerBuilder->getEndpointId());
 
         return $this;
     }
@@ -1000,6 +1034,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $this->gatewayBuilders[] = $gatewayBuilder;
+        $this->registeredNow(self::GATEWAY, $gatewayBuilder->getInterfaceName() . '::' . $gatewayBuilder->getRelatedMethodName());
 
         return $this;
     }
@@ -1046,6 +1081,7 @@ final class MessagingSystemConfiguration implements Configuration
                 $definition = new Definition((string) $id, $definition);
             }
             $this->serviceDefinitions[(string) $id] = $definition;
+            $this->registeredNow(self::SERVICE, (string) $id);
         }
         return $this;
     }
@@ -1250,9 +1286,40 @@ final class MessagingSystemConfiguration implements Configuration
         return $this->consoleCommands;
     }
 
+    public function getRegisteredMessageHandlers(): array
+    {
+        return $this->messageHandlerBuilders;
+    }
+
+    public function getRegisteredMessageChannels(): array
+    {
+        return $this->channelBuilders;
+    }
+
+    public function getRegisteredConsumers(): array
+    {
+        return $this->channelAdapters;
+    }
+
+    public function getRegisteredMessageHandlersInConsumerOrder(): array
+    {
+        return $this->getMessageHandlersBasedOnPriority();
+    }
+
+    public function getRegisteredServiceDefinitions(): array
+    {
+        return $this->serviceDefinitions;
+    }
+
+    public function getRegisteredMethodInterceptors(): array
+    {
+        return ['before' => $this->beforeCallMethodInterceptors, 'around' => $this->aroundMethodInterceptors, 'after' => $this->afterCallMethodInterceptors];
+    }
+
     public function registerConsoleCommand(ConsoleCommandConfiguration $consoleCommandConfiguration): Configuration
     {
         $this->consoleCommands[] = $consoleCommandConfiguration;
+        $this->registeredNow(self::CONSOLE_COMMAND, $consoleCommandConfiguration->getName());
 
         return $this;
     }

@@ -36,19 +36,18 @@ final class TracedDecisionModelBatchLoader
 
         try {
             $loadedState = $this->batchLoader->load($message);
+            $state = $loadedState[DecisionModelLoadedState::HEADER_NAME];
+            $capturedTagVersions = $state->capturedTagVersions();
+            $span->setAttribute(DynamicConsistencyBoundarySpanAttributes::MODELS, DynamicConsistencyBoundarySpanAttributes::classList($state->loadedModelClassNames()));
+            $span->setAttribute(DynamicConsistencyBoundarySpanAttributes::TAGS, DynamicConsistencyBoundarySpanAttributes::userTags($capturedTagVersions));
+            $span->setAttribute(DynamicConsistencyBoundarySpanAttributes::CAPTURED_VERSIONS, DynamicConsistencyBoundarySpanAttributes::capturedVersions($capturedTagVersions));
+            $span->setAttribute(DynamicConsistencyBoundarySpanAttributes::AGGREGATES, DynamicConsistencyBoundarySpanAttributes::aggregates($capturedTagVersions));
+            $span->setAttribute(DynamicConsistencyBoundarySpanAttributes::EVENTS_FOLDED, $state->foldedEventCount());
         } catch (Throwable $failure) {
             $span->fail($failure);
 
             throw $failure;
         }
-
-        $state = $loadedState[DecisionModelLoadedState::HEADER_NAME];
-        $capturedTagVersions = $state->capturedTagVersions();
-        $span->setAttribute(DynamicConsistencyBoundarySpanAttributes::MODELS, DynamicConsistencyBoundarySpanAttributes::classList($state->loadedModelClassNames()));
-        $span->setAttribute(DynamicConsistencyBoundarySpanAttributes::TAGS, DynamicConsistencyBoundarySpanAttributes::userTags($capturedTagVersions));
-        $span->setAttribute(DynamicConsistencyBoundarySpanAttributes::CAPTURED_VERSIONS, DynamicConsistencyBoundarySpanAttributes::capturedVersions($capturedTagVersions));
-        $span->setAttribute(DynamicConsistencyBoundarySpanAttributes::AGGREGATES, DynamicConsistencyBoundarySpanAttributes::aggregates($capturedTagVersions));
-        $span->setAttribute(DynamicConsistencyBoundarySpanAttributes::EVENTS_FOLDED, $state->foldedEventCount());
         $span->end();
 
         return $loadedState;

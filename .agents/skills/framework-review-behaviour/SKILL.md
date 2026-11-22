@@ -18,7 +18,7 @@ You are one of four independent reviews (see `framework-pull-request` rule P3). 
 does what it claims and whether the tests prove it. You review against the
 [Behaviour section of the review list](../framework-pull-request/references/review-list.md#behaviour): you decide every
 requirement there (the BH ids), and the rules below say how to judge them: V1 for BH1, V2 for BH2, V3 for BH3 and
-BH4, V4 for BH5 to BH11, V5 for BH12, V7 for BH13, V8 for BH14, V9 for BH15 to BH21.
+BH4, V4 for BH5 to BH11, V5 for BH12, V7 for BH13, V8 for BH14, V9 for BH15 to BH21, and `framework-testing` rule T4 for BH22.
 
 ## Applies when
 

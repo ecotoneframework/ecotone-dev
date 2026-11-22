@@ -1,0 +1,107 @@
+name: Build Flow Comparison
+
+# Compares the message flow of the flow scenario catalogue at the base commit with the merge ref and builds the
+# pull request comment. It runs the pull request's code, so it has no write permission; the comment is posted by
+# build-flow-comment.yml from the artifact this uploads. Report only: it fails only when the tooling breaks. A base
+# commit without the tooling (a branch from before it was merged) has nothing to compare with: the job then logs how to
+# get the comparison, stays green and uploads no comment.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: build-flow-comparison-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # The "before" of the comparison is the base commit's own message flow, snapshotted here, so the comment is
+      # right when main's committed baseline lags behind a merge or the pull request edited it
+      - name: Check out the base commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: build-flow-base
+
+      - name: Find the tooling in the base commit
+        id: base
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ -f build-flow-base/bin/build-flow.php ]; then
+            echo 'has-tooling=true' >> "$GITHUB_OUTPUT"
+          else
+            echo "The base commit ${BASE_SHA} has no bin/build-flow.php, so there is no message flow to compare this pull request with and no comment is posted. Merge main into this branch (or rebase it onto main) to get the comparison."
+            echo 'has-tooling=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set Up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          coverage: none
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction --ignore-platform-reqs
+
+      - name: Snapshot the message flow of the base commit
+        if: steps.base.outputs.has-tooling == 'true'
+        shell: bash
+        run: |
+          cd build-flow-base
+          composer update --prefer-dist --no-interaction --ignore-platform-reqs
+          php bin/build-flow.php snapshot --location="$GITHUB_WORKSPACE/build-flow-before"
+
+      - name: Test the comment builder
+        run: php bin/test-build-flow-comment.php
+
+      # The build presentation shows what ran, process by process, then the message's path as a flow diagram,
+      # and keeps the marked wiring and traced spans collapsed under it, so the comment always shows a diagram
+      - name: Compare the message flow with the base commit
+        if: steps.base.outputs.has-tooling == 'true'
+        id: compare
+        shell: bash
+        run: |
+          set +e
+          php bin/build-flow.php compare --from=build-flow-before --presentation=build > build-flow-comparison.md 2> build-flow-compare-error.txt
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ] && grep -q 'a comparison across a snapshot format change cannot be drawn' build-flow-compare-error.txt; then
+            echo 'format-change=--format-change=build-flow-compare-error.txt' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          cat build-flow-compare-error.txt >&2
+          exit "$status"
+
+      - name: Build the pull request comment
+        if: steps.base.outputs.has-tooling == 'true'
+        env:
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          FORMAT_CHANGE: ${{ steps.compare.outputs.format-change }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: php bin/build-flow-comment.php --comparison=build-flow-comparison.md --pull-request="$PULL_REQUEST" --head-sha="$HEAD_SHA" --base-sha="$BASE_SHA" --run-url="$RUN_URL" --output=build-flow-comment.json $FORMAT_CHANGE
+
+      - name: Upload the full comparison
+        if: steps.base.outputs.has-tooling == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-flow-comparison
+          path: build-flow-comparison.md
+
+      - name: Upload the comment for build-flow-comment.yml
+        if: steps.base.outputs.has-tooling == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-flow-comment
+          path: build-flow-comment.json

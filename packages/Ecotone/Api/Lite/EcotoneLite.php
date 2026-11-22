@@ -13,6 +13,7 @@ use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Lite\InMemoryPSRContainer;
+use Ecotone\Lite\Test\Configuration\FlowTestingBootstrap;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport;
 use Ecotone\Lite\Test\DatabaseTablesSetUp;
@@ -265,7 +266,8 @@ final class EcotoneLite
         $testConfiguration = self::withInitialTime($testConfiguration ?? TestConfiguration::createWithDefaults(), $initialTime);
 
         $bootstrapConfiguration = $bootstrapConfiguration
-            ->addExtensionObject($testConfiguration);
+            ->addExtensionObject($testConfiguration)
+            ->addExtensionObject(new FlowTestingBootstrap());
 
         if ($addInMemoryStateStoredRepository) {
             $bootstrapConfiguration = $bootstrapConfiguration

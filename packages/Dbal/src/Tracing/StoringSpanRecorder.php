@@ -43,6 +43,10 @@ final class StoringSpanRecorder implements SpanRecorder
 
     public function record(Span $span): void
     {
+        $span = self::asApplicationSpan($span);
+        if ($span === null) {
+            return;
+        }
         if ($this->recorded()->scopeActive && ! $this->recorded()->scopeExcludedFromTracking && $this->isStored($span)) {
             $this->recorded()->buffer[] = $span;
         } elseif (! $this->recorded()->scopeActive && $this->recorded()->failedAttempt !== null && $span->traceId === $this->recorded()->failedAttempt['spans'][0]->traceId && $this->isStored($span)) {
@@ -139,7 +143,10 @@ final class StoringSpanRecorder implements SpanRecorder
         $openSpans = [];
         foreach ([$this->recorded()->wrappingSpan, ...$innerOpenSpans] as $openSpan) {
             if ($openSpan !== null) {
-                $openSpans[$openSpan->context()->spanId] = $openSpan->endedSoFar();
+                $endedSoFar = self::asApplicationSpan($openSpan->endedSoFar());
+                if ($endedSoFar !== null) {
+                    $openSpans[$openSpan->context()->spanId] = $endedSoFar;
+                }
             }
         }
 
@@ -200,8 +207,8 @@ final class StoringSpanRecorder implements SpanRecorder
         if ($this->recorded()->scopeExcludedFromTracking || $this->recorded()->wrappingSpan === null || $this->recorded()->wrappingSpan->context()->spanId !== $this->recorded()->consumedMessageSpanId) {
             return;
         }
-        $wrapping = $this->recorded()->wrappingSpan->endedSoFar();
-        if (! $this->isStored($wrapping)) {
+        $wrapping = self::asApplicationSpan($this->recorded()->wrappingSpan->endedSoFar());
+        if ($wrapping === null || ! $this->isStored($wrapping)) {
             return;
         }
         $wrapping = new Span(...[...get_object_vars($wrapping), 'status' => SpanStatus::Error, 'statusDescription' => $failure->getMessage()]);
@@ -260,6 +267,23 @@ final class StoringSpanRecorder implements SpanRecorder
         $this->endUnitOfWork();
 
         return $notifications;
+    }
+
+    private static function asApplicationSpan(Span $span): ?Span
+    {
+        if ($span->attributes[SpanAttribute::EXECUTION_STEP] ?? false) {
+            return null;
+        }
+        if (! isset($span->attributes[SpanAttribute::EXECUTION_APPLICATION_PARENT]) && ! isset($span->attributes[SpanAttribute::EXECUTION_ORDER])) {
+            return $span;
+        }
+        $applicationParent = $span->attributes[SpanAttribute::EXECUTION_APPLICATION_PARENT] ?? null;
+
+        return new Span(...[
+            ...get_object_vars($span),
+            'parentSpanId' => $applicationParent === null ? $span->parentSpanId : ($applicationParent === '' ? null : (string) $applicationParent),
+            'attributes' => array_filter($span->attributes, fn (string $key): bool => ! str_starts_with($key, 'ecotone.execution.'), ARRAY_FILTER_USE_KEY),
+        ]);
     }
 
     private function isStored(Span $span): bool

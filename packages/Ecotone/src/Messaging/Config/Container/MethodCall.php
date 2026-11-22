@@ -23,4 +23,9 @@ class MethodCall
     {
         return $this->arguments;
     }
+
+    public function replaceArguments(array $arguments): void
+    {
+        $this->arguments = $arguments;
+    }
 }

@@ -215,7 +215,7 @@ final class RecordedExecution
             [$kind] = self::kindOfMessageSentBy(self::firstSendOf($sendingStep, $inStepOrder[$producer]), $parentOf);
             $sentBy[$consumer] = ['processNumber' => $producer + 1, 'stepNumber' => $stepOf[$sendingStep->spanId] + 1];
             $links[$inStepOrder[$consumer][0]->spanId][] = ['key' => ExecutionHint::SENT_BY, 'value' => 'process ' . ($producer + 1) . ', ' . $kind, 'shownInLines' => true];
-            $links[$sendingStep->spanId][] = ['key' => ExecutionHint::TAKEN_BY, 'value' => 'process ' . ($consumer + 1) . ', a separate consumer run', 'shownInLines' => true];
+            $links[$sendingStep->spanId][] = ['key' => ExecutionHint::TAKEN_BY, 'value' => 'process ' . ($consumer + 1) . (($sendingStep->attributes[SpanAttribute::EXECUTION_CONSUMED_IN_THE_SENDING_PROCESS] ?? false) ? ', on a coroutine of the sending process' : ', a separate consumer run'), 'shownInLines' => true];
         }
 
         return [$links, $sentBy];

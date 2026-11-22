@@ -111,6 +111,7 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertContains('process 1: send command handle', $recorded);
         $this->assertContains('sub-flow process 2: receive async, class@anonymous::handle', $recorded);
         $this->assertContains('handler class@anonymous::handle', $recorded);
+        $this->assertContains('↳ taken by: process 2, on a coroutine of the sending process', $recorded);
     }
 
     public function test_a_failed_sender_starts_no_handler(): void

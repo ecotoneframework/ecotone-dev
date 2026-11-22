@@ -6,6 +6,7 @@ namespace Ecotone\Tracing\Execution;
 
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\Collector\CollectorSenderInterceptor;
+use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannel;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
@@ -168,6 +169,7 @@ final class RecordExecutionCompilerPass implements CompilerPass
                 array_map(self::declaredPhasesOf(...), $interceptorClasses),
                 array_values(array_filter($interceptorClasses, fn (string $class): bool => ! self::isFlowTesting($class))) === [],
                 $channel->getClassName() === PollableChannelInterceptorAdapter::class,
+                $innerChannel instanceof Definition && $innerChannel->getClassName() === CoroutineMessageChannel::class,
                 new Reference(Tracer::class),
             ]));
             $interceptors = [];

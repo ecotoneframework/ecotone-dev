@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\DelayedRetry;
+use Ecotone\Api\Attribute\ErrorChannel;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -400,6 +401,89 @@ final class CoroutineMessageChannelTest extends TestCase
                 ErrorHandlerConfiguration::createWithDeadLetterChannel('retried', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1), DbalDeadLetterBuilder::STORE_CHANNEL),
                 InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
             ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $deadLetter = $ecotone->getGateway(DeadLetterGateway::class);
+        $deadLetter->deleteAll();
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
+        $attemptsBeforeTheReplay = $handler->attempts;
+
+        $deadLetter->replayAll();
+
+        $this->assertSame(2, $attemptsBeforeTheReplay);
+        $this->assertSame(3, $handler->attempts);
+        $this->assertSame(['handling failed'], array_map(static fn (ErrorContext $failed): string => $failed->getMessage(), $deadLetter->list(10, 0)));
+    }
+
+    public function test_replay_that_fails_again_on_an_endpoint_with_delayed_retries_and_no_dead_letter_channel_fails_with_the_handlers_failure_and_keeps_the_message(): void
+    {
+        $storing = new class () {
+            #[Asynchronous('async', asynchronousExecution: [new ErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL)])]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                throw new RuntimeException('handling failed');
+            }
+        };
+        $retrying = new class () {
+            public int $attempts = 0;
+
+            #[Asynchronous('async', asynchronousExecution: [new DelayedRetry(initialDelayInMilliseconds: 1, maxRetries: 1)])]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->attempts++;
+                throw new RuntimeException('handling failed again');
+            }
+        };
+        $beforeTheDeployment = EcotoneLite::bootstrapFlowTesting(
+            [$storing::class],
+            [$storing, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $beforeTheDeployment->getGateway(DeadLetterGateway::class)->deleteAll();
+        CoroutineTesting::runAtOnce(static fn () => $beforeTheDeployment->sendCommandWithRouting('handle', 'payload'));
+        $deadLetter = EcotoneLite::bootstrapFlowTesting(
+            [$retrying::class],
+            [$retrying, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->getGateway(DeadLetterGateway::class);
+        $stored = $deadLetter->list(10, 0)[0]->getMessageId();
+
+        $failure = null;
+        try {
+            $deadLetter->replay($stored);
+        } catch (RuntimeException $exception) {
+            $failure = $exception->getMessage();
+        }
+
+        $this->assertSame('handling failed again', $failure);
+        $this->assertSame(1, $retrying->attempts);
+        $this->assertSame([$stored], array_map(static fn (ErrorContext $failed): string => $failed->getMessageId(), $deadLetter->list(10, 0)));
+    }
+
+    public function test_replay_that_fails_again_skips_the_delayed_retries_behind_the_handlers_error_channel(): void
+    {
+        $handler = new class () {
+            public int $attempts = 0;
+
+            #[Asynchronous('async', asynchronousExecution: [new ErrorChannel('retried')])]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->attempts++;
+                throw new RuntimeException('handling failed');
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false), ErrorHandlerConfiguration::createWithDeadLetterChannel('retried', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1), DbalDeadLetterBuilder::STORE_CHANNEL)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

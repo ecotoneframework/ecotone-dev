@@ -38,14 +38,14 @@ class AsyncHandlerAnnotationRegistry
     public function withoutDelayedRetries(DeadLetterChannels $deadLetterChannels): self
     {
         return new self(array_map(
-            static fn (array $annotations): array => array_map(
-                static fn (object $annotation): object => match (true) {
-                    $annotation instanceof DelayedRetry && $annotation->deadLetterChannel !== null => new ErrorChannel($annotation->deadLetterChannel),
-                    $annotation instanceof ErrorChannel => new ErrorChannel($deadLetterChannels->of($annotation->errorChannelName)),
-                    default => $annotation,
+            static fn (array $annotations): array => array_merge([], ...array_map(
+                static fn (object $annotation): array => match (true) {
+                    $annotation instanceof DelayedRetry => array_map(static fn (string $deadLetterChannel): ErrorChannel => new ErrorChannel($deadLetterChannel), array_filter([$annotation->deadLetterChannel])),
+                    $annotation instanceof ErrorChannel => [new ErrorChannel($deadLetterChannels->of($annotation->errorChannelName))],
+                    default => [$annotation],
                 },
-                $annotations,
-            ),
+                array_values($annotations),
+            )),
             $this->channelToAnnotations,
         ));
     }

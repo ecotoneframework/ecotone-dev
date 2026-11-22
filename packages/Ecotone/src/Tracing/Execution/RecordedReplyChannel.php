@@ -18,7 +18,7 @@ final class RecordedReplyChannel implements MessageChannel
 
     public function send(Message $message): void
     {
-        $this->recording->routedTo($this->mechanism, $this->channelName, $message, fn () => $this->messageChannel->send($message));
+        $this->recording->routedTo(mechanism: $this->mechanism, channelName: $this->channelName, forwarded: $message, send: fn () => $this->messageChannel->send($message));
     }
 
     public function __toString(): string

@@ -18,7 +18,7 @@ final class RecordedProjectorExecutor implements ProjectorExecutor
 
     public function project(Event $event, mixed $userState = null, bool $isRebuilding = false): mixed
     {
-        return StepAround::of(tracer: $this->tracer, name: 'project ' . ExecutionRecordingTracer::shortClassOf($event->eventName), call: fn () => $this->projectorExecutor->project($event, $userState, $isRebuilding));
+        return StepAround::of(tracer: $this->tracer, name: 'project ' . ExecutionRecordingTracer::shortClassOf($event->eventName), call: fn () => $this->projectorExecutor->project(event: $event, userState: $userState, isRebuilding: $isRebuilding));
     }
 
     public function init(): void

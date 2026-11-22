@@ -54,6 +54,6 @@ final class MessageFlowBuild implements DefinedObject
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [json_encode($this->toArray(), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)], 'fromJson');
+        return new Definition(className: self::class, arguments: [json_encode($this->toArray(), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)], factory: 'fromJson');
     }
 }

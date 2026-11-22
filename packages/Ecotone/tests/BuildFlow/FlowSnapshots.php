@@ -77,7 +77,7 @@ final class FlowSnapshots
         $snapshots = [];
         foreach ($this->fileNames() as $name) {
             if ($name !== self::SHARED_FILE) {
-                $snapshots[$name] = FlowSnapshot::fromJson((string) file_get_contents($this->location . '/' . $name), $this->location . '/' . $name, $shared);
+                $snapshots[$name] = FlowSnapshot::fromJson(json: (string) file_get_contents($this->location . '/' . $name), file: $this->location . '/' . $name, shared: $shared);
             }
         }
         ksort($snapshots, SORT_STRING);

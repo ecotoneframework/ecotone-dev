@@ -26,7 +26,7 @@ final class RecordedStreamSource implements StreamSource
         return StepAround::of(
             tracer: $this->tracer,
             name: 'load events of ' . $projectionName . ($partitionKey === null ? '' : ' partition ' . $partitionKey),
-            call: fn () => $this->streamSource->load($projectionName, $lastPosition, $count, $partitionKey),
+            call: fn () => $this->streamSource->load(projectionName: $projectionName, lastPosition: $lastPosition, count: $count, partitionKey: $partitionKey),
             outcome: fn (StreamPage $page): ExecutionHint => $page->events === [] ? ExecutionHint::shownInLines(ExecutionHint::FOUND, '0 events') : ExecutionHint::detail(ExecutionHint::FOUND, count($page->events) . ' events'),
             hints: [ExecutionHint::detail(ExecutionHint::RANGE, 'after position ' . ($lastPosition ?? 'start') . ', up to ' . $count)]
         );

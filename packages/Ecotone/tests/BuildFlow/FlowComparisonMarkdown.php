@@ -681,12 +681,12 @@ final class FlowComparisonMarkdown
         $partReportChannels = $change->partReportChannels();
         $nodes = array_map(
             fn (FlowNode $node): FlowNode => new FlowNode(
-                $node->id,
-                $node->kind,
-                $node->kind === FlowNodeKind::CHANNEL && isset($partReportChannels[$node->label])
+                id: $node->id,
+                kind: $node->kind,
+                label: $node->kind === FlowNodeKind::CHANNEL && isset($partReportChannels[$node->label])
                     ? $node->label . ' (entry point: part reports are sent here by ' . FlowWording::withShortClassNames($partReportChannels[$node->label]) . ')'
                     : FlowWording::ofNode($node, $entryPointsOf !== null && $entryPointsOf->hasNode($node->id) ? $entryPointsOf : $whole),
-                $node->attributes,
+                attributes: $node->attributes,
             ),
             $part->nodes(),
         );

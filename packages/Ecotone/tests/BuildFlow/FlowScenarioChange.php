@@ -66,7 +66,7 @@ final class FlowScenarioChange
             before: $before,
             after: $after,
             wiring: $state === self::CHANGED ? $before->wiring->compareTo($after->wiring) : $after->wiring->compareTo($after->wiring),
-            trace: self::withPartReports(trace: self::withContinuationsFromWiring(self::changesBetween($before->trace, $after->trace), $before->wiring, $after->wiring), before: $before, after: $after),
+            trace: self::withPartReports(trace: self::withContinuationsFromWiring(trace: self::changesBetween($before->trace, $after->trace), before: $before->wiring, after: $after->wiring), before: $before, after: $after),
             build: $state === self::CHANGED ? self::buildChangesBetween($before, $after) : [],
             execution: self::executionChangesBetween($before->execution, $after->execution),
         );

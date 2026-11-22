@@ -68,7 +68,7 @@ final class BuildFlowConsoleCommands
     {
         $before = new FlowSnapshots($from);
         $after = new FlowSnapshots($to);
-        $comparison = FlowSnapshotComparison::between($before->all(), $after->all(), $before->shared(), $after->shared());
+        $comparison = FlowSnapshotComparison::between(before: $before->all(), after: $after->all(), sharedBefore: $before->shared(), sharedAfter: $after->shared());
 
         $writer->write($presentation === 'json' ? $comparison->toJson() : FlowComparisonMarkdown::of($comparison, $presentation));
     }

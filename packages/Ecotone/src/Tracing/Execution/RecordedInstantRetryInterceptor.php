@@ -34,6 +34,6 @@ final class RecordedInstantRetryInterceptor extends InstantRetryInterceptor
 
     public function retry(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $logger, ?PollingMetadata $pollingMetadata)
     {
-        return parent::retry(new RecordedRetryAttempt($methodInvocation, new RetryAttempts(), $this->tracer), $message, $logger, $pollingMetadata);
+        return parent::retry(methodInvocation: new RecordedRetryAttempt(methodInvocation: $methodInvocation, attempts: new RetryAttempts(), tracer: $this->tracer), message: $message, logger: $logger, pollingMetadata: $pollingMetadata);
     }
 }

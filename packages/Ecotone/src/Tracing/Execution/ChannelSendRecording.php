@@ -175,7 +175,7 @@ final class ChannelSendRecording
                 }
             }
         }
-        $this->tracer->awaitReceive((string) $headers->get(MessageHeaders::MESSAGE_ID), 'receive ' . $this->channelName, $notes, self::distributedSenderOf($message), TracingInterceptor::remoteParentOf($message));
+        $this->tracer->awaitReceive(messageId: (string) $headers->get(MessageHeaders::MESSAGE_ID), name: 'receive ' . $this->channelName, notes: $notes, attributes: self::distributedSenderOf($message), remoteParent: TracingInterceptor::remoteParentOf($message));
 
         return $message;
     }

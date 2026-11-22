@@ -115,11 +115,11 @@ final class ProjectionFlowScenarios
         ];
 
         return new FlowScenario(
-            'tag-partitioned projection backfilled asynchronously in two batches',
-            [$projection::class, FlowCourseDefined::class],
-            [$projection],
-            [SimpleMessageChannelBuilder::createQueueChannel('backfill'), DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
-            [
+            name: 'tag-partitioned projection backfilled asynchronously in two batches',
+            classesToResolve: [$projection::class, FlowCourseDefined::class],
+            services: [$projection],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('backfill'), DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
+            stages: [
                 FlowStage::when(function (FlowTestSupport $ecotone): void {
                     $ecotone->withEvents([new FlowCourseDefined('course-1', 5), new FlowCourseDefined('course-2', 5)]);
                     $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'course_seats']);

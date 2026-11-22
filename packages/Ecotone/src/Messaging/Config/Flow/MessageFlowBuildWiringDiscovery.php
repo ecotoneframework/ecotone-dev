@@ -109,9 +109,9 @@ final class MessageFlowBuildWiringDiscovery
         ksort($this->entryChannels, SORT_STRING);
 
         return new MessageFlowBuildWiring(
-            array_map(fn (FlowNode $node): array => $node->toArray(), array_values($this->nodes)),
-            array_map(fn (FlowEdge $edge): array => $edge->toArray(), array_values($this->edges)),
-            $this->entryChannels,
+            nodes: array_map(fn (FlowNode $node): array => $node->toArray(), array_values($this->nodes)),
+            edges: array_map(fn (FlowEdge $edge): array => $edge->toArray(), array_values($this->edges)),
+            entryChannels: $this->entryChannels,
         );
     }
 
@@ -119,7 +119,7 @@ final class MessageFlowBuildWiringDiscovery
     {
         $id = 'gateway:' . $gateway->getInterfaceName() . '::' . $gateway->getRelatedMethodName();
         if (! $this->declared->hasNode($id)) {
-            $this->nodes[$id] = new FlowNode($id, FlowNodeKind::GATEWAY, $this->shortName($gateway->getInterfaceName()) . '::' . $gateway->getRelatedMethodName(), [
+            $this->nodes[$id] = new FlowNode(id: $id, kind: FlowNodeKind::GATEWAY, label: $this->shortName($gateway->getInterfaceName()) . '::' . $gateway->getRelatedMethodName(), attributes: [
                 'interface' => $gateway->getInterfaceName(),
                 'method' => $gateway->getRelatedMethodName(),
                 'requestChannel' => $this->stable($gateway->getRequestChannelName()),
@@ -142,10 +142,10 @@ final class MessageFlowBuildWiringDiscovery
         } else {
             $id = $this->endpointNodeId($this->isGenerated((string) $handler->getEndpointId()) || (string) $handler->getEndpointId() === '' ? $inputChannel : (string) $handler->getEndpointId());
             $this->nodes[$id] = new FlowNode(
-                $id,
-                $handler instanceof RouterBuilder ? FlowNodeKind::ROUTER : FlowNodeKind::INTERNAL_HANDLER,
-                ($invoked === null ? '' : $this->shortName((string) $invoked->getInterfaceName()) . '::' . $invoked->getMethodName() . ' on ') . $this->stable($inputChannel),
-                array_filter([
+                id: $id,
+                kind: $handler instanceof RouterBuilder ? FlowNodeKind::ROUTER : FlowNodeKind::INTERNAL_HANDLER,
+                label: ($invoked === null ? '' : $this->shortName((string) $invoked->getInterfaceName()) . '::' . $invoked->getMethodName() . ' on ') . $this->stable($inputChannel),
+                attributes: array_filter([
                     'class' => $invoked?->getInterfaceName(),
                     'method' => $invoked?->getMethodName(),
                     'inputChannel' => $this->stable($inputChannel),
@@ -181,7 +181,7 @@ final class MessageFlowBuildWiringDiscovery
             }
         }
         $id = $this->endpointNodeId($endpointId);
-        $this->nodes[$id] = new FlowNode($id, FlowNodeKind::INTERNAL_HANDLER, $endpointId, ['endpointId' => $endpointId, 'consumer' => 'inboundChannelAdapter', 'build' => true, 'registeredBy' => $this->configuration->getRegisteringModule(Configuration::CONSUMER, $endpointId)]);
+        $this->nodes[$id] = new FlowNode(id: $id, kind: FlowNodeKind::INTERNAL_HANDLER, label: $endpointId, attributes: ['endpointId' => $endpointId, 'consumer' => 'inboundChannelAdapter', 'build' => true, 'registeredBy' => $this->configuration->getRegisteringModule(Configuration::CONSUMER, $endpointId)]);
     }
 
     /**
@@ -204,7 +204,7 @@ final class MessageFlowBuildWiringDiscovery
                     : ($interceptor instanceof MethodInterceptorBuilder ? [$interceptor->getInterceptingInterfaceReference()->getClassName(), $interceptor->getInterceptingInterfaceReference()->getMethodName()] : [$interceptor::class, '']);
                 $id = 'interceptor:' . $class . '::' . $method;
                 if (! $this->declared->hasNode($id)) {
-                    $this->nodes[$id] ??= new FlowNode($id, FlowNodeKind::INTERCEPTOR, $this->shortName($class) . '::' . $method, [
+                    $this->nodes[$id] ??= new FlowNode(id: $id, kind: FlowNodeKind::INTERCEPTOR, label: $this->shortName($class) . '::' . $method, attributes: [
                         'class' => $class,
                         'method' => $method,
                         'position' => $position,
@@ -283,7 +283,7 @@ final class MessageFlowBuildWiringDiscovery
         $id = 'channel:' . $name;
         $this->nodes[$id] ??= $this->declared->hasNode($id)
             ? $this->declared->node($id)
-            : new FlowNode($id, FlowNodeKind::CHANNEL, $name, ['name' => $name, 'pollable' => $this->configuration->isPollableChannel($channelName), 'build' => true, 'registeredBy' => $this->configuration->getRegisteringModule(Configuration::CHANNEL, $channelName)]);
+            : new FlowNode(id: $id, kind: FlowNodeKind::CHANNEL, label: $name, attributes: ['name' => $name, 'pollable' => $this->configuration->isPollableChannel($channelName), 'build' => true, 'registeredBy' => $this->configuration->getRegisteringModule(Configuration::CHANNEL, $channelName)]);
 
         return $id;
     }

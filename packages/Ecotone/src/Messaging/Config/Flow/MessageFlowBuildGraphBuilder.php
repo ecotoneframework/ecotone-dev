@@ -80,7 +80,7 @@ final class MessageFlowBuildGraphBuilder
         foreach ($routingKeys as $busRouting => $entryChannels) {
             foreach ($entryChannels as $entryChannel => $keys) {
                 sort($keys, SORT_STRING);
-                $routes[] = new FlowEdge($busRouting, $entryChannel, FlowEdgeKind::ROUTES_TO, ['routingKeys' => array_values(array_unique($keys)), 'build' => true]);
+                $routes[] = new FlowEdge(from: $busRouting, to: $entryChannel, kind: FlowEdgeKind::ROUTES_TO, attributes: ['routingKeys' => array_values(array_unique($keys)), 'build' => true]);
             }
         }
 

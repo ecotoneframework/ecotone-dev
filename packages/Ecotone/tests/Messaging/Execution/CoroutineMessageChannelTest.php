@@ -43,6 +43,7 @@ use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Test\CoroutineTesting;
 use Ecotone\Test\LicenceTesting;
 use Fiber;
@@ -313,6 +314,46 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(['accepted'], $handler->handled);
         $this->assertNotEmpty($logger->errors);
         $this->assertStringContainsString('failed-tenant', json_encode($logger->errors));
+    }
+
+    public function test_message_a_handler_rejects_is_logged_as_dropped_at_error_level_and_not_handled_again(): void
+    {
+        $logger = new class () extends AbstractLogger {
+            public array $logged = [];
+
+            public function log($level, Stringable|string $message, array $context = []): void
+            {
+                $this->logged[] = [(string) $level, (string) $message];
+            }
+        };
+        $handler = new class () {
+            public array $received = [];
+
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'handle.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->received[] = $payload;
+                if ($payload === 'rejected') {
+                    throw new RejectMessageException('not for this handler');
+                }
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, 'logger' => $logger], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
+            $ecotone->sendCommandWithRouting('handle', 'rejected');
+            $ecotone->sendCommandWithRouting('handle', 'accepted');
+        });
+
+        $this->assertSame(['rejected', 'accepted'], $handler->received);
+        $this->assertSame(
+            [['error', 'Coroutine message channel `async` dropped a message after endpoint `handle.endpoint` failed.']],
+            array_values(array_map(
+                static fn (array $logged): array => [$logged[0], substr($logged[1], 0, 92)],
+                array_filter($logger->logged, static fn (array $logged): bool => str_contains($logged[1], 'dropped a message')),
+            )),
+        );
     }
 
     public function test_sending_outside_a_coroutine_is_refused(): void

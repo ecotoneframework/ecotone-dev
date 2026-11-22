@@ -266,7 +266,8 @@ with no retry count, and `replayAll` goes on to the next message.
 
 Error channels, instant retries, delayed retries and dead letter use the ordinary asynchronous consumer pipeline.
 Without an error channel, the channel and endpoint are logged with the exception and message headers, then the
-message is dropped. Configure an error channel connected to durable storage to retain failures. `#[Delayed]` and
+message is dropped. A message a handler rejects with `RejectMessageException` is such a failure too: it is not
+handled again and is logged as dropped. Configure an error channel connected to durable storage to retain failures. `#[Delayed]` and
 delayed retries wait on native coroutine timers, including when sleep hooks are disabled. Delays wait real time
 unless the flow test clock is pinned (`bootstrapFlowTesting(initialTime: ...)`); replacing the application's clock
 service alone does not shorten them.

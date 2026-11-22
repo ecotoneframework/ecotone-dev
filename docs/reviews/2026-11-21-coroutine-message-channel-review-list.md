@@ -867,3 +867,511 @@ the new framework-tracing test alone on both, `bin/test-agent-skills ecotone-ope
 
 Outside the list: a missing blank line before the new test method in `CoroutineMessageChannelTest.php`, fixed in the
 commit that records this re-review.
+
+## Re-check at 8a63c0a44 (range ffee52a2e..8a63c0a44, 11 commits)
+
+The four sessions re-decided their lists after the flow scenario, the replay routed at its source and the fixes found
+on the way. Each also applied the pending requirement "a component has one path" over `origin/main...HEAD`. Their
+sections follow as they wrote them, with headings one level down.
+
+### Guidelines
+
+#### Re-check at 8a63c0a44
+
+Re-decided, because the commits touch them: GL1–GL10, GL13–GL20, GL22–GL24, GL26, GL27, GL37, GL42–GL47, GL49, GL50.
+The others keep their status from the rounds below.
+
+GL15 — missing — `packages/Ecotone/src/Messaging/Channel/Coroutine/CoroutineMessageChannelModule.php:85`
+      `$this->registerReplay($messagingConfiguration, $interfaceToCallRegistry, $channels)` and
+      `packages/Ecotone/src/Test/Flow/CoroutineFlowScenarios.php:40` `new FlowScenario('…', [...], [...], [...], [...])`
+      pass three and five positional arguments; the neighbouring `registerFailureLogging(configuration: …)` and
+      `EndpointFlowScenarios` (`name: …`) name them — name them (`configuration:`, `registry:`, `channels:`;
+      `name:`, `classesToResolve:`, `services:`, `extensionObjects:`, `stages:`). The edited
+      `DeadLetterHandler.php:84` `replayMessage($messageId, $messagingEntrypoint, $targetChannel)` keeps the shape of
+      the untouched call at `:75`, so it is not counted; naming both is the same fix — skill: framework-service-design
+      18. Deterministic-check candidate (G5), as in rounds 1 and 2
+
+GL1 — covered — new tests boot `bootstrapFlowTesting()` and use `DeadLetterGateway`, `DelayedRetry`, `ErrorContext`,
+      `CoroutineTesting`, `LicenceTesting`; no `src/` class, no SQL, no reflection. Note: the data provider
+      `headers_of_a_dead_letter_replay` writes the internal entrypoint header as the literal
+      `'ecotone.messaging.entrypoint'` (`MessagingEntrypointService::ENTRYPOINT` is `src/`); it is a negative guard
+      that the header grants nothing, so it is not counted
+GL2 — covered — the replay guarantee has a test per path: `replay` and `replayAll`, inside and outside a coroutine,
+      MySQL and PostgreSQL, failing again with and without delayed retries (Dbal `CoroutineMessageChannelTest`)
+GL3 — covered — real coroutines through `CoroutineTesting::runAtOnce`, the exception already named; no fork, socket
+      or wall-clock loop
+GL4 — covered — snake_case, no comments; the only docblocks in changed test code are array shapes in the BuildFlow
+      tooling and the licence markers
+GL5 — covered — every new test reaches the channel through an `#[Asynchronous('async')]` handler
+GL6 — covered — `test_delayed_message_due_in_less_than_a_millisecond_is_handled_without_a_warning` registers its
+      clock at bootstrap and asserts exact results (no warning, handled once), no tolerance
+GL7 — covered — `ReplayChannels` (`DeadLetterHandler`) and `MessageBuilder` (`CoroutineMessageChannelConsumer`)
+      are required parameters the container passes (`DbalDeadLetterBuilder.php:172`,
+      `CoroutineMessageChannelConsumerRegistration.php:52`)
+GL8 — covered — `ReplayChannels` holds a map set in the constructor and never written; no new property elsewhere
+GL9 — covered — `ReplayChannels::of()`, `storedMessageIds()` read; `replay()`, `handleReceived()` are `void`
+GL10 — covered — `DeclaresReplayChannel` and `ConsumedInTheSendingProcess` each have one implementation and invert
+      the dependency across the licence layer: open core (`BasicMessagingModule`, `DeadLetterHandler`,
+      `RecordExecutionCompilerPass`) names no Enterprise class
+GL13 — covered — `replayAll()` is two steps (`storedMessageIds()`, then `replayMessage()` per id)
+GL14 — covered — `ReceivedMessage`, `ReplayChannels`, `CoroutineFlowScenarios` are `final` with `strict_types`; the
+      two interfaces have `strict_types`
+GL16 — covered — added docblocks are array shapes and `@param X[]` only; the YAML comments are not PHP
+GL17 — covered — "replay channel" (`DeclaresReplayChannel`, `replayChannelName()`, `ReplayChannels`,
+      `REPLAY_CHANNEL_PREFIX` `ecotone.coroutine_message_channel.replay.`) and "consumed in the sending process"
+      (marker, `SpanAttribute::EXECUTION_CONSUMED_IN_THE_SENDING_PROCESS`, `consumed_in_the_sending_process`) each
+      keep one word; the recording's "on a coroutine of the sending process" is the label shown to the reader
+GL18, GL19, GL20 — covered — `Api/` gains `CoroutineMessageChannelBuilder::replayChannelName(): string` and a
+      `SpanAttribute` constant; no `src/` type in a signature, and the builder already carries container plumbing
+      (`compile()`) as every channel builder does
+GL22 — not-apply (unchanged) — the new span attribute and replay channel prefix are not message headers
+GL23 — covered — the refusal at `CoroutineMessageChannelHoldingInterceptor.php:40` names the new case (a replay
+      outside a coroutine retried with a delay) and its way out (replay inside a coroutine); both are asserted in
+      Dbal `test_replay_outside_a_coroutine_that_fails_again_on_an_endpoint_with_delayed_retries`, and the two Core
+      tests assert the changed text
+GL24, GL26 — covered — no new configuration; the replay handler is registered in `prepare()`
+GL27 — covered — nothing an application configures was added
+GL37 — covered — the open-core files (`ReplayChannels`, `DeclaresReplayChannel`, `ConsumedInTheSendingProcess`,
+      `ReceivedMessage`, `InterceptedConsumerRunner::handleReceived()`, `DeadLetterHandler`, `ChannelSendRecording`,
+      `RecordedExecution`, `RecordExecutionCompilerPass`) carry `licence Apache-2.0` and no licence branch; for an
+      application without the channel they behave as before (`ReplayChannels::of()` answers the channel itself).
+      The `replayAll` fix (79fe831ce) changes open-core behaviour for everyone, as a bug fix, not as Enterprise
+      behaviour
+GL42 — covered — the seven new spec rows name tests that are all in the tree (checked by name)
+GL43 — covered — the channel is new in 2.0; the `replayAll` change is a fix that asks nothing of an application
+GL44 — covered — the new T4 sentence ships as `check:flow-catalogue` (`bin/check-flow-catalogue.php:50`) with its
+      own cases in `bin/test-check-flow-catalogue.php`, registered in `framework-agent-tooling`
+GL45 — covered — T4 stays in `framework-testing`; the open-swoole sentence in `api/skills/ecotone-open-swoole`
+GL46 — covered — new grader `coroutine-flow-scenario/graders/rule-t4.md`; `bin/test-agent-skills framework-testing`
+      four cases 1.00 (`var/r9-report.txt:35`), `ecotone-open-swoole` two cases 1.00 (`var/r10-report.txt:51`). The
+      review-list row and the agent-tooling table row are not rules with graders
+GL47 — covered — the `coroutine-flow-scenario` prompt carries its own example (`SameWorkerChannelBuilder`) and does
+      not quote T4
+GL49 — covered — every named class and method resolves in the tree
+GL50 — covered — all 11 subjects are conventional and scoped (`feat(flow)`, `fix(tracing)`, `ci(flow)`,
+      `feat(check)`, `docs(skills)`, `refactor(tracing)`, `refactor(core)`, `docs(core)`, `fix(dbal)`, `fix(core)`)
+
+#### Proposed one-path requirement, over origin/main...HEAD
+
+"A component has one path: no added if/match/?: on the message path, or in the code that wires it, reads the
+scenario … to select how a message is handled or to let it past a refusal; configuration known at boot is not
+branched on at runtime; nothing the framework already does gets a second implementation."
+
+Breaks it (not counted above; the first two are on the message path of other features):
+
+1. `packages/Ecotone/src/Messaging/Channel/Coroutine/CoroutineMessageChannelConsumerStopInterceptor.php:40`
+   (registered at `CoroutineMessageChannelModule.php:244` on `OnConsumerStop::CONSUMER_STOP_CHANNEL_NAME`): every
+   consumer-stop event of the application is compared with the boot-known channel names, and the match is dropped.
+   It reads the scenario (which consumer stopped) on another feature's path, and it also drops the stop event of
+   any other endpoint whose id equals a channel name. Fix: wire the channel's internal consumer at build so it
+   publishes no consumer-stop event, as `CoroutineMessageChannelConsumer::withoutSignalHandling()` already does for
+   signals, and delete the interceptor. This reverses my round-2 call that the interceptor is sound
+2. `packages/Ecotone/src/Messaging/Channel/Coroutine/CoroutineMessageChannelFailureLogger.php:56-57`: `log()` is an
+   around interceptor on every `AsynchronousRunningEndpoint` (`CoroutineMessageChannelModule.php:224`) and decides on
+   each failure, from `POLLED_CHANNEL_NAME` against the boot-known channel names, whether to log. Which endpoints
+   consume the channel is known at boot (a chain with another channel is refused). Fix: point it only at the
+   channel's endpoints, as `recordFailedEndpoint` already is (`:210-216`), and drop the `in_array`
+3. `packages/Ecotone/src/Messaging/Channel/Coroutine/CoroutineMessageChannelSleep.php:38-44`: every sleep picks
+   OpenSwoole or Swoole and `usleep` or `sleep`; the loaded extension is known at boot. Fix: choose the
+   implementation when the container is built (one sleep per runtime, or the callable resolved once)
+4. `packages/Ecotone/src/Tracing/Execution/ChannelSendRecording.php:65` (open core): the boot-known
+   `$consumedInTheSendingProcess` is branched on at every send. Fix: `RecordExecutionCompilerPass` passes the
+   attributes to add (`[SpanAttribute::EXECUTION_CONSUMED_IN_THE_SENDING_PROCESS => true]` or `[]`) and the send
+   spreads them
+
+Holds it:
+- `CoroutineMessageChannelHoldingInterceptor.php:39` reads "inside a coroutine", but it is the refusal itself, and
+  nothing lets a message past it since the `DLQ_MESSAGE_REPLIED` exemption was deleted (1bfa66b05, 14a2caa4b); the
+  channel's `getCid() < 1` in-place branch is deleted too
+- `DeadLetterHandler` sends every replay on one path; `ReplayChannels` is built at boot from
+  `DeclaresReplayChannel`, and `of()` looks the stored message's own target up in it
+- The replay reuses the endpoint's pipeline (`InterceptedConsumerRunner::handleReceived()` over
+  `PollToGatewayTaskExecutor` with a one-message `ReceivedMessage` poller): no second implementation
+- `RecordExecutionCompilerPass.php:172` reads the channel's declared marker at build, not at runtime;
+  `RecordedExecution.php:218` reads the recorded span's own attribute
+- `CoroutineMessageChannel::send()` branches on the message's own delivery-delay header, which is content
+- `extension_loaded` in `CoroutineMessageChannelModule` refusals runs at boot; `FlowScenario::runsOnThisPhp()` is test
+  support, off the message path
+
+
+### Breaking changes
+
+NOT PASSED: OP1 (the one-path requirement the coordinator asked to apply; the BC section itself has nothing missing)
+
+Breaking-changes review at 8a63c0a44. New range ffee52a2e..8a63c0a44 (11 commits); the one-path requirement checked
+over origin/main...HEAD. The release is still the 2.0.0 major (latest tag `2.0.0-beta.10`, `dev-main: 2.0.x-dev`).
+
+Re-decided because the new commits touch them: BC1, BC3, BC4, BC5, BC6, BC8. BC2 and BC7 were checked against the
+range and keep their status. OP1 is new.
+
+#### Missing
+
+OP1 — missing — "A component has one path". Five places in origin/main...HEAD branch at runtime on something known at
+boot or on another feature's scenario to choose how a message is handled. Each line gives what an application gets and
+the fix.
+
+- packages/Ecotone/src/Messaging/Channel/Coroutine/CoroutineMessageChannelFailureLogger.php:56-57
+  - Branch: `log()` wraps every `AsynchronousRunningEndpoint` of the application (CoroutineMessageChannelModule.php:224).
+    On each failure it reads `POLLED_CHANNEL_NAME` and checks it against the channel list known at boot, to decide
+    whether this endpoint is a coroutine channel's.
+  - Effect: once one coroutine channel is registered, every asynchronous endpoint of the application, on every
+    channel, runs this check.
+  - Fix: attach the drop log only to the coroutine channels' own consuming endpoints (at boot, by endpoint id or on
+    the channel's consumer), with no header test.
+- packages/Ecotone/src/Messaging/Channel/Coroutine/CoroutineMessageChannelConsumerStopInterceptor.php:40
+  - Branch: an interceptor on the shared `OnConsumerStop` channel compares each stop message's payload with the boot
+    list and drops the message when it is a coroutine channel's. This is a second path for consumer stop, picked per
+    message.
+  - Fix: build the channel's internal consumer so that it sends no consumer-stop notification. This is how signal
+    handling is switched off (`withoutSignalHandling`, CoroutineMessageChannelConsumerRegistration.php:44-46), so
+    nothing has to filter the shared channel.
+- packages/Ecotone/src/Messaging/Channel/Coroutine/CoroutineMessageChannelSleep.php:38-40
+  - Branch: every sleep asks `extension_loaded('openswoole')` and `method_exists(..., 'usleep')`, although which
+    runtime is loaded is fixed when the process boots.
+  - Fix: pick the Swoole or OpenSwoole sleep once, when the container is built or when the service is constructed.
+- packages/Dbal/src/Connection/ConnectionPool.php:153
+  - Branch: `if ($this->connectionPoolWaitSeconds <= 0.0) throw` runs on each exhausted acquire, testing the pool wait
+    fixed when the connection was registered.
+  - Fix: decide in the constructor how an exhausted pool answers (refuse at once, or wait N seconds), and have the
+    acquire path call that one answer.
+- packages/Ecotone/src/Tracing/Execution/ChannelSendRecording.php:65
+  - Branch: a ternary on the boot-time `$consumedInTheSendingProcess` flag, evaluated on every send.
+  - Fix: compute the extra span attributes once, in the constructor or the compiler pass, and spread them
+    unconditionally.
+
+Skill to cover it: `framework-service-design` (step-list orchestration, configuration compiled to Definitions).
+
+Judged as meeting OP1:
+- `ReplayChannels::of()` (packages/Ecotone/src/Messaging/Handler/Recoverability/ReplayChannels.php:35) is a map built
+  at boot; `DeadLetterHandler` always sends to `of($entrypoint)` (DeadLetterHandler.php:164), one path with no branch.
+- The outside-a-coroutine refusal (CoroutineMessageChannelHoldingInterceptor.php:39) is the refusal itself. Its
+  `DLQ_MESSAGE_REPLIED` way past it is now deleted, as is the channel's `getCid() < 1` in-place branch.
+- `InterceptedConsumerRunner::handleReceived()` reuses `PollToGatewayTaskExecutor` with a one-message poller
+  (`ReceivedMessage`); it does not handle the message a second way.
+- `RecordExecutionCompilerPass` reading the `ConsumedInTheSendingProcess` marker (:172) and `RecordedExecution:218`
+  reading the span attribute only choose a recording label, not how a message is handled.
+- The module's refusals run at boot.
+- The `CoroutineMessageChannelRelease` hold-or-pass (`$state->active`) is the channel's own release mechanism: hold
+  while the sending entry runs, re-entrancy for nested calls. Reported for the maintainer's attention, not counted.
+
+#### Covered
+
+BC1 — covered — re-decided. The range adds one stored key and keeps the stored forms readable:
+- The new span attribute `ecotone.execution.consumed_in_the_sending_process`
+  (packages/Ecotone/Api/Tracing/SpanAttribute.php:38) is written only on the send span of a coroutine channel
+  (ChannelSendRecording.php:65), into the JSON attributes of the trace store (DbalTraceStore.php:96, :293). It needs
+  no column, and spans stored without it read as before (`?? false`, RecordedExecution.php:218).
+- A replayed dead letter's `ENTRYPOINT` is `ReplayChannels::of($entrypoint)`, which is the channel itself for every
+  channel that declares no replay channel (ReplayChannels.php:35-38). Only a coroutine channel's message is routed
+  differently.
+- Stored dead-letter rows and their headers are unchanged. No table, column or event store key changes.
+
+BC3 — covered — re-decided. Changes to the public surface:
+- `CoroutineMessageChannelBuilder` (final, new on this branch) gains `implements DeclaresReplayChannel` and the new
+  method `replayChannelName()` (:25, :51). Additive.
+- `SpanAttribute` gains the constant `EXECUTION_CONSUMED_IN_THE_SENDING_PROCESS` (:38). Additive.
+- `DbalDeadLetterBuilder` changes only inside `compile()`, adding `Reference::to(ReplayChannels::class)` (:172). Its
+  signatures are the same.
+
+Open-core points the coordinator named, from the upgrade side:
+- `DeadLetterHandler`'s new required `ReplayChannels` dependency (DeadLetterHandler.php:32): it is a final `src/`
+  class built only by `DbalDeadLetterBuilder`, which passes it. `ReplayChannels` is registered unconditionally by
+  `BasicMessagingModule` (:154), so every container has it and no application constructs `DeadLetterHandler` itself.
+  Not a BC break.
+- The new public `InterceptedConsumerRunner::handleReceived()` (:63) is on a non-final `src/` class that nothing in
+  `packages/*/src` or `Api` extends. It is not public API; adding a method breaks nobody.
+- The `Api/` builder implementing a `src/` interface (`DeclaresReplayChannel`, licence Apache-2.0) exposes nothing an
+  application has to implement, so it is safe for BC. Whether a `src/` interface may sit on an `Api/` class is
+  framework-public-api's boundary rule, for the guidelines session.
+
+Everything decided at b0c74d831 stands: the Dbal and Symfony pool-wait additions and the new builder.
+
+BC4 — covered — re-decided. No existing default changes in the range. `ReplayChannels::of()` defaults to the channel
+itself, so a dead letter still goes back to the channel it was polled from. The pool-wait default stays 5.0
+(ConnectionPool.php:21).
+
+BC6 — covered — re-decided.
+- The pool-wait entry is unchanged at upgrade-2.0.md:3066-3067 and :3083.
+- `replayAll()` (DeadLetterHandler.php:83-101) now lists the stored ids first and replays each once.
+  - For an ordinary asynchronous channel a replay only re-enqueues, so the message cannot come back into the dead
+    letter during the call, and every message present when the call starts is still replayed.
+  - The only difference: a message that another consumer dead-letters while `replayAll` runs waits for the next call.
+    Before, whether such a message was picked up depended on timing, so no application can rely on it, and it needs
+    no Before/Now entry.
+  - The old `while (list(100, 0))` loop could only spin on a replay that fails again in-process, which is the
+    synchronous coroutine replay this branch adds.
+- The dead-letter replay of a coroutine channel's message and the new refusal of a delayed retry from a replay
+  outside a coroutine belong to the new opt-in channel. Nothing changes for applications without it
+  (CoroutineMessageChannelModule.php:75; `registerReplay` at :85 / :231 runs only past that return).
+- The build-flow baseline's extra `ReplayChannels` registration in `shared.json` is a new container service. It is
+  not observable by application code.
+
+BC8 — covered — re-decided; this range writes one new key to a shared table, the trace store's span attributes.
+- New writer, old reader: the old reader ignores the unknown JSON key.
+- Old writer, new reader: the new reader defaults it to false (RecordedExecution.php:218).
+- Dead-letter rows written by either version replay the same way in the other, because `ENTRYPOINT` differs only
+  for a coroutine channel, which the old version does not have.
+
+#### Not-apply
+
+BC2 — not-apply — no stored form changes in a way that needs a migration step; the new span attribute is an
+optional JSON key (see BC1).
+
+BC5 — not-apply — re-decided. No console command name or option changes. `ecotone:deadletter:replayAll` keeps its
+name and options; its once-per-message behaviour is decided under BC6.
+
+BC7 — not-apply — the release is a major. The new behaviour is opt-in apart from the `replayAll` timing point under
+BC6.
+
+Pending with the maintainer, unchanged and not counted:
+- the default of 10 coroutines;
+- the unbounded `maximumDelay()`;
+- the public `$messageChannelName`;
+- the two public pool-wait default constants.
+
+Counts (BC section): not-apply 3 (BC2, BC5, BC7) / covered 5 (BC1, BC3, BC4, BC6, BC8) / missing 0.
+OP1: missing.
+
+### Developer experience
+
+#### Re-check at 8a63c0a44 (ffee52a2e..HEAD, 11 commits)
+
+Re-decided: DX1, DX6, DX7, DX8, DX9 (the commits change what a user sees on dead-letter replay, the refusal text, the
+recording label and the public builder). Not touched, statuses kept: DX2, DX3, DX4, DX5, DX10 (no new option,
+setting or attribute; the flow-scenario tooling `needingACoroutineRuntime()` is framework test support, not end-user
+surface).
+
+##### Missing
+
+DX7 — missing — `packages/Ecotone/src/Messaging/Channel/Coroutine/CoroutineMessageChannelHoldingInterceptor.php:39-41`,
+`packages/Dbal/tests/Integration/CoroutineMessageChannelTest.php:332-373` — a replay that fails again hides the
+handler's failure. Setup: `#[Asynchronous('notifications', asynchronousExecution: [new DelayedRetry(...,
+deadLetterChannel: DbalDeadLetterBuilder::STORE_CHANNEL)])]`, the resilient setup `ecotone-resiliency` recommends.
+An operator replays with `ecotone:deadletter:replay` / `replayAll` (a console command, so outside a coroutine) or
+`DeadLetterGateway::replay()` from a script. The handler runs, fails again, and the delayed retry is sent to the
+channel outside a coroutine. What the user gets: a `ConfigurationException` "cannot send outside a Swoole or
+OpenSwoole coroutine", not `handling failed`. The message stays in the dead letter under its id, so nothing is lost,
+but `replayAll` stops at that message, so later messages are not replayed. The way out the refusal names, "replay
+inside a coroutine", cannot be taken with Ecotone's own replay command (Ecotone has no switch to run a console
+command in a coroutine). The retry count also starts again on a replay. What to do (maintainer's choice; the
+implementer proposes it in r11 §4): give the replay a failure path that works outside a coroutine. For example, the
+replay channel's endpoint is built at boot without the delayed-retry step, so a replay that fails again goes back to
+the dead letter under the same id with the handler's exception, and `replayAll` goes on. Or the delayed retry of a
+replayed message is sent through the channel's replay channel and not through the channel itself. Either is one path
+fixed at boot, with no runtime branch. Then add a test asserting the handler's exception (or the re-stored dead letter
+entry and its exception), and a sentence in skill §7 (`SKILL.md:261-263`). Until then the refusal should at least
+carry the handler's exception as `previous`. — skill: `framework-error-handling`
+
+##### Covered (re-decided)
+
+DX1 — covered — the common-case code (builder, `#[Asynchronous]`, sender, pool size, test swap) is unchanged. A
+replay needs nothing new from the user, and skill §7 says where it runs (`SKILL.md:261-263`).
+
+DX6 — covered — a replay on this channel runs synchronously, before `replay()` returns, in the replaying code. A
+replay on a queue or broker channel puts the message back on the channel for a consumer. The difference is
+justified: the channel exists only in the memory of a sending process, and the replayer is that sender. It is stated
+in the skill and asserted by Dbal
+`test_replay_inside_a_coroutine_handles_the_message_in_the_replaying_coroutine_before_the_replay_call_returns`. The
+`replayAll` change for every channel (79fe831ce: each message stored when the call starts is replayed once, no endless
+loop) is the better default. That it is a behaviour change for open-core users is for the breaking-changes session.
+
+DX8 — covered — unchanged. The replay change adds no less-safe behaviour (a replay keeps the endpoint's transaction,
+instant retries and error channel), and the DX7 case keeps the message.
+
+DX9 — covered — the recording now reads "on a coroutine of the sending process" instead of "a separate consumer run"
+(`RecordedExecution.php:218`), which is true and in the user's words. The refusal names its fourth cause in user
+terms. Nit, not counted: `CoroutineMessageChannelBuilder::replayChannelName()` (`CoroutineMessageChannelBuilder.php:51`)
+is now a public method on an `Api/` builder, exposing an internal channel name
+(`ecotone.coroutine_message_channel.replay.<name>`) that no user calls. That is the price of the open-core seam
+`DeclaresReplayChannel`.
+
+Counts: not-apply 0, covered 9, missing 1.
+
+#### Pending requirement "a component has one path" (applied as asked, not counted above)
+
+Breaks it in origin/main...HEAD:
+
+1. `CoroutineMessageChannelFailureLogger.php:49-61` (`log`, registered around every `AsynchronousRunningEndpoint`,
+   `CoroutineMessageChannelModule.php:224`) reads another feature's header, `polledChannelName`, at runtime to decide
+   whether to log an error, although which endpoints sit on a coroutine channel is known at boot. It is also a second
+   final-failure log next to the one the framework already writes for `FinalFailureStrategy::IGNORE`
+   (`AcknowledgeConfirmationInterceptor.php:102-108`). One path: register the logging only on the endpoints of the
+   channel (the pointcut is known at boot), or improve the framework's IGNORE log (level, endpoint, headers) for
+   every channel.
+2. `CoroutineMessageChannelConsumerStopInterceptor.php:38-41` inspects the payload of every consumer-stop event at
+   runtime against the channel names known at boot, to let it through or drop it. One path: the channel's internal
+   consumer is built at boot so that it does not publish the consumer-stop event (or its `#[OnConsumerStop]` wiring
+   leaves those endpoints out).
+3. `CoroutineMessageChannelSleep.php:37-44` picks the Swoole or OpenSwoole API on every sleep with
+   `extension_loaded()` / `method_exists()`. The runtime is known at boot: register one sleep for the loaded runtime.
+4. Probably: `CoroutineMessageChannelHoldingInterceptor.php:43` with `CoroutineMessageChannelRelease::hold()` (`:7-14`
+   of the method). A message sent with no release boundary active is handed over at once instead of being held. That
+   reads the runtime situation (is a boundary active) to choose how the message is handled. The spec says no userland
+   entry reaches it, so it is a second path. Refuse it, or prove which internal send needs it. (The nested-boundary
+   `if ($state->active) return proceed` in `release()` is the outermost-boundary rule itself, and I do not count it.)
+5. Nit: `ChannelSendRecording.php:65` uses a `?:` on a flag known at boot. It could take its fixed attributes at
+   construction.
+
+Keeps it: the outside-a-coroutine refusal (a refusal, and the old `DLQ_MESSAGE_REPLIED` exemption is deleted),
+`ReplayChannels::of()` (one map lookup, built at container build), `DeadLetterHandler` (one send path), the
+compile-time `is_a(ConsumedInTheSendingProcess)`, `InterceptedConsumerRunner::handleReceived()` (the endpoint's
+existing executor and gateway, not a second invocation), and the boot-time refusals in the module.
+
+### Behaviour
+
+#### Re-check at 8a63c0a44 (range ffee52a2e..8a63c0a44, 11 commits)
+
+##### Missing
+
+OP — missing — the one-path requirement, applied to `git diff origin/main...HEAD`. Four locations break it; each
+reads the scenario at runtime, or branches at runtime on what is known at boot:
+1. `packages/Ecotone/src/Messaging/Channel/Coroutine/CoroutineMessageChannelFailureLogger.php` (`log()`, the
+   `POLLED_CHANNEL_NAME` / `in_array($channelName, $this->channelNames)` branch). The around interceptor is
+   registered on every `AsynchronousRunningEndpoint` of the application (`CoroutineMessageChannelModule.php:220-225`).
+   At runtime it reads another feature's header to pick between logging and not logging. Scenario: a failing
+   handler on an ordinary DBAL channel passes through the coroutine channel's code and is told apart by its header.
+   Fix: decide at boot which endpoints get the logger (the channel's handlers are already known there, see
+   `recordFailedEndpoint`'s pointcut), so the logger has one path: it always logs. Skill: `framework-service-design`.
+2. `packages/Ecotone/src/Messaging/Channel/Coroutine/CoroutineMessageChannelConsumerStopInterceptor.php`
+   (`preSend`, `in_array($message->getPayload(), $this->channelNames) ? null : $message`). It sits on the shared
+   `OnConsumerStop::CONSUMER_STOP_CHANNEL_NAME` and reads each stop event's payload (the stopping endpoint id)
+   to drop those of the channel's internal consumer. Scenario: the internal consumer drains and emits a stop
+   event that it should never emit, and a second component filters it out by name. Fix: wire the channel's
+   consumer at boot, in `CoroutineMessageChannelConsumerRegistration`, so it emits no stop event. Then the filter
+   and its builder go away. Skill: `framework-service-design`.
+3. `packages/Ecotone/src/Messaging/Channel/Coroutine/CoroutineMessageChannelSleep.php` (`sleep()`:
+   `extension_loaded('openswoole') ?:` and `method_exists($system, 'usleep')`, with 8a63c0a44's `max()` in the
+   Swoole branch). On every sleep it branches on which runtime is loaded, which is known at boot. Fix: pick the
+   Swoole or the OpenSwoole wait when the container is built (one sleep class per runtime, or the choice made once
+   by the module). Then each has one path. Skill: `framework-service-design`.
+4. Minor: `packages/Ecotone/src/Tracing/Execution/ChannelSendRecording.php:65`
+   (`$this->consumedInTheSendingProcess ? [...] : []`). It branches on every send on a flag the compiler pass fixed
+   at boot. It follows the class's existing `queued` / `onlyFlowTestingIntercepts` pattern and changes only a
+   span attribute, not how a message is handled. Fix: let `RecordExecutionCompilerPass` pass the extra attributes
+   array. Skill: `framework-service-design`.
+
+Checked and not a break of OP:
+- `CoroutineMessageChannelHoldingInterceptor::preSend` `getCid() < 1`: a refusal of a situation only known at
+  send time. The exemption that let a message past it (`DLQ_MESSAGE_REPLIED`) is deleted by 14a2caa4b, and so is
+  the channel's in-place branch (`CoroutineMessageChannel::enqueue`).
+- `DeadLetterHandler` with `ReplayChannels::of()`: one path for every channel. The lookup map is built at boot and
+  no kind of channel is probed. `InterceptedConsumerRunner::handleReceived` reuses the endpoint's own
+  `PollToGatewayTaskExecutor` and gateway: no second implementation.
+- `ConnectionPool` `connectionPoolWaitSeconds <= 0.0`: probed in both containers, and Channel `pop(0.0)` waits
+  forever on Swoole and OpenSwoole (deadlock). So "do not wait" cannot be a pop argument; the branch carries the
+  value's meaning, not a scenario.
+- `RecordExecutionCompilerPass` `is_a(..., ConsumedInTheSendingProcess)` and `RecordedExecution` reading the span
+  attribute: these describe the wiring in the recording and select no handling.
+- The holding interceptor alongside the message collector: the spec records that the collector releases inside
+  the transaction and cannot give after-commit delivery, so this is not a second implementation of something the
+  framework does.
+- Release state (`active`), the channel's delay header and its coroutine limit are the mechanism itself. The
+  module's refusals and `waitOnThePinnedTestClock` are decided at boot.
+
+##### Re-decided by this range (each with its proof)
+
+BH1 — covered — (a) the flow comparison shows the channel: swoole compare "1 of 96 scenarios changes its message
+path", and the new scenario carries `taken by: process 2, on a coroutine of the sending process`
+(var/rv10-compare-swoole.md:158). (b) A dead-letter replay runs the endpoint in the replaying code, before the
+replay call returns. (c) replayAll replays each stored message once. (d) A delay under 1 ms waits on Swoole.
+
+BH2 — covered — every new test has red-first evidence:
+- `BuildFlowBaselineTest::test_a_snapshot_of_a_scenario_this_php_cannot_run_is_kept_by_snapshot_and_passed_over_by_check_and_compare`:
+  r9 says snapshot deleted the file.
+- The two new `bin/test-check-flow-catalogue.php` cases: r9.
+- The label assertion in `test_handler_on_the_channel_is_recorded_when_framework_tracing_records_the_execution`:
+  r9.
+- Dbal `test_replay_inside_a_coroutine_handles_the_message_in_the_replaying_coroutine_before_the_replay_call_returns`:
+  r10, the handler had not run when replayAll returned. Its `_on_postgresql` twin proves the same claim on another
+  engine.
+- Core `test_send_outside_a_coroutine_carrying_the_headers_of_a_dead_letter_replay_is_refused` (both rows): r10
+  for the one-header row; the both-headers row was handled as a replay at 1bfa66b05 (r10 finding D2).
+- `test_send_inside_a_coroutine_carrying_the_headers_of_a_dead_letter_replay_is_handled_on_another_coroutine_like_any_send`:
+  red at 1bfa66b05 by the diff, where the replay interceptor handled it in place.
+- `test_replaying_all_replays_a_message_that_fails_again_once`: r11, 5 runs instead of 2.
+- `test_replay_outside_a_coroutine_that_fails_again_on_an_endpoint_with_delayed_retries`: asserts the new refusal
+  wording, so it is red before 14a2caa4b.
+- `test_delayed_message_due_in_less_than_a_millisecond_is_handled_without_a_warning`: r11, red on Swoole.
+
+Passes either way, which is fine as a pin: `test_replay_that_fails_again_is_back_in_the_dead_letter`.
+
+BH3 — covered — the replay is proven by `replay($id)` and `replayAll()`, inside and outside a coroutine. It runs on
+MySQL in the list run, and on PostgreSQL in the Swoole-only twin (r11 also ran MariaDB). `DeadLetterHandler` is
+shared by the DBAL and in-memory stores (one path), and the store paging used by the new replayAll loop is proven
+on both stores by `DeadLetterConformanceTest::test_a_limit_caps_the_page_and_an_offset_skips_that_many_of_the_most_recent`.
+Note, not blocking: no test replays more than 100 messages through replayAll's new offset loop.
+
+BH5 — covered — a replay that fails again goes back to the dead letter
+(`test_replay_that_fails_again_is_back_in_the_dead_letter`). A replay outside a coroutine on an endpoint with
+delayed retries is refused with a message naming the way out, and the message stays under its id
+(`test_replay_outside_a_coroutine_that_fails_again_on_an_endpoint_with_delayed_retries`).
+
+BH6 — covered — `test_replaying_all_replays_a_message_that_fails_again_once`.
+
+BH7 — covered — the replay runs in the replaying coroutine while the channel's coroutines keep polling (Dbal replay
+test). replayAll runs serially in the caller.
+
+BH9 — covered — forged replay headers are an ordinary send: refused outside a coroutine, held inside one (the two
+Core data-provider tests). An unmarked coroutine scenario is refused by `bin/check-flow-catalogue.php` (its cases
+pass in `bin/test-check-flow-catalogue.php`, per r9).
+
+BH10 / V8 — covered — dead letter combined with the channel (the Dbal replay tests); execution recording (the
+label test); DBAL flow tracking (`FlowTrackingScenarioConformanceTest` on swoole, 192 OK, with the scenario's
+`endingAfterTheTransaction()` send span not stored). The maintainer still has to decide on the send span that is
+not stored (r9 "Decision I took").
+
+BH11 — covered — `test_delayed_message_due_in_less_than_a_millisecond_is_handled_without_a_warning` (scripted
+clock).
+
+BH12 — covered — the new tests go through `DeadLetterGateway`, handlers and the bus; the only `src` import is
+`ConfigurationException` for the asserted refusals, as before.
+
+BH13 — covered:
+- `bin/test-agent-skills framework-testing` (var/rv10-skills.log): coroutine-flow-scenario 1.00,
+  cross-service-test 1.00, new-flow-scenario 1.00, write-feature-test 1.00.
+- `ecotone-open-swoole` also changed in this range (7b7087aef, the replay sentence; r11 says no skill changed,
+  but this one did). Rerun (var/rv10-skills-swoole.log): consume-on-coroutines 1.00, send-in-process 1.00. The
+  sentence is reference text in §7, not a rule, so it needs no grader.
+- The changed T4 has the new case `coroutine-flow-scenario`.
+
+BH15-BH18 — covered — `ReplayChannels` is immutable and built at boot, and `handleReceived` builds a fresh executor
+and `ReceivedMessage` per call. The replay holds no state on a shared service and adds no new wait. The
+sub-millisecond fix only clamps the timer.
+
+BH19 — covered — the only new endpoint is the replay handler on a direct channel (`ecotone.coroutine_message_channel.replay.<name>`).
+It is not pollable, so it cannot be started with `ecotone:run` and there is nothing for `ConsumerCoroutines` to
+refuse.
+
+BH21 — covered — every new coroutine test sits in a listed file. `TracingFlowConformanceTest` and
+`OpenTelemetryFlowConformanceTest` were added to `COROUTINE_TESTS`, and Dbal `FlowTrackingScenarioConformanceTest`
+got its own Swoole step (`test-monorepo.yml:312`).
+
+BH22 — covered:
+- The channel now has the scenario `CoroutineFlowScenarios::asynchronousHandlerOnCoroutineMessageChannelRunsInTheSendingProcess`,
+  listed in `all()` and in `FlowScenarioCatalogue::all()`, marked `needingACoroutineRuntime()`. The baseline is
+  untouched.
+- The coroutine replay has no scenario, for a reason the PR body must state: the dead letter lives in the Dbal
+  package and the catalogue in core cannot use it; the catalogue has no dead-letter replay scenario for any channel.
+- The replay's wiring (replay channel and handler) shows in the channel scenario's wiring diff.
+
+Not touched by this range, so unchanged: BH4, BH8, BH14, BH20 (not-apply).
+
+##### Runs on 8a63c0a44 (worktree root, one at a time, nothing else running)
+
+- swoole, CI command, COROUTINE_TESTS (12 files): OK (327 tests, 992 assertions), var/rv10-swoole.log
+- openswoole, CI command, COROUTINE_TESTS: OK (317 tests, 979 assertions), var/rv10-openswoole.log. These two runs
+  include the Dbal CoroutineMessageChannelTest and the flow conformance tests.
+- swoole, Dbal `FlowTrackingScenarioConformanceTest` with `--fail-on-skipped` (the new CI step): OK (192 tests),
+  var/rv10-flowtracking-swoole.log
+- app, dead letter: `DeadLetterTest` and `Recoverability/` OK (28 tests), var/rv10-deadletter-app.log; then
+  `DeadLetterConformanceTest`, `PulseDeadLettersTest`, `PulseDeadLettersFromFailuresTest`,
+  `DbalErrorChannelCommandBusTest` and `CollectorModuleTest` OK (170 tests), var/rv10-deadletter-app-2.log; then
+  Amqp `DistributedDeadLetterTest` OK (1), var/rv10-deadletter-amqp.log
+- app, flow conformance and flow tooling: Tracing, OpenTelemetry and Dbal flow conformance,
+  `Messaging/Unit/Config/Flow`, the three ExecutionRecording tests: OK (932 tests, 1 skipped, which is the
+  orchestrator scenario's `DECIDED_ONLY_AT_RUNTIME`), var/rv10-flow-app.log
+- build-flow compare: app "No scenario of 95 changes its message path. 1 registration changes for every scenario."
+  (`ReplayChannels`), var/rv10-compare-app.md; swoole "1 of 96 scenarios changes its message path. 1 registration
+  changes for every scenario.", var/rv10-compare-swoole.md
+- `bin/test-agent-skills framework-testing`: 4 × 1.00; `bin/test-agent-skills ecotone-open-swoole`: 2 × 1.00
+

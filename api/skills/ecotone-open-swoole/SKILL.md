@@ -259,7 +259,8 @@ This requires Ecotone Enterprise and the `swoole` or `openswoole` extension with
 coroutine: enable `enable_coroutine=true` for HTTP requests (§5), start a sending polling consumer with
 `ecotone:run <source-channel> --coroutines=N`, or execute a sending console command inside a coroutine. A send
 outside a coroutine is refused; an uncaught failure rolls back the sender's Ecotone transaction. A dead-letter
-replay outside a coroutine runs synchronously in place.
+replay does not go through the channel: the handler runs in the code that replays, inside or outside a coroutine,
+before the replay call returns, with the endpoint's transaction, instant retries and error channel.
 
 Error channels, instant retries, delayed retries and dead letter use the ordinary asynchronous consumer pipeline.
 Without an error channel, the channel and endpoint are logged with the exception and message headers, then the

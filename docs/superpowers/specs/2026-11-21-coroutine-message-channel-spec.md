@@ -26,6 +26,9 @@ Test names below are in `packages/Ecotone/tests/Messaging/Execution/CoroutineMes
 | Ordinary error channel and instant retry pipeline | `test_handler_scoped_error_channel_receives_the_failure_and_headers`, `test_polling_metadata_error_channel_receives_the_failure_and_headers`, `test_instant_retry_runs_in_the_ordinary_asynchronous_consumer` |
 | Delays and delayed retries use in-process timers | `test_delayed_message_waits_on_a_coroutine_timer`, `test_delay_header_accepts_durations_and_an_absolute_time`, `test_delayed_retry_returns_to_the_coroutine_channel_after_its_delay`, `test_delayed_message_with_hooks_off_does_not_stall_a_sibling_coroutine`, `test_delays_wait_on_the_coroutine_timer_beside_a_sleep_service_of_the_application`; `TestClockAtBootstrapTest::test_pinned_time_leaves_the_applications_sleep_service_in_place` |
 | DBAL dead letter and synchronous replay outside a coroutine | Dbal `test_failed_message_goes_to_dbal_dead_letter_and_replays_outside_a_coroutine` |
+| A dead-letter replay runs the endpoint in the replaying code, also inside a coroutine | Dbal `test_replay_inside_a_coroutine_handles_the_message_in_the_replaying_coroutine_before_the_replay_call_returns` |
+| A replay that fails again is back in the dead letter | Dbal `test_replay_that_fails_again_is_back_in_the_dead_letter` |
+| A send outside a coroutine is refused, also with the dead-letter replay header | Core `test_send_outside_a_coroutine_carrying_the_dead_letter_replay_header_is_refused` |
 | Independent headers and transactions | Dbal `test_concurrent_messages_keep_their_own_headers_and_transaction` |
 | Tenant connections and deduplication | Dbal `test_each_message_uses_its_tenants_connection`, `test_deduplicated_handler_runs_once_for_the_same_deduplication_key` |
 | Sending to the same channel with limit one completes | `test_a_handler_can_send_to_its_own_channel_with_one_coroutine` |
@@ -53,6 +56,14 @@ queue empty, with nothing able to yield between that check and the release of th
 the limit taken and stayed on the queue. No guarantee is claimed here, because no test holds it: the red-first
 evidence is the test in commit 69baba3a5, which reached the window through a yielding `#[OnConsumerStop]` handler,
 and those handlers are no longer called for the channel (432edbfbd), so the userland surface cannot open it any more.
+
+A dead-letter replay never reaches the channel. `DeadLetterHandler` is unchanged: it sends the replayed message to
+the messaging entrypoint, addressed to the channel it was polled from. `CoroutineMessageChannelReplayInterceptor`, the
+first interceptor of the channel, takes a message that carries `ecotone.dlq.message_replied` and is addressed to the
+channel through the entrypoint (`ecotone.messaging.entrypoint`), before the holding interceptor sees it, and `CoroutineMessageChannelReplay` runs the endpoint's own consumer pipeline for that one message
+in the replaying code (the endpoint's runner with `CoroutineMessageChannelReplayedMessage` as its message source).
+The channel and its holding interceptor have no replay case: a send that is not that replay is refused outside a
+coroutine whatever headers it carries. A delayed retry is not a replay: it is sent to the channel as before.
 
 ## Engine runs
 

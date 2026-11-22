@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tracing;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -328,6 +329,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
             [...$extensionObjects, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             licenceKey: $licenceKey,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
         $run($ecotone);
 
@@ -374,6 +376,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
                 [...$scenario->extensionObjects, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
                 enabledModules: [],
                 licenceKey: LicenceTesting::VALID_LICENCE,
+                initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
             );
             foreach (array_keys($scenario->stages) as $stage) {
                 self::assertNull($scenario->runStage($stage, $ecotone));

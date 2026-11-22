@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
@@ -301,7 +302,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
             $tracerProvider = self::prepareTracer($exporter);
             $application = $running
                 ? EcotoneLite::bootstrap([$handlers::class], [$handlers, TracerProviderInterface::class => $tracerProvider], [$tracing], enabledModules: [ModulePackageList::TRACING_PACKAGE], licenceKey: LicenceTesting::VALID_LICENCE)
-                : EcotoneLite::bootstrapFlowTesting([$handlers::class], [$handlers, TracerProviderInterface::class => $tracerProvider], [$tracing], enabledModules: [ModulePackageList::TRACING_PACKAGE], licenceKey: LicenceTesting::VALID_LICENCE);
+                : EcotoneLite::bootstrapFlowTesting([$handlers::class], [$handlers, TracerProviderInterface::class => $tracerProvider], [$tracing], enabledModules: [ModulePackageList::TRACING_PACKAGE], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
             $request = $tracerProvider->getTracer('the application')->spanBuilder('handle request')->startSpan();
             $scope = $request->activate();
             $application->getCommandBus()->sendWithRouting('order.place', 'coffee');
@@ -339,7 +340,7 @@ final class FrameworkTracingLevelTest extends TracingTestCase
 
         return $running
             ? EcotoneLite::bootstrap($classes, $services, $extensionObjects, enabledModules: [ModulePackageList::TRACING_PACKAGE], licenceKey: LicenceTesting::VALID_LICENCE)
-            : EcotoneLite::bootstrapFlowTesting($classes, $services, $extensionObjects, enabledModules: [ModulePackageList::TRACING_PACKAGE], licenceKey: LicenceTesting::VALID_LICENCE);
+            : EcotoneLite::bootstrapFlowTesting($classes, $services, $extensionObjects, enabledModules: [ModulePackageList::TRACING_PACKAGE], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
     }
 
     private function commandHandled(InMemoryExporter $exporter, TracingConfiguration $tracing, bool $running): void

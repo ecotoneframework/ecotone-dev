@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tracing;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\After;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Around;
@@ -72,6 +73,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [$orders, $interceptors],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )->sendCommandWithRouting('order.place', 'order-1');
 
         self::assertSame(
@@ -122,6 +124,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [$orders, $interceptors],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )->sendCommandWithRouting('order.place', 'order-1');
 
         self::assertSame(
@@ -174,6 +177,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [$orders, $interceptors],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )->sendCommandWithRouting('order.place', 'order-1');
 
         self::assertSame(
@@ -214,6 +218,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [$orders],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )
             ->sendCommandWithRouting('order.place', 'order-1')
             ->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
@@ -311,6 +316,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [$orders],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )->sendCommandWithRouting('order.place', 'order-1');
 
         self::assertSame(
@@ -397,6 +403,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [$orders, $interceptors],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )->sendCommandWithRouting('order.place', 'order-1');
 
         self::assertSame(
@@ -426,6 +433,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [$orders],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )
             ->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages())
             ->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
@@ -469,6 +477,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $this->expectExceptionMessage('A #[Gathered] handler requires a gathering group opened by its splitter.');
@@ -497,6 +506,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [$orders, $interceptors],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         try {
@@ -548,6 +558,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [$endpoints],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $ecotone->sendDirectToChannel('order.normalize', 'a');
@@ -593,6 +604,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )
             ->sendCommandWithRouting('order.place', 'order-1')
             ->sendCommandWithRouting('order.confirm', 'order-1')
@@ -628,6 +640,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [$orders],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders'), SimpleMessageChannelBuilder::createQueueChannel('notifications')],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
@@ -670,6 +683,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             [$orders],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )
             ->sendCommandWithRouting('order.place', 'order-1')
             ->sendCommandWithRouting('order.cancel', 'order-1');
@@ -748,6 +762,7 @@ final class ExecutionRecordingTest extends TracingTestCase
                 [...$scenario->extensionObjects, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
                 enabledModules: [],
                 licenceKey: LicenceTesting::VALID_LICENCE,
+                initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
             );
             foreach (array_keys($scenario->stages) as $stage) {
                 self::assertNull($scenario->runStage($stage, $ecotone));

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tracing;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\ChannelInterceptor;
@@ -437,6 +438,7 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
             [SimpleMessageChannelBuilder::createQueueChannel('orders'), ...$extensionObjects, $recorder === null ? $tracing : $tracing->withSpanRecorder(InMemorySpanRecorder::class)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
     }
 

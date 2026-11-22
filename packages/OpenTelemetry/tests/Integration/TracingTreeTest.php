@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use ArrayObject;
+use DateTimeImmutable;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -47,6 +48,7 @@ final class TracingTreeTest extends TracingTestCase
             )],
             extensionObjects: [OpenTelemetryConfiguration::createWithDefaults()->withForceFlushOnBusExecution(false)->withForceFlushOnAsynchronousMessageHandled(false)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )
             ->sendCommand(new RegisterUser('1'));
 
@@ -70,6 +72,7 @@ final class TracingTreeTest extends TracingTestCase
             )],
             extensionObjects: [OpenTelemetryConfiguration::createWithDefaults()->withForceFlushOnBusExecution(true)->withForceFlushOnAsynchronousMessageHandled(true)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )
             ->sendCommand(new RegisterUser('1'));
 
@@ -103,6 +106,7 @@ final class TracingTreeTest extends TracingTestCase
             )],
             extensionObjects: [OpenTelemetryConfiguration::createWithDefaults()->withForceFlushOnBusExecution(true)->withForceFlushOnAsynchronousMessageHandled(true)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $exceptionThrown = false;
@@ -182,6 +186,7 @@ final class TracingTreeTest extends TracingTestCase
             ],
             enabledModules: [ModulePackageList::TRACING_PACKAGE, ],
             allowGatewaysToBeRegisteredInContainer: true,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $ecotoneTestSupport->sendCommand(new RegisterUser('2'), ['flowId' => '2']);

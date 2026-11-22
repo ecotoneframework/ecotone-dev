@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tracing;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\After;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
@@ -219,7 +220,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
                 return $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$workflow::class], [$workflow], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$workflow::class], [$workflow], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         $ecotone->sendDirectToChannel('start', 'order');
         $lines = array_map(trim(...), $ecotone->popExecutionRecording()->lines);
@@ -261,7 +262,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
                 return $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$workflow::class], [$workflow], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$workflow::class], [$workflow], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         $ecotone->sendDirectToChannel('start', 'order');
         $lines = array_map(trim(...), $ecotone->popExecutionRecording()->lines);
@@ -298,7 +299,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
                 return $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$workflow::class], [$workflow], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$workflow::class], [$workflow], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         $ecotone->sendDirectToChannel('start', 'order');
         $lines = array_map(trim(...), $ecotone->popExecutionRecording()->lines);
@@ -745,6 +746,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
             [...$extensionObjects, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
         $run($ecotone);
 
@@ -768,6 +770,7 @@ final class ExecutionRecordingExplanationTest extends TracingTestCase
                 [...$scenario->extensionObjects, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
                 enabledModules: [],
                 licenceKey: LicenceTesting::VALID_LICENCE,
+                initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
             );
             foreach (array_keys($scenario->stages) as $stage) {
                 self::assertNull($scenario->runStage($stage, $ecotone));

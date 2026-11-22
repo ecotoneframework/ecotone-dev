@@ -157,7 +157,7 @@ final class InMemoryQueueRedeliveryTest extends TestCase
                 return ['stamp' => 'put on orders'];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         $ecotone->sendCommandWithRouting('order.place', 'order-a');
         $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
@@ -195,6 +195,7 @@ final class InMemoryQueueRedeliveryTest extends TestCase
             [$orders, InMemorySpanRecorder::class => new InMemorySpanRecorder()],
             [SimpleMessageChannelBuilder::createQueueChannel('orders'), ...($tracing ? [TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)] : [])],
             enabledModules: $tracing ? [ModulePackageList::TRACING_PACKAGE] : [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
     }
 }

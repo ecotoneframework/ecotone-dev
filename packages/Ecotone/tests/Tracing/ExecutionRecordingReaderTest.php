@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tracing;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
@@ -49,6 +50,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
             [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $ecotone->sendCommandWithRouting('order.place', []);
@@ -75,6 +77,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
             [$this->ordering()],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $ecotone->sendCommandWithRouting('order.place', []);
@@ -93,6 +96,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
             [$this->ordering()],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $ecotone->sendCommandWithRouting('order.place', []);
@@ -112,6 +116,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
             self::recordingSpansInto(new InMemorySpanRecorder()),
             [self::tracingConfiguration()],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $this->expectExceptionMessage('popExecutionRecording() was called, but this application does not trace at TracingLevel::Framework, so its execution is not recorded and there is nothing to read. The recording is read only in a flow test, EcotoneLite::bootstrapFlowTesting(), at the framework level: return TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework) from a #[ServiceContext], or pass it in the extension objects of EcotoneLite::bootstrapFlowTesting().');
@@ -121,7 +126,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
 
     public function test_reading_the_recording_of_an_application_without_tracing_is_refused(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting([], [], enabledModules: []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [], enabledModules: [], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         $this->expectExceptionMessage('does not trace at TracingLevel::Framework');
 
@@ -140,6 +145,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
             [$this->ordering(), 'spanExporter' => $exporter],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withSpanRecorder('spanExporter')->withLevel(TracingLevel::Framework)],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $ecotone->sendCommandWithRouting('order.place', []);
@@ -155,6 +161,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
             [$this->ordering(), ...self::recordingSpansInto($recorder)],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications'), self::tracingConfiguration()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $ecotone->sendCommandWithRouting('order.place', []);

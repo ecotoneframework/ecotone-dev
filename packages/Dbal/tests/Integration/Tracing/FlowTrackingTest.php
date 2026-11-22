@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Tracing;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
@@ -304,6 +305,7 @@ final class FlowTrackingTest extends TestCase
             [$this->users(), RegistrationNotifier::class => new ProxiedRegistrationNotifier()],
             [FlowTrackingConfiguration::createWithDefaults()],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
         $trace = SpanContext::newTrace();
 
@@ -475,6 +477,7 @@ final class FlowTrackingTest extends TestCase
             [$this->users(), $subscriber, 'logger' => $logger],
             [FlowTrackingConfiguration::createWithDefaults()],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
         $trace = SpanContext::newTrace();
 
@@ -859,6 +862,7 @@ final class FlowTrackingTest extends TestCase
             [$notifications],
             [FlowTrackingConfiguration::createWithDefaults(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
         $trace = SpanContext::newTrace();
 
@@ -874,7 +878,7 @@ final class FlowTrackingTest extends TestCase
 
     public function test_the_tracing_gateway_without_flow_tracking_names_the_configuration_it_needs(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$this->users()::class], [$this->users()]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$this->users()::class], [$this->users()], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('TracingGateway needs flow tracking, which records every flow and decides when it is complete. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.');
@@ -997,7 +1001,7 @@ final class FlowTrackingTest extends TestCase
                 $this->tracingId = $currentTrace->tracingId();
             }
         };
-        $producer = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [$sharedChannel]);
+        $producer = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [$sharedChannel], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
         $consumer = $this->bootstrap([$orders], [$sharedChannel]);
 
         $producer->sendCommandWithRouting('order.place', '1');
@@ -1036,7 +1040,7 @@ final class FlowTrackingTest extends TestCase
                 $currentTrace->tracingId();
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$users::class], [$users]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$users::class], [$users], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('No trace is recorded, so there is no current trace id. Enable tracing: register TracingConfiguration::createWithDefaults()->withSpanRecorder() or FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method, or install ecotone/open-telemetry with a TracerProviderInterface.');
@@ -1079,6 +1083,7 @@ final class FlowTrackingTest extends TestCase
             [$this->users(), $this->asynchronousNotifier(), $subscriber],
             [FlowTrackingConfiguration::createWithDefaults()->withOnlyRequestedFlows(true), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $ecotone->sendCommandWithRouting('user.register', '1');
@@ -1095,6 +1100,7 @@ final class FlowTrackingTest extends TestCase
             [$this->users(), $this->asynchronousNotifier(), $subscriber],
             [FlowTrackingConfiguration::createWithDefaults()->withOnlyRequestedFlows(true), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
         $trace = SpanContext::newTrace();
 
@@ -1233,6 +1239,7 @@ final class FlowTrackingTest extends TestCase
             [$users],
             [FlowTrackingConfiguration::createWithDefaults()],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $this->expectExceptionMessage('tracingId names the flow a message starts, but this message is sent from inside flow 4bf92f3577b34da6a3ce929d0e0e4736, so it belongs to that flow already. Await 4bf92f3577b34da6a3ce929d0e0e4736 with TracingGateway, or send the message from outside a handler, where a flow starts.');
@@ -1321,6 +1328,7 @@ final class FlowTrackingTest extends TestCase
             [$this->users()],
             [FlowTrackingConfiguration::createWithDefaults(), FlowTrackingConfiguration::createWithDefaults()->withNotifications(false)],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
     }
 
@@ -1341,6 +1349,7 @@ final class FlowTrackingTest extends TestCase
             [$subscriber],
             [FlowTrackingConfiguration::createWithDefaults()->withNotifications(false)],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
     }
 
@@ -1351,6 +1360,7 @@ final class FlowTrackingTest extends TestCase
             [$this->users(), $this->asynchronousNotifier()],
             [FlowTrackingConfiguration::createWithDefaults()->withNotifications(false), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
 
@@ -1376,6 +1386,7 @@ final class FlowTrackingTest extends TestCase
             [$this->users(), $subscriber],
             [FlowTrackingConfiguration::createWithDefaults()->withTracingGateway(false)],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
@@ -1396,6 +1407,7 @@ final class FlowTrackingTest extends TestCase
             [],
             [],
             [FlowTrackingConfiguration::createWithDefaults()],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
     }
 
@@ -1415,6 +1427,7 @@ final class FlowTrackingTest extends TestCase
             [$subscriber::class],
             [$subscriber],
             [FlowTrackingConfiguration::createWithDefaults()],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
     }
 
@@ -1433,6 +1446,7 @@ final class FlowTrackingTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [$subscriber::class],
             [$subscriber],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
     }
 
@@ -1452,6 +1466,7 @@ final class FlowTrackingTest extends TestCase
             [$subscriber::class],
             [$subscriber],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
     }
 
@@ -1466,6 +1481,7 @@ final class FlowTrackingTest extends TestCase
             $services,
             [FlowTrackingConfiguration::createWithDefaults(), ...$extensionObjects],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
     }
 

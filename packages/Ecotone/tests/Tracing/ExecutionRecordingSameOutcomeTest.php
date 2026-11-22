@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tracing;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Collected;
@@ -106,7 +107,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
         foreach ([false, true] as $recording) {
             $recorder = new InMemorySpanRecorder();
             $tracing = self::tracingConfiguration();
-            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto($recorder)], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), $recording ? $tracing->withLevel(TracingLevel::Framework) : $tracing], enabledModules: []);
+            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto($recorder)], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), $recording ? $tracing->withLevel(TracingLevel::Framework) : $tracing], enabledModules: [], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
             $ecotone->sendCommandWithRouting('order.place', 'order-1');
             $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             $recorded = $recorder->recordedSpans();
@@ -123,7 +124,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
     {
         $this->expectExceptionMessage('TracingConfiguration was registered 2 times, but an application traces at one level with one configuration, so it is not clear which level to use. Keep a single #[ServiceContext] returning TracingConfiguration, with the level set by TracingConfiguration::withLevel(), and remove the others.');
 
-        EcotoneLite::bootstrapFlowTesting([], self::recordingSpansInto(new InMemorySpanRecorder()), [self::tracingConfiguration(), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: []);
+        EcotoneLite::bootstrapFlowTesting([], self::recordingSpansInto(new InMemorySpanRecorder()), [self::tracingConfiguration(), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
     }
 
     public function test_a_handler_reading_its_headers_sees_the_same_acknowledgement_at_both_tracing_levels(): void
@@ -140,7 +141,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
                     $this->acknowledgements[] = get_class($headers[$headers[MessageHeaders::CONSUMER_ACK_HEADER_LOCATION]]);
                 }
             };
-            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())], [SimpleMessageChannelBuilder::createQueueChannel('orders'), self::tracingConfiguration()->withLevel($level)], enabledModules: []);
+            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders, ...self::recordingSpansInto(new InMemorySpanRecorder())], [SimpleMessageChannelBuilder::createQueueChannel('orders'), self::tracingConfiguration()->withLevel($level)], enabledModules: [], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
             $ecotone->sendCommandWithRouting('order.place', 'order-1');
             $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             $seen[$level->value] = $orders->acknowledgements;
@@ -160,7 +161,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
                 $headers[$headers[MessageHeaders::CONSUMER_ACK_HEADER_LOCATION]]->accept();
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders', isAutoAcked: false), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders', isAutoAcked: false), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
         $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
@@ -199,7 +200,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
                 }
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders', isAutoAcked: false), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders', isAutoAcked: false), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
         $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withHandledMessageLimit(1));
@@ -227,7 +228,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
             }
         };
         $recordingOf = function (array $orderIds) use ($orders): array {
-            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: []);
+            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
             foreach ($orderIds as $orderId) {
                 try {
                     $ecotone->sendCommandWithRouting('order.place', $orderId);
@@ -264,7 +265,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
             }
         };
         $recordingOf = function (array $orderIds) use ($orders): array {
-            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: []);
+            $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
             foreach ($orderIds as $orderId) {
                 try {
                     $ecotone->sendCommandWithRouting('order.place', $orderId);
@@ -303,6 +304,7 @@ final class ExecutionRecordingSameOutcomeTest extends TracingTestCase
                 [...$extensionObjects, $recording ? $tracing->withLevel(TracingLevel::Framework) : $tracing],
                 enabledModules: [],
                 licenceKey: LicenceTesting::VALID_LICENCE,
+                initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
             );
             try {
                 $run($ecotone);

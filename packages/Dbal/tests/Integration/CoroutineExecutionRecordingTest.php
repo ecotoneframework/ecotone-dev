@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
@@ -149,6 +150,7 @@ final class CoroutineExecutionRecordingTest extends DbalMessagingTestCase
                 TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)->withLevel(TracingLevel::Framework),
             ],
             [ModulePackageList::DBAL_PACKAGE, ModulePackageList::TRACING_PACKAGE],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
     }
 

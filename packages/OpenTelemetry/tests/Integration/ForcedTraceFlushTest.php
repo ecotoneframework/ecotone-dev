@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use ArrayObject;
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -38,6 +39,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
             [$handler::class],
             [$handler, TracerProviderInterface::class => new NoopTracerProvider()],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )->sendCommandWithRouting('order.place', 'order-1');
 
         $this->assertSame(['order-1'], $handler->handled);
@@ -61,6 +63,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
             [$handler, TracerProviderInterface::class => new NoopTracerProvider()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
 
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
@@ -86,6 +89,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
             [$handler, TracerProviderInterface::class => new NoopTracerProvider()],
             extensionObjects: [OpenTelemetryConfiguration::createWithDefaults()->withForceFlushOnBusExecution(false)->withForceFlushOnAsynchronousMessageHandled(false)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )->sendCommandWithRouting('order.place', 'order-1');
 
         $this->assertSame(['order-1'], $handler->handled);
@@ -108,6 +112,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
             [$handler::class],
             [$handler, TracerProviderInterface::class => self::prepareTracer($exporter)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
+            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         )->sendCommandWithRouting('order.place', 'order-1');
 
         $this->assertSame(['order-1'], $handler->handled);

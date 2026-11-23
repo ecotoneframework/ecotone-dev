@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Splitter;
 
+use ArrayIterator;
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\After;
 use Ecotone\Api\Attribute\Aggregate;
@@ -11,8 +12,8 @@ use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Before;
-use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ChangingHeaders;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\Gathered;
@@ -32,13 +33,17 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Modelling\WithEvents;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\TracingConfiguration;
-use Ecotone\Api\Projecting\Projection;
-use Ecotone\Api\Projecting\FromStream;
+use Generator;
 use PHPUnit\Framework\TestCase;
 use stdClass;
+use Traversable;
 
 /**
  * licence Apache-2.0
@@ -75,6 +80,7 @@ final class HandlerSplitterTest extends TestCase
         self::assertNull($ecotone->getGateway(CommandBus::class)->sendWithRouting('split', [1, 2, 3]));
         self::assertSame([1, 2, 3], $handler->received);
     }
+
     public function test_generator_result_is_split_into_one_message_per_element(): void
     {
         $handler = new class () {
@@ -82,10 +88,65 @@ final class HandlerSplitterTest extends TestCase
 
             #[CommandHandler('split', outputChannelName: 'parts')]
             #[Splitter]
-            public function split(): \Generator
+            public function split(): Generator
             {
                 yield 'second' => 2;
                 yield 'first' => 1;
+            }
+
+            #[InternalHandler('parts')]
+            public function receive(int $value): void
+            {
+                $this->received[] = $value;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+        $ecotone->sendCommandWithRouting('split');
+        self::assertSame([2, 1], $handler->received);
+    }
+
+    public function test_iterable_result_is_split_into_one_message_per_element(): void
+    {
+        $handler = new class () {
+            public array $received = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[Splitter]
+            public function split(): iterable
+            {
+                yield 'second' => 2;
+                yield 'first' => 1;
+            }
+
+            #[InternalHandler('parts')]
+            public function receive(int $value): void
+            {
+                $this->received[] = $value;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+        $ecotone->sendCommandWithRouting('split');
+        self::assertSame([2, 1], $handler->received);
+    }
+
+    public function test_traversable_result_is_split_into_one_message_per_element(): void
+    {
+        $handler = new class () {
+            public array $received = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[Splitter]
+            public function split(): Traversable
+            {
+                return new ArrayIterator(['second' => 2, 'first' => 1]);
             }
 
             #[InternalHandler('parts')]
@@ -163,6 +224,7 @@ final class HandlerSplitterTest extends TestCase
         self::assertNull($ecotone->getGateway(CommandBus::class)->sendWithRouting('start', [1, 2, 3]));
         self::assertSame([1, 2, 3], $handler->received);
     }
+
     public function test_event_handler_result_is_split_into_one_message_per_element(): void
     {
         $handler = new class () {
@@ -845,7 +907,7 @@ final class HandlerSplitterTest extends TestCase
     public function test_event_sourced_action_returning_events_to_record_with_splitter_is_refused(): void
     {
         $aggregate = new #[EventSourcingAggregate] class () {
-            use \Ecotone\Api\Modelling\WithAggregateVersioning;
+            use WithAggregateVersioning;
             #[Apply]
             public function apply(stdClass $event): void
             {
@@ -905,7 +967,6 @@ final class HandlerSplitterTest extends TestCase
         self::assertCount(1, $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary.handler'));
     }
 
-
     public function test_interceptors_run_once_around_a_split_handler(): void
     {
         $handler = new class () {
@@ -924,7 +985,7 @@ final class HandlerSplitterTest extends TestCase
             #[Around(pointcut: '*')]
             public function intercept(MethodInvocation $invocation): mixed
             {
-                if ($invocation->getMethodName() === 'split') {
+                if ($invocation->getMethodName() !== 'receive') {
                     $this->interceptions++;
                 }
                 return $invocation->proceed();
@@ -955,7 +1016,7 @@ final class HandlerSplitterTest extends TestCase
         );
         $ecotone->sendCommandWithRouting('split', [1, 2]);
         self::assertSame([1, 2], $handler->received);
-        self::assertSame(1, $handler->interceptions);
+        self::assertSame(2, $handler->interceptions);
         self::assertSame(1, $handler->before);
         self::assertSame(1, $handler->after);
     }
@@ -987,6 +1048,7 @@ final class HandlerSplitterTest extends TestCase
         self::assertStringEndsWith(' (splitting)', $graph->node('handler:split.handler')->label);
         self::assertSame(['channel:parts'], array_map(static fn ($node): string => $node->id, $graph->nodesOfKind(FlowNodeKind::CHANNEL)));
     }
+
     public function test_stacked_splitter_required_interceptor_names_is_refused(): void
     {
         $handler = new class () {
@@ -1004,7 +1066,6 @@ final class HandlerSplitterTest extends TestCase
             enabledModules: [],
         );
     }
-
 
     public function test_each_event_handler_attribute_is_split_to_its_own_output(): void
     {
@@ -1165,8 +1226,8 @@ final class HandlerSplitterTest extends TestCase
     public function test_event_sourced_action_with_recorded_events_splits_its_independent_result_after_save(): void
     {
         $aggregate = new #[EventSourcingAggregate] class () {
-            use \Ecotone\Api\Modelling\WithEvents;
-            use \Ecotone\Api\Modelling\WithAggregateVersioning;
+            use WithEvents;
+            use WithAggregateVersioning;
             #[Identifier]
             public string $id = 'one';
             public int $total = 0;
@@ -1218,6 +1279,7 @@ final class HandlerSplitterTest extends TestCase
         $ecotone->sendCommandWithRouting('split', [1, 2], metadata: ['aggregate.id' => 'one']);
         self::assertSame([[1, 3], [2, 3]], $handler->received);
     }
+
     public function test_empty_gathering_split_handler_matches_standalone_empty_gathering(): void
     {
         $handler = new class () {
@@ -1310,7 +1372,6 @@ final class HandlerSplitterTest extends TestCase
         self::assertSame(1, $handler->after);
     }
 
-
     public function test_class_routed_command_handler_output_is_split(): void
     {
         $handler = new class () {
@@ -1391,8 +1452,8 @@ final class HandlerSplitterTest extends TestCase
         $ecotone->sendCommandWithRouting('split', [1, 2]);
         $endpoints = array_values(array_filter(array_map(static fn ($span): ?string => $span->attributes[SpanAttribute::ENDPOINT_ID] ?? null, $recorder->recordedSpans())));
         self::assertSame(['split.handler', 'receive.handler', 'receive.handler'], $endpoints);
-
     }
+
     public function test_asynchronous_aggregate_action_splits_after_save(): void
     {
         $aggregate = new #[Aggregate] class () {
@@ -1441,6 +1502,7 @@ final class HandlerSplitterTest extends TestCase
         $ecotone->run('split.jobs');
         self::assertSame([[1, 3], [2, 3]], $handler->received);
     }
+
     public function test_asynchronous_saga_action_splits_after_save(): void
     {
         $aggregate = new #[Saga] class () {
@@ -1489,6 +1551,7 @@ final class HandlerSplitterTest extends TestCase
         $ecotone->run('split.jobs');
         self::assertSame([[1, 3], [2, 3]], $handler->received);
     }
+
     public function test_asynchronous_split_handler_gathers_every_part(): void
     {
         $handler = new class () {
@@ -1528,9 +1591,7 @@ final class HandlerSplitterTest extends TestCase
         $ecotone->run('summaries');
         self::assertSame([[1 => 2, 2 => 4]], $handler->gathered);
     }
-
 }
-
 
 final class HandlerSplitCommand
 {

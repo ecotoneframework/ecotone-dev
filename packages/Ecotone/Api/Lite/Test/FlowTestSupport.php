@@ -23,7 +23,6 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Api\Tracing\ExecutionRecording;
 use Ecotone\Lite\Test\DatabaseTablesSetUp;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
@@ -217,9 +216,8 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function advanceTimeBy(TimeSpan|Duration $span): self
+    public function advanceTimeBy(Duration $duration): self
     {
-        $duration = $span instanceof TimeSpan ? $span->toDuration() : $span;
         $psrClock = $this->getStaticPsrClockFromContainer();
         $psrClock->setCurrentTime(
             DateTimeImmutable::createFromInterface($psrClock->now())->modify("+{$duration->inMicroseconds()} microseconds")

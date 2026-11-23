@@ -10,7 +10,7 @@ use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Messaging\GatheredParts;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
 #[Splitter('import.split', endpointId: 'import.splitter', outputChannelName: 'import.work', gatherChannelName: 'import.summary')]
 public function split(array $parts): array
@@ -25,7 +25,7 @@ public function work(int $part): int
     return $part * 2;
 }
 
-#[Gathered(timeout: new TimeSpan(minutes: 30))]
+#[Gathered(timeout: new Duration(minutes: 30))]
 #[Asynchronous('import_summaries')]
 #[InternalHandler('import.summary', endpointId: 'import.summary.handler', outputChannelName: 'import.results')]
 public function summarize(GatheredParts $parts): array
@@ -112,12 +112,12 @@ through a `#[ServiceContext]` method:
 ```php
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\GatheringConfiguration;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
 #[ServiceContext]
 public function gathering(): array
 {
-    return [GatheringConfiguration::createWithDefaults()->withRetention(new TimeSpan(days: 14))];
+    return [GatheringConfiguration::createWithDefaults()->withRetention(new Duration(days: 14))];
 }
 ```
 

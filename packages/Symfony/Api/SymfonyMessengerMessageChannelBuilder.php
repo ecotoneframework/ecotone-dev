@@ -7,7 +7,7 @@ namespace Ecotone\Api\Symfony;
 use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -31,7 +31,7 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
         return true;
     }
 
-    public function maximumDelay(): ?TimeSpan
+    public function maximumDelay(): ?Duration
     {
         return null;
     }

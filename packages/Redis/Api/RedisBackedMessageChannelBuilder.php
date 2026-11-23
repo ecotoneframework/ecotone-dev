@@ -6,7 +6,7 @@ namespace Ecotone\Api\Redis;
 
 use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Ecotone\Messaging\Channel\DepthProbedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
@@ -26,7 +26,7 @@ final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilde
         return true;
     }
 
-    public function maximumDelay(): ?TimeSpan
+    public function maximumDelay(): ?Duration
     {
         return null;
     }

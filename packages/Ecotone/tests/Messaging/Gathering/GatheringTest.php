@@ -30,7 +30,7 @@ use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\GatheredReleaseReason;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -99,7 +99,7 @@ final class GatheringTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(seconds: 30))]
+            #[Gathered(timeout: new Duration(seconds: 30))]
             #[Asynchronous(['holding', 'summaries'])]
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -126,7 +126,7 @@ final class GatheringTest extends TestCase
         $ecotone->run('summaries');
         self::assertSame([], $handler->gathered);
 
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 30));
+        $ecotone->advanceTimeBy(new Duration(seconds: 30));
         $ecotone->run('holding');
         self::assertSame([], $handler->gathered);
         $ecotone->run('summaries');
@@ -160,7 +160,7 @@ final class GatheringTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(seconds: 30))]
+            #[Gathered(timeout: new Duration(seconds: 30))]
             #[Asynchronous('combined')]
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -188,7 +188,7 @@ final class GatheringTest extends TestCase
         $ecotone->run('summaries');
         self::assertSame([], $handler->gathered);
 
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 30));
+        $ecotone->advanceTimeBy(new Duration(seconds: 30));
         $ecotone->run('holding');
         self::assertSame([], $handler->gathered);
         $ecotone->run('summaries');
@@ -213,7 +213,7 @@ final class GatheringTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(seconds: 30))]
+            #[Gathered(timeout: new Duration(seconds: 30))]
             #[Asynchronous('summaries')]
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -248,7 +248,7 @@ final class GatheringTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(seconds: 30))]
+            #[Gathered(timeout: new Duration(seconds: 30))]
             #[Asynchronous(['summaries', 'holding'])]
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -283,7 +283,7 @@ final class GatheringTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(seconds: 30))]
+            #[Gathered(timeout: new Duration(seconds: 30))]
             #[Asynchronous('combined')]
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -318,7 +318,7 @@ final class GatheringTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(seconds: 30))]
+            #[Gathered(timeout: new Duration(seconds: 30))]
             #[Asynchronous('summaries')]
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts): void

@@ -26,7 +26,6 @@ use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Api\Scheduling\TimeSpan;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
@@ -89,7 +88,7 @@ final class GatheringPageTest extends ReleasingWebTestCase
         $crawler = $this->observe($client);
         $client->submit($crawler->filter('[data-gathering-group="' . $batchId . '"]')->selectButton('Discard')->form());
         $this->runService($this->orders, 'orders');
-        $this->orders->advanceTimeBy(new TimeSpan(seconds: 10));
+        $this->orders->advanceTimeBy(new Duration(seconds: 10));
         $this->orders->run('summaries');
         self::assertSame([], $this->handler->batches);
         self::assertSame([], $this->orders->getGateway(GatheredGroups::class)->listOpenGroups('dashboard.collect'));
@@ -219,7 +218,7 @@ final class GatheringPageTest extends ReleasingWebTestCase
         $groupId = $groups->listOpenGroups('dashboard.summary')[0]['groupId'];
         $crawler = $this->observe($client);
         $groups->discard($groupId);
-        $this->orders->advanceTimeBy(new TimeSpan(days: 7));
+        $this->orders->advanceTimeBy(new Duration(days: 7));
         $groups->cleanupClosedGroups();
 
         $client->submit($crawler->filter('[data-gathering-group="' . $groupId . '"]')->selectButton($button)->form());
@@ -285,7 +284,7 @@ final class GatheringPageTest extends ReleasingWebTestCase
             public array $gathered = [];
             public array $batches = [];
 
-            #[Collected(maxWait: new TimeSpan(seconds: 10), groupBy: 'payload["tenant"]')]
+            #[Collected(maxWait: new Duration(seconds: 10), groupBy: 'payload["tenant"]')]
             #[Asynchronous('summaries')]
             #[CommandHandler('collect', endpointId: 'dashboard.collect')]
             public function collect(CollectedMessages $batch): void
@@ -322,7 +321,7 @@ final class GatheringPageTest extends ReleasingWebTestCase
         };
         if (! $gathers) {
             $this->handler = $handler = new class () {
-                #[Collected(maxWait: new TimeSpan(seconds: 10))]
+                #[Collected(maxWait: new Duration(seconds: 10))]
                 #[Asynchronous('summaries')]
                 #[CommandHandler('collect', endpointId: 'dashboard.collect.only')]
                 public function collect(CollectedMessages $batch): void

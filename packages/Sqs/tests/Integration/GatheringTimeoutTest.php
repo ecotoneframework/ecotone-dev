@@ -13,7 +13,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\GatheredParts;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsConnectionFactory;
 use PHPUnit\Framework\TestCase;
@@ -41,7 +41,7 @@ final class GatheringTimeoutTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(minutes: 15, milliseconds: 1))]
+            #[Gathered(timeout: new Duration(minutes: 15, milliseconds: 1))]
             #[Asynchronous('summaries')]
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -76,7 +76,7 @@ final class GatheringTimeoutTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(minutes: 1))]
+            #[Gathered(timeout: new Duration(minutes: 1))]
             #[Asynchronous('summaries.fifo')]
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -111,7 +111,7 @@ final class GatheringTimeoutTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(minutes: 15))]
+            #[Gathered(timeout: new Duration(minutes: 15))]
             #[Asynchronous('summaries')]
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts): void

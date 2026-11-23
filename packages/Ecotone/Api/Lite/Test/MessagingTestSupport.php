@@ -6,7 +6,7 @@ namespace Ecotone\Api\Lite\Test;
 
 use DateTimeInterface;
 use Ecotone\Api\Messaging\Message;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
 /**
  * licence Apache-2.0
@@ -65,5 +65,5 @@ interface MessagingTestSupport
 
     public function discardRecordedMessages(): void;
 
-    public function releaseMessagesAwaitingFor(string $channelName, int|TimeSpan|DateTimeInterface $timeInMillisecondsOrDateTime): void;
+    public function releaseMessagesAwaitingFor(string $channelName, int|Duration|DateTimeInterface $timeInMillisecondsOrDateTime): void;
 }

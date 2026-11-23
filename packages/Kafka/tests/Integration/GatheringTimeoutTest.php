@@ -14,7 +14,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\GatheredParts;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -40,7 +40,7 @@ final class GatheringTimeoutTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(seconds: 30))]
+            #[Gathered(timeout: new Duration(seconds: 30))]
             #[Asynchronous('summaries')]
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts): void

@@ -21,7 +21,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Messaging\GatheredParts;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsConnectionFactory;
 use Ecotone\Test\LicenceTesting;
@@ -322,7 +322,7 @@ final class CollectingTest extends TestCase
     public function test_collected_max_wait_requires_a_delayable_asynchronous_channel(): void
     {
         $handler = new class () {
-            #[Collected(maxWait: new TimeSpan(seconds: 10))]
+            #[Collected(maxWait: new Duration(seconds: 10))]
             #[Asynchronous('batches')]
             #[InternalHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -346,7 +346,7 @@ final class CollectingTest extends TestCase
             self::markTestSkipped('A bounded-delay public channel builder requires the optional SQS package.');
         }
         $handler = new class () {
-            #[Collected(maxWait: new TimeSpan(minutes: 15, milliseconds: 1))]
+            #[Collected(maxWait: new Duration(minutes: 15, milliseconds: 1))]
             #[Asynchronous('batches')]
             #[InternalHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
@@ -388,14 +388,14 @@ final class CollectingTest extends TestCase
     public function test_collected_handler_refuses_zero_max_wait_at_bootstrap(): void
     {
         $handler = new class () {
-            #[Collected(maxWait: new TimeSpan(milliseconds: 0))]
+            #[Collected(maxWait: new Duration(milliseconds: 0))]
             #[Asynchronous('batches')]
             #[InternalHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
             {
             }
         };
-        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxWait is 0 milliseconds; maxWait must be greater than 0. Set a positive TimeSpan, omit maxWait and set maxSize, or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxWait is 0 milliseconds; maxWait must be greater than 0. Set a positive Duration, omit maxWait and set maxSize, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],
@@ -533,14 +533,14 @@ final class CollectingTest extends TestCase
     public function test_collected_handler_refuses_negative_max_wait_at_bootstrap(): void
     {
         $handler = new class () {
-            #[Collected(maxWait: new TimeSpan(milliseconds: -1))]
+            #[Collected(maxWait: new Duration(milliseconds: -1))]
             #[Asynchronous('batches')]
             #[InternalHandler('collect', endpointId: 'collect.handler')]
             public function collect(CollectedMessages $batch): void
             {
             }
         };
-        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxWait is -1 milliseconds; maxWait must be greater than 0. Set a positive TimeSpan, omit maxWait and set maxSize, or remove #[Collected].");
+        $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxWait is -1 milliseconds; maxWait must be greater than 0. Set a positive Duration, omit maxWait and set maxSize, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
             classesToResolve: [$handler::class],

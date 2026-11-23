@@ -18,7 +18,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\FlowVersionsConfiguration;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Pulse\PulseConfiguration;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Test\LicenceTesting;
 use Exception;
 use FilesystemIterator;
@@ -74,7 +74,7 @@ final class PulseFlowVersionsTest extends TestCase
         $orderService = $this->orderService([FlowVersionsConfiguration::createWithLocation($this->location)]);
         $pulseService = $this->pulseService($pulse);
         $orderService->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
-        $orderService->advanceTimeBy(new TimeSpan(hours: 1));
+        $orderService->advanceTimeBy(new Duration(hours: 1));
         $orderService->runConsoleCommand('ecotone:flow:store', ['label' => '1.1.0']);
 
         $this->ask($pulseService, $orderService, 'ecotone.pulse.flow_versions.list', '{}', 'query-1');

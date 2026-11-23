@@ -10,7 +10,7 @@ use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use PHPUnit\Framework\TestCase;
 
@@ -42,7 +42,7 @@ final class AsynchronousChannelsInFlowTestsTest extends TestCase
             public array $expired = [];
 
             #[Asynchronous('async')]
-            #[Delayed(new TimeSpan(hours: 1))]
+            #[Delayed(new Duration(hours: 1))]
             #[EventHandler('order.placed', endpointId: 'expireOrder')]
             public function expire(string $orderId): void
             {
@@ -59,7 +59,7 @@ final class AsynchronousChannelsInFlowTestsTest extends TestCase
         $ecotone->publishEventWithRouting('order.placed', 'order-1')->run('async');
         $this->assertSame([], $handler->expired);
 
-        $ecotone->advanceTimeBy(TimeSpan::withHours(1))->run('async');
+        $ecotone->advanceTimeBy(Duration::hours(1))->run('async');
         $this->assertSame(['order-1'], $handler->expired);
     }
 
@@ -69,7 +69,7 @@ final class AsynchronousChannelsInFlowTestsTest extends TestCase
             public array $expired = [];
 
             #[Asynchronous('async')]
-            #[Delayed(new TimeSpan(hours: 1))]
+            #[Delayed(new Duration(hours: 1))]
             #[EventHandler('order.placed', endpointId: 'expireOrder')]
             public function expire(string $orderId): void
             {

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Lite\Test\Configuration;
 
 use DateTimeInterface;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Channel\DelayableQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -15,7 +15,7 @@ use Ecotone\Messaging\Handler\ChannelResolver;
  */
 final class DelayedMessageReleaseHandler
 {
-    public function releaseMessagesAwaitingFor(string $channelName, int|TimeSpan|DateTimeInterface $timeInMillisecondsOrDateTime, ChannelResolver $channelResolver): void
+    public function releaseMessagesAwaitingFor(string $channelName, int|Duration|DateTimeInterface $timeInMillisecondsOrDateTime, ChannelResolver $channelResolver): void
     {
         if (! $channelResolver->hasChannelWithName($channelName)) {
             return;

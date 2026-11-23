@@ -41,7 +41,7 @@ change against it. For every requirement that applies, load the skill it cites a
 before judging: the list states the requirement in one line, the rule holds the detail and the exceptions.
 - **Expected:** the report names every skill whose requirements apply to the change and why, including skills
   whose own files the diff does not touch, and judges those requirements by the rules they cite.
-- **Verified by:** `eval:review-diff-guidelines`, `eval:review-related-skills`
+- **Verified by:** `eval:review-diff-guidelines`, `eval:review-related-skills`, `eval:review-scenario-branch`
 
 ### G3. Every requirement is decided: not-apply, covered or missing
 Give every requirement of the section a line, as the [review
@@ -55,7 +55,7 @@ back to the implementing session to cover, and you decide them again in the re-r
 - **Expected:** the report decides every Guidelines requirement with one of the three statuses; each `missing` line
   carries the requirement id, a file and line, a concrete fix and the skill and rule to load; the report opens with
   `PASSED` or `NOT PASSED` naming the `missing` ids.
-- **Verified by:** `eval:review-diff-guidelines`
+- **Verified by:** `eval:review-diff-guidelines`, `eval:review-scenario-branch`, `eval:review-wiring-names-a-feature`
 
 ### G4. A deviation already recorded is not `missing`
 [references/known-deviations.md](references/known-deviations.md) lists audited deviations and audit claims that

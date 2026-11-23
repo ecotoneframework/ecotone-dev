@@ -52,7 +52,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionRebuild;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -260,7 +260,7 @@ final class GatheringConformanceTest extends TestCase
                 return $part * 2;
             }
 
-            #[Gathered(timeout: new TimeSpan(minutes: 30))]
+            #[Gathered(timeout: new Duration(minutes: 30))]
             #[Asynchronous('summaries')]
             #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -285,10 +285,10 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $ecotone->run('summaries');
         self::assertSame([], $handler->gathered);
-        $ecotone->advanceTimeBy(new TimeSpan(minutes: 29));
+        $ecotone->advanceTimeBy(new Duration(minutes: 29));
         $ecotone->run('summaries');
         self::assertSame([], $handler->gathered);
-        $ecotone->advanceTimeBy(new TimeSpan(minutes: 1));
+        $ecotone->advanceTimeBy(new Duration(minutes: 1));
         $ecotone->run('summaries');
         self::assertCount(1, $handler->gathered);
         self::assertSame([1 => 20], $handler->gathered[0]->results);
@@ -323,7 +323,7 @@ final class GatheringConformanceTest extends TestCase
                 return $part * 2;
             }
 
-            #[Gathered(timeout: new TimeSpan(minutes: 30))]
+            #[Gathered(timeout: new Duration(minutes: 30))]
             #[Asynchronous('summaries')]
             #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -348,10 +348,10 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $ecotone->run('summaries');
         self::assertSame([], $handler->gathered);
-        $ecotone->advanceTimeBy(new TimeSpan(minutes: 29));
+        $ecotone->advanceTimeBy(new Duration(minutes: 29));
         $ecotone->run('summaries');
         self::assertSame([], $handler->gathered);
-        $ecotone->advanceTimeBy(new TimeSpan(minutes: 1));
+        $ecotone->advanceTimeBy(new Duration(minutes: 1));
         $ecotone->run('summaries');
         self::assertCount(1, $handler->gathered);
         self::assertSame([1 => 20], $handler->gathered[0]->results);
@@ -386,7 +386,7 @@ final class GatheringConformanceTest extends TestCase
                 return $part * 2;
             }
 
-            #[Gathered(timeout: new TimeSpan(minutes: 30))]
+            #[Gathered(timeout: new Duration(minutes: 30))]
             #[Asynchronous('summaries')]
             #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -411,7 +411,7 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $groupId = array_values(array_diff(array_column($groups, 'groupId'), array_column($before, 'groupId')))[0];
-        $ecotone->advanceTimeBy(new TimeSpan(minutes: 30));
+        $ecotone->advanceTimeBy(new Duration(minutes: 30));
         $ecotone->run('summaries');
         self::assertCount(1, $handler->gathered);
         self::assertSame([1, 2], $handler->gathered[0]->missingPartNumbers);
@@ -476,15 +476,15 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('split', []);
         $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $closedGroupId = array_values(array_diff(array_column($groups, 'groupId'), array_column($before, 'groupId')))[0];
-        $ecotone->advanceTimeBy(new TimeSpan(days: 6));
+        $ecotone->advanceTimeBy(new Duration(days: 6));
         $ecotone->run('summaries');
         $ecotone->sendCommandWithRouting('split', [10]);
         $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $openGroupId = array_values(array_diff(array_column($groups, 'groupId'), array_column($before, 'groupId')))[0];
-        $ecotone->advanceTimeBy(new TimeSpan(days: 1));
+        $ecotone->advanceTimeBy(new Duration(days: 1));
         $ecotone->runConsoleCommand('ecotone:gathering:cleanup');
         self::assertContains($closedGroupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary.handler'), 'groupId'));
-        $ecotone->advanceTimeBy(new TimeSpan(days: 6));
+        $ecotone->advanceTimeBy(new Duration(days: 6));
         $ecotone->runConsoleCommand('ecotone:gathering:cleanup');
 
         self::assertNotContains($closedGroupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary.handler'), 'groupId'));
@@ -500,7 +500,7 @@ final class GatheringConformanceTest extends TestCase
             #[ServiceContext]
             public function gathering(): array
             {
-                return [GatheringConfiguration::createWithDefaults()->withRetention(new TimeSpan(days: 2))];
+                return [GatheringConfiguration::createWithDefaults()->withRetention(new Duration(days: 2))];
             }
 
             #[CommandHandler('split', outputChannelName: 'parts')]
@@ -548,10 +548,10 @@ final class GatheringConformanceTest extends TestCase
         $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $groupId = array_values(array_diff(array_column($groups, 'groupId'), array_column($before, 'groupId')))[0];
         $ecotone->run('summaries');
-        $ecotone->advanceTimeBy(new TimeSpan(days: 1));
+        $ecotone->advanceTimeBy(new Duration(days: 1));
         $ecotone->getGateway(GatheredGroups::class)->cleanupClosedGroups();
         self::assertContains($groupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary.handler'), 'groupId'));
-        $ecotone->advanceTimeBy(new TimeSpan(days: 1));
+        $ecotone->advanceTimeBy(new Duration(days: 1));
         $ecotone->getGateway(GatheredGroups::class)->cleanupClosedGroups();
         self::assertNotContains($groupId, array_column($ecotone->getGateway(GatheredGroups::class)->listClosedGroups('timeout.summary.handler'), 'groupId'));
     }
@@ -581,7 +581,7 @@ final class GatheringConformanceTest extends TestCase
                 return $part * 2;
             }
 
-            #[Gathered(timeout: new TimeSpan(minutes: 30))]
+            #[Gathered(timeout: new Duration(minutes: 30))]
             #[Asynchronous('summaries')]
             #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -606,11 +606,11 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $groups = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $groupId = array_values(array_diff(array_column($groups, 'groupId'), array_column($before, 'groupId')))[0];
-        $ecotone->advanceTimeBy(new TimeSpan(minutes: 30));
+        $ecotone->advanceTimeBy(new Duration(minutes: 30));
         $ecotone->run('summaries');
         self::assertCount(1, $handler->gathered);
         self::assertSame([1, 2], $handler->gathered[0]->missingPartNumbers);
-        $ecotone->advanceTimeBy(new TimeSpan(days: 7));
+        $ecotone->advanceTimeBy(new Duration(days: 7));
         $ecotone->getGateway(GatheredGroups::class)->cleanupClosedGroups();
         $ecotone->run('workers');
 
@@ -644,7 +644,7 @@ final class GatheringConformanceTest extends TestCase
                 return $part * 2;
             }
 
-            #[Gathered(timeout: new TimeSpan(minutes: 30))]
+            #[Gathered(timeout: new Duration(minutes: 30))]
             #[Asynchronous('summaries')]
             #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -667,7 +667,7 @@ final class GatheringConformanceTest extends TestCase
 
         $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
         $ecotone->sendCommandWithRouting('split', [10, 20]);
-        $ecotone->advanceTimeBy(new TimeSpan(minutes: 29));
+        $ecotone->advanceTimeBy(new Duration(minutes: 29));
         $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
 
         self::assertCount(1, $groups);
@@ -716,7 +716,7 @@ final class GatheringConformanceTest extends TestCase
                 return $part * 2;
             }
 
-            #[Gathered(timeout: new TimeSpan(minutes: 30))]
+            #[Gathered(timeout: new Duration(minutes: 30))]
             #[Asynchronous('summaries')]
             #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -741,7 +741,7 @@ final class GatheringConformanceTest extends TestCase
 
         $ecotone->sendCommandWithRouting('split', [10, 20]);
         $ecotone->run('splits');
-        $ecotone->advanceTimeBy(new TimeSpan(minutes: 30));
+        $ecotone->advanceTimeBy(new Duration(minutes: 30));
         $ecotone->run('summaries');
 
         self::assertCount(1, $handler->gathered);
@@ -811,7 +811,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertCount(1, $groups);
         self::assertSame(1, $groups[0]['recorded']);
         self::assertSame([2], $groups[0]['missingPartNumbers']);
-        $ecotone->advanceTimeBy(new TimeSpan(days: 30));
+        $ecotone->advanceTimeBy(new Duration(days: 30));
         $ecotone->run('summaries');
         self::assertSame([], $handler->gathered);
         $failures = array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previousFailures, true)));
@@ -852,7 +852,7 @@ final class GatheringConformanceTest extends TestCase
                 return $part * 2;
             }
 
-            #[Gathered(timeout: new TimeSpan(days: 30))]
+            #[Gathered(timeout: new Duration(days: 30))]
             #[Asynchronous('summaries')]
             #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -877,7 +877,7 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->run('workers');
         $ecotone->run('summaries');
         self::assertCount(1, $handler->gathered);
-        $ecotone->advanceTimeBy(new TimeSpan(days: 30));
+        $ecotone->advanceTimeBy(new Duration(days: 30));
         $ecotone->run('summaries');
 
         self::assertCount(1, $handler->gathered);
@@ -909,7 +909,7 @@ final class GatheringConformanceTest extends TestCase
                 return $part * 2;
             }
 
-            #[Gathered(timeout: new TimeSpan(days: 30))]
+            #[Gathered(timeout: new Duration(days: 30))]
             #[Asynchronous('summaries')]
             #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -934,9 +934,9 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->run('workers');
         $ecotone->run('summaries');
         self::assertCount(1, $handler->gathered);
-        $ecotone->advanceTimeBy(new TimeSpan(days: 7));
+        $ecotone->advanceTimeBy(new Duration(days: 7));
         $ecotone->getGateway(GatheredGroups::class)->cleanupClosedGroups();
-        $ecotone->advanceTimeBy(new TimeSpan(days: 23));
+        $ecotone->advanceTimeBy(new Duration(days: 23));
         $ecotone->run('summaries');
 
         self::assertCount(1, $handler->gathered);
@@ -1140,7 +1140,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(1, $closed[0]['recorded']);
         self::assertSame([2], $closed[0]['missingPartNumbers']);
         self::assertSame($ecotone->now()->unixTime()->inMilliseconds(), $closed[0]['closedAt']);
-        $ecotone->advanceTimeBy(new TimeSpan(days: 1));
+        $ecotone->advanceTimeBy(new Duration(days: 1));
         $groups->discard($groupId);
         $groups->requestRelease($groupId);
         $ecotone->run('workers');
@@ -1344,7 +1344,7 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame(1, $closed[0]['recorded']);
         self::assertSame([2], $closed[0]['missingPartNumbers']);
         self::assertSame($ecotone->now()->unixTime()->inMilliseconds(), $closed[0]['closedAt']);
-        $ecotone->advanceTimeBy(new TimeSpan(days: 1));
+        $ecotone->advanceTimeBy(new Duration(days: 1));
         $groups->discard($groupId);
         $groups->requestRelease($groupId);
         $ecotone->run('workers');
@@ -1382,7 +1382,7 @@ final class GatheringConformanceTest extends TestCase
                 return $part * 2;
             }
 
-            #[Gathered(timeout: new TimeSpan(minutes: 30))]
+            #[Gathered(timeout: new Duration(minutes: 30))]
             #[Asynchronous('summaries')]
             #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
             public function summarize(GatheredParts $parts): void
@@ -1415,7 +1415,7 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->run('workers', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $ecotone->run('summaries');
         if ($trigger === 'timeout') {
-            $ecotone->advanceTimeBy(new TimeSpan(minutes: 30));
+            $ecotone->advanceTimeBy(new Duration(minutes: 30));
         } else {
             $groups->requestRelease($groupId);
         }
@@ -1774,7 +1774,7 @@ final class GatheringConformanceTest extends TestCase
         ];
         self::assertSame($expected, $group);
 
-        $ecotone->advanceTimeBy(new TimeSpan(seconds: 3));
+        $ecotone->advanceTimeBy(new Duration(seconds: 3));
         $ecotone->run('workers');
         $ecotone->run('summaries');
         $closed = array_values(array_filter($groups->listClosedGroups('summary.handler'), static fn (array $candidate): bool => $candidate['groupId'] === $group['groupId']))[0];
@@ -2668,7 +2668,7 @@ final class GatheringConformanceTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(minutes: 30))]
+            #[Gathered(timeout: new Duration(minutes: 30))]
             #[Asynchronous('summaries')]
             #[InternalHandler('inner.summary', endpointId: 'inner.summary.handler')]
             public function summarizeInner(GatheredParts $parts): int
@@ -2694,7 +2694,7 @@ final class GatheringConformanceTest extends TestCase
         );
 
         $ecotone->sendCommandWithRouting('split', [[10, 20], [30]]);
-        $ecotone->advanceTimeBy(new TimeSpan(minutes: 30));
+        $ecotone->advanceTimeBy(new Duration(minutes: 30));
         $ecotone->run('summaries');
 
         self::assertCount(1, $handler->gathered);
@@ -3663,7 +3663,7 @@ final class GatheringConformanceTest extends TestCase
         };
         $consumer = self::releaseApplication([$interceptor], $channels);
         if ($trigger === 'timeout') {
-            $consumer->advanceTimeBy(new TimeSpan(seconds: 30));
+            $consumer->advanceTimeBy(new Duration(seconds: 30));
         }
         $consumer->run('gathering_release', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)->withExecutionAmountLimit(1));
 
@@ -3834,7 +3834,7 @@ final class GatheringConformanceTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(seconds: 30))]
+            #[Gathered(timeout: new Duration(seconds: 30))]
             #[Asynchronous('gathering_release')]
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts, #[Header('testId')] string $testId, #[Reference] DocumentStore $documents): void

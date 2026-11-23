@@ -357,7 +357,7 @@ final class EventSourcingProjectingModule implements AnnotationModule
                 new Reference(MissingEventStreamTable::class),
                 $this->globalStreamProjectionNames,
                 5_000,
-                new Definition(Duration::class, [60 * 1_000_000]),
+                Duration::seconds(60)->getDefinition(),
             ])
         );
     }

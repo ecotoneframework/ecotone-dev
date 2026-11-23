@@ -18,7 +18,7 @@ An Enterprise licence is required; container selection uses the existing licence
 
 ## Limits, grouping and release
 
-`Collected` exposes readonly `?int $maxSize`, `?TimeSpan $maxWait` and `string|Closure|null $groupBy`.
+`Collected` exposes readonly `?int $maxSize`, `?Duration $maxWait` and `string|Closure|null $groupBy`.
 At least one limit is required: maxSize >= 1, maxWait > 0. Size alone can wait indefinitely for manual release.
 The first recorded message fixes the deadline. A size release closes that specific batch and a later message
 opens another batch. Its stale delayed timeout cannot release the new batch.

@@ -65,7 +65,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Modelling\WithEvents;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Delayed;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
 #[Saga]
 class OrderProcess
@@ -98,7 +98,7 @@ class OrderProcess
         $this->recordThat(new OrderReadyToShip($this->orderId));
     }
 
-    #[Delayed(new TimeSpan(hours: 1))]
+    #[Delayed(new Duration(hours: 1))]
     #[Asynchronous('async')]
     #[EventHandler(endpointId: 'whenPaymentFailedEndpoint', outputChannelName: 'takePayment')]
     public function whenPaymentFailed(PaymentFailed $event, OrderService $orderService): ?TakePayment

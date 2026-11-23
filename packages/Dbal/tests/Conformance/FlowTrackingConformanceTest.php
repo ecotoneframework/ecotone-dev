@@ -37,7 +37,6 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -244,7 +243,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
             $expired[] = $trace = SpanContext::newTrace();
             $ecotone->sendCommandWithRouting('user.register', (string) $flow, metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
         }
-        $ecotone->advanceTimeBy(TimeSpan::withMinutes(11));
+        $ecotone->advanceTimeBy(Duration::minutes(11));
         $recent = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '6', metadata: [MessageHeaders::TRACEPARENT => $recent->toTraceparent()]);
 
@@ -298,7 +297,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $expired = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $expired->toTraceparent()]);
 
-        $ecotone->advanceTimeBy(TimeSpan::withMinutes(11));
+        $ecotone->advanceTimeBy(Duration::minutes(11));
         $recent = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '2', metadata: [MessageHeaders::TRACEPARENT => $recent->toTraceparent()]);
 
@@ -480,7 +479,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $abandoned = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $abandoned->toTraceparent()]);
 
-        $ecotone->advanceTimeBy(TimeSpan::withMinutes(11));
+        $ecotone->advanceTimeBy(Duration::minutes(11));
         $ecotone->runConsoleCommand('ecotone:tracing:remove-expired-traces');
 
         self::assertNull($this->completion($ecotone)->fetchFlow($abandoned->traceId));
@@ -618,7 +617,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $ofTenantB = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $ofTenantA->toTraceparent(), 'tenant' => 'tenant_a']);
         $ecotone->sendCommandWithRouting('user.register', '2', metadata: [MessageHeaders::TRACEPARENT => $ofTenantB->toTraceparent(), 'tenant' => 'tenant_b']);
-        $ecotone->advanceTimeBy(TimeSpan::withDays(8));
+        $ecotone->advanceTimeBy(Duration::days(8));
 
         $ecotone->runConsoleCommand('ecotone:tracing:remove-expired-traces', ['header' => ['tenant:tenant_a']]);
 

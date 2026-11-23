@@ -11,7 +11,6 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
@@ -79,10 +78,6 @@ final class SymfonyMessageConverter
 
         if ($deliveryDelay instanceof Duration) {
             $deliveryDelay = $deliveryDelay->inMilliseconds();
-        }
-
-        if ($deliveryDelay instanceof TimeSpan) {
-            $deliveryDelay = $deliveryDelay->toMilliseconds();
         }
 
         if ($deliveryDelay !== null && $deliveryDelay < 0) {

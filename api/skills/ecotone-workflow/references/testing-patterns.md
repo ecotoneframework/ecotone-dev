@@ -80,7 +80,7 @@ $this->assertEquals(OrderProcessStatus::PLACED, $status);
 ## Testing Saga with Async and Delayed Messages
 
 ```php
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
 public function test_saga_retries_payment_after_delay(): void
 {
@@ -95,7 +95,7 @@ public function test_saga_retries_payment_after_delay(): void
 
     $ecotone
         ->publishEvent(new OrderWasPlaced('123'))
-        ->advanceTimeBy(new TimeSpan(hours: 1))
+        ->advanceTimeBy(new Duration(hours: 1))
         ->run('async');
 
     $saga = $ecotone->getSaga(OrderProcess::class, '123');
@@ -138,7 +138,7 @@ $ecotone = EcotoneLite::bootstrapFlowTesting(
 
 $ecotone
     ->publishEvent(new OrderWasPlaced('123'))
-    ->advanceTimeBy(new TimeSpan(hours: 1))
+    ->advanceTimeBy(new Duration(hours: 1))
     ->run('async');
 ```
 

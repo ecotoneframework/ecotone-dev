@@ -14,7 +14,7 @@ use Ecotone\Api\Attribute\RemoveHeader;
 use Ecotone\Api\Attribute\TimeToLive;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -78,10 +78,10 @@ class EndpointHeadersInterceptor implements DefinedObject
             $type = Type::createFromVariable($metadata[MessageHeaders::DELIVERY_DELAY]);
             if (! $type->isCompatibleWith(UnionType::createWith([
                 Type::int(),
-                Type::object(TimeSpan::class),
+                Type::object(Duration::class),
                 Type::object(DateTimeInterface::class),
             ]))) {
-                throw ConfigurationException::create("Delivery delay should be either integer, TimeSpan or DateTimeInterface, but got {$type->toString()}");
+                throw ConfigurationException::create("Delivery delay should be either integer, Duration or DateTimeInterface, but got {$type->toString()}");
             }
         } elseif ($isDeliveryDelayHeaderExists) {
             $metadata[MessageHeaders::DELIVERY_DELAY] = $message->getHeaders()->get(MessageHeaders::DELIVERY_DELAY);
@@ -100,9 +100,9 @@ class EndpointHeadersInterceptor implements DefinedObject
             $type = Type::createFromVariable($metadata[MessageHeaders::TIME_TO_LIVE]);
             if (! $type->isCompatibleWith(UnionType::createWith([
                 Type::int(),
-                Type::object(TimeSpan::class),
+                Type::object(Duration::class),
             ]))) {
-                throw ConfigurationException::create("Delivery delay should be either integer or TimeSpan, but got {$type->toString()}");
+                throw ConfigurationException::create("Delivery delay should be either integer or Duration, but got {$type->toString()}");
             }
         } elseif ($isTtlHeaderExists) {
             $metadata[MessageHeaders::TIME_TO_LIVE] = $message->getHeaders()->get(MessageHeaders::TIME_TO_LIVE);

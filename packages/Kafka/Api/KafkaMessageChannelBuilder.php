@@ -7,7 +7,7 @@ namespace Ecotone\Api\Kafka;
 use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Kafka\Channel\KafkaMessageChannel;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
@@ -37,7 +37,7 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
         return false;
     }
 
-    public function maximumDelay(): ?TimeSpan
+    public function maximumDelay(): ?Duration
     {
         return null;
     }

@@ -17,7 +17,7 @@ const CHANGED_SCENARIOS_SHOWN = 2;
 const USAGE = <<<'USAGE'
     Builds the pull request comment that shows how the message flow changed.
 
-      php bin/build-flow-comment.php --comparison=<file> --pull-request=<number> --head-sha=<sha> --base-sha=<sha> --compared-with=base-commit|committed-baseline --run-url=<url> --output=<file> [--format-change=<file>]
+      php bin/build-flow-comment.php --comparison=<file> --pull-request=<number> --head-sha=<sha> --base-sha=<sha> --run-url=<url> --output=<file> [--format-change=<file>]
 
     --comparison is the output of `php bin/build-flow.php compare --presentation=build`. The output file is JSON holding the pull request
     number, the head sha, whether a flow changed, and the comment body, which opens with the marker line
@@ -30,7 +30,7 @@ foreach (array_slice($argv, 1) as $argument) {
     }
     $options[$option[1]] = $option[2];
 }
-foreach (['comparison', 'pull-request', 'head-sha', 'base-sha', 'compared-with', 'run-url', 'output'] as $required) {
+foreach (['comparison', 'pull-request', 'head-sha', 'base-sha', 'run-url', 'output'] as $required) {
     if (! isset($options[$required])) {
         refuse("--{$required} is missing.");
     }
@@ -43,9 +43,6 @@ if (preg_match('/^[0-9a-f]{40}$/', $options['head-sha']) !== 1) {
 }
 if (preg_match('/^[0-9a-f]{40}$/', $options['base-sha']) !== 1) {
     refuse("The base sha `{$options['base-sha']}` is not a 40 character commit sha, so the comment cannot name the commit it compares with. Pass github.event.pull_request.base.sha.");
-}
-if (! in_array($options['compared-with'], ['base-commit', 'committed-baseline'], true)) {
-    refuse("--compared-with=`{$options['compared-with']}` names neither side the comparison can start from. Pass --compared-with=base-commit when the base commit was snapshotted, or --compared-with=committed-baseline when the base predates the tooling and the pull request's own baseline was compared with.");
 }
 if (preg_match('#^https://[^\s<>()\[\]]+$#', $options['run-url']) !== 1) {
     refuse("The run url `{$options['run-url']}` is not an https url, so the comment cannot point to the full comparison. Pass the url of this workflow run.");
@@ -69,7 +66,7 @@ if (! str_starts_with(ltrim($comparison), COMPARISON_HEADING)) {
 $changed = $scenarios !== [] || str_contains($preamble, "\n" . FRAMEWORK_TREE_HEADING . "\n");
 $commit = substr($options['head-sha'], 0, 7);
 $body = $changed
-    ? commentOf(preamble: withExplanation(preamble: withBoundedFrameworkTree($preamble, $options['run-url']), headSha: $options['head-sha'], baseSha: $options['base-sha'], comparedWith: $options['compared-with'], runUrl: $options['run-url']), scenarios: $scenarios, runUrl: $options['run-url'])
+    ? commentOf(preamble: withExplanation(preamble: withBoundedFrameworkTree($preamble, $options['run-url']), headSha: $options['head-sha'], baseSha: $options['base-sha'], runUrl: $options['run-url']), scenarios: $scenarios, runUrl: $options['run-url'])
     : COMMENT_MARKER . "\n" . COMPARISON_HEADING . "\n\nAs of `{$commit}`, this pull request " . noChangeOf($preamble) . "\n";
 
 file_put_contents($options['output'], json_encode(['pullRequest' => (int) $options['pull-request'], 'headSha' => $options['head-sha'], 'changed' => $changed, 'body' => $body], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n");
@@ -99,16 +96,14 @@ function noChangeOf(string $preamble): string
     };
 }
 
-function withExplanation(string $preamble, string $headSha, string $baseSha, string $comparedWith, string $runUrl): string
+function withExplanation(string $preamble, string $headSha, string $baseSha, string $runUrl): string
 {
     $repository = preg_match('#^(https://[^/]+/[^/]+/[^/]+)/actions#', $runUrl, $match) === 1 ? $match[1] : 'https://github.com/ecotoneframework/ecotone-dev';
     $head = substr($headSha, 0, 7);
     $base = substr($baseSha, 0, 7);
-    $explanation = ($comparedWith === 'base-commit'
-            ? "Each scenario of the flow scenario catalogue ran on this pull request at `{$head}`, merged into its base, and on the base commit `{$base}`; below is what changed between the two. "
-            : "Each scenario of the flow scenario catalogue ran on this pull request at `{$head}`, merged into its base, and was compared with the baseline this pull request commits, because its base `{$base}` predates the tooling. ")
+    $explanation = "Each scenario of the flow scenario catalogue ran on this pull request at `{$head}`, merged into its base, and on the base commit `{$base}`; below is what changed between the two. "
         . 'To see it locally, run `docker compose exec -T app php bin/build-flow.php compare --presentation=build`; it compares against the committed baseline, which lags main until main\'s CI has committed the baseline of the latest merge. '
-        . ($comparedWith === 'base-commit' ? "Leave `packages/Ecotone/tests/BuildFlow/baseline` alone in this pull request; main's CI commits it after the merge. " : '')
+        . "Leave `packages/Ecotone/tests/BuildFlow/baseline` alone in this pull request; main's CI commits it after the merge. "
         . "The terms are explained in [Reading the flow comparison]({$repository}/blob/{$headSha}/.agents/skills/framework-dev-environment/references/workflow.md#reading-the-flow-comparison).\n\n";
 
     return preg_replace('/\A(\s*' . preg_quote(COMPARISON_HEADING, '/') . "\n\n)/", '$1' . addcslashes($explanation, '\\$'), $preamble, 1) ?? $preamble;

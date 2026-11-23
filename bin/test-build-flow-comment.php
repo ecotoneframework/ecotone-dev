@@ -276,23 +276,6 @@ $cases = [
             [strpos($comment['body'], 'aaaaaaa') < strpos($comment['body'], '### `order placed`'), 'the explanation comes before the scenarios'],
         ]);
     },
-    'a base commit without the tooling says the comparison is with the baseline the pull request commits' => function (): ?string {
-        $comment = read(run(comparison(scenario('order placed', 'diagram')), comparedWith: 'committed-baseline')['output']);
-
-        return expectAll([
-            [str_contains($comment['body'], 'compared with the baseline this pull request commits, because its base `bbbbbbb` predates the tooling'), 'says what was really compared: ' . substr($comment['body'], 0, 400)],
-            [! str_contains($comment['body'], 'and on the base commit'), 'does not claim the base commit was run'],
-            [! str_contains($comment['body'], 'Leave `packages/Ecotone/tests/BuildFlow/baseline` alone'), 'does not tell to leave alone the baseline the pull request commits'],
-        ]);
-    },
-    'what to compare with is refused unless it is the base commit or the committed baseline' => function (): ?string {
-        $result = run(comparison(scenario('order placed', 'diagram')), comparedWith: 'somewhere');
-
-        return expectAll([
-            [$result['exit'] === 1, 'exit 1, got ' . $result['exit']],
-            [str_contains($result['stderr'], '--compared-with'), 'names the option: ' . $result['stderr']],
-        ]);
-    },
     'no changed flow names the commit and the number of catalogue scenarios' => function (): ?string {
         $comment = read(run("## Message flow: what changed\n\nNone of 94 scenarios changed its wiring, its build or its traced spans.\n")['output']);
 
@@ -526,7 +509,7 @@ function comparison(string ...$scenarios): string
 /**
  * @return array{exit: int, stderr: string, output: string}
  */
-function run(string $comparison, string $pullRequest = '17', string $headSha = '', string $comparedWith = 'base-commit', ?string $formatChange = null): array
+function run(string $comparison, string $pullRequest = '17', string $headSha = '', ?string $formatChange = null): array
 {
     $directory = sys_get_temp_dir() . '/build-flow-comment-' . bin2hex(random_bytes(4));
     mkdir($directory);
@@ -535,13 +518,12 @@ function run(string $comparison, string $pullRequest = '17', string $headSha = '
         file_put_contents($directory . '/compare-error.txt', $formatChange);
     }
     $command = sprintf(
-        'php %s --comparison=%s --pull-request=%s --head-sha=%s --base-sha=%s --compared-with=%s --run-url=%s --output=%s',
+        'php %s --comparison=%s --pull-request=%s --head-sha=%s --base-sha=%s --run-url=%s --output=%s',
         escapeshellarg(SCRIPT),
         escapeshellarg($directory . '/comparison.md'),
         escapeshellarg($pullRequest),
         escapeshellarg($headSha === '' ? str_repeat('a', 40) : $headSha),
         escapeshellarg(str_repeat('b', 40)),
-        escapeshellarg($comparedWith),
         escapeshellarg(RUN_URL),
         escapeshellarg($directory . '/comment.json'),
     ) . ($formatChange === null ? '' : ' --format-change=' . escapeshellarg($directory . '/compare-error.txt'));

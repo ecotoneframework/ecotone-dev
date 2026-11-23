@@ -61,9 +61,7 @@ final class FlowSnapshots
      */
     public function all(): array
     {
-        if (! is_dir($this->location)) {
-            throw InvalidArgumentException::create("Flow snapshots were expected in {$this->location}, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/build-flow.php snapshot --location={$this->location}`.");
-        }
+        $this->refuseWhenMissing();
         $shared = $this->shared();
         $snapshots = [];
         foreach ($this->fileNames() as $name) {
@@ -81,6 +79,13 @@ final class FlowSnapshots
         $sharedFile = $this->location . '/' . self::SHARED_FILE;
 
         return is_file($sharedFile) ? FlowSnapshot::sharedFromJson((string) file_get_contents($sharedFile), $sharedFile) : null;
+    }
+
+    public function refuseWhenMissing(): void
+    {
+        if (! is_dir($this->location)) {
+            throw InvalidArgumentException::create("Flow snapshots were expected in {$this->location}, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/build-flow.php snapshot --location={$this->location}` on the commit to compare with. The committed baseline, packages/Ecotone/tests/BuildFlow/baseline, exists only once main's CI has committed it after a merge: merge main to get it.");
+        }
     }
 
     private function createLocation(string $stored): void

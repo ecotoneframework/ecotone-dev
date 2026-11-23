@@ -37,7 +37,8 @@ const BUILD_FLOW_USAGE = <<<'USAGE'
           path, and the marked wiring collapsed. json prints the raw comparison.
 
     The committed baseline is
-    USAGE . ' ' . BUILD_FLOW_BASELINE . ".\n";
+    USAGE . ' ' . BUILD_FLOW_BASELINE . ", which main's CI commits after a merge; a checkout from before that has none, and\n"
+    . "compare and check then refuse, naming how to snapshot a commit of your own to compare with.\n";
 
 $command = $argv[1] ?? '';
 $options = [];

@@ -29,6 +29,7 @@ final class BuildFlowConsoleCommands
     #[ConsoleCommand('ecotone:build-flow:check', 'Framework development: fails when a snapshot stored in the location differs from what the flow scenario catalogue produces now')]
     public function check(ConsoleWriter $writer, #[ConsoleParameterOption] string $location): void
     {
+        (new FlowSnapshots($location))->refuseWhenMissing();
         $files = FlowScenarioRecorder::filesOfTheCatalogue();
         $differs = [];
         $missing = [];

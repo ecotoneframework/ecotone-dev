@@ -3,7 +3,7 @@ name: Build Flow Comment
 # Posts the comment build-flow-comparison.yml built, also for pull requests from forks. This file always runs as it
 # is on main. It never checks out or runs the pull request's code: it reads the uploaded comment as data, checks it
 # belongs to the pull request and commit of the run that made it, and creates or updates one comment found by its
-# marker line.
+# marker line. A comparison run that uploaded no comment (its base commit had no tooling to compare with) posts nothing.
 on:
   workflow_run:
     workflows: [Build Flow Comparison]
@@ -19,7 +19,21 @@ jobs:
       actions: read
       pull-requests: write
     steps:
+      - name: Find the comment of the run
+        id: find
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, { owner, repo, run_id: context.payload.workflow_run.id, per_page: 100 });
+            const uploaded = artifacts.some((artifact) => artifact.name === 'build-flow-comment');
+            if (!uploaded) {
+              core.info('The comparison run uploaded no comment, because its base commit had no build-flow tooling to compare with; nothing is posted.');
+            }
+            core.setOutput('uploaded', uploaded ? 'true' : 'false');
+
       - name: Download the comment
+        if: steps.find.outputs.uploaded == 'true'
         uses: actions/download-artifact@v4
         with:
           name: build-flow-comment
@@ -28,6 +42,7 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Create or update the comment
+        if: steps.find.outputs.uploaded == 'true'
         uses: actions/github-script@v7
         env:
           RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}

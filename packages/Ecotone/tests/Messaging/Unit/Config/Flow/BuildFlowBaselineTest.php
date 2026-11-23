@@ -148,6 +148,13 @@ final class BuildFlowBaselineTest extends TestCase
         $tooling->runConsoleCommand('ecotone:build-flow:check', ['location' => $this->location]);
     }
 
+    public function test_check_command_refuses_a_location_that_does_not_exist_with_the_command_that_writes_it(): void
+    {
+        $this->expectExceptionMessage("Flow snapshots were expected in {$this->location}, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/build-flow.php snapshot --location={$this->location}` on the commit to compare with. The committed baseline, packages/Ecotone/tests/BuildFlow/baseline, exists only once main's CI has committed it after a merge: merge main to get it.");
+
+        $this->tooling()->runConsoleCommand('ecotone:build-flow:check', ['location' => $this->location]);
+    }
+
     public function test_snapshot_command_refuses_a_location_it_cannot_write_a_snapshot_file_into(): void
     {
         mkdir($this->location . '/shared.json', recursive: true);

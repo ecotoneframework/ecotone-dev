@@ -339,16 +339,6 @@ final class FlowScenarioChange
         return self::cutTo($this->wiring->combinedGraph(), $this->wiringParts()[$part]['nodes']);
     }
 
-    public function wiringPartBefore(int $part): MessageFlowGraph
-    {
-        return self::cutTo($this->before->wiring, $this->wiringParts()[$part]['nodes']);
-    }
-
-    public function wiringPartAfter(int $part): MessageFlowGraph
-    {
-        return self::cutTo($this->after->wiring, $this->wiringParts()[$part]['nodes']);
-    }
-
     /**
      * @return list<array{from: string, to: string, label: string, derived: bool}>
      */

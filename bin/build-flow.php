@@ -27,16 +27,14 @@ const BUILD_FLOW_USAGE = <<<'USAGE'
       php bin/build-flow.php check [--location=<directory>]
           Fails when a stored snapshot differs from what the code produces now.
 
-      php bin/build-flow.php compare [--from=<directory>] [--to=<directory>] [--presentation=before-after|marked|path|build|json]
+      php bin/build-flow.php compare [--from=<directory>] [--to=<directory>] [--presentation=build|json]
           Prints what changed between two sets of snapshots, scoped to the change. Without --from
           it compares from the committed baseline, without --to it compares to what the code
-          produces now. Presentations, as GitHub Markdown with Mermaid, each opening with one
-          tree of what changes in what Ecotone registers (MessagingSystem > module > endpoint > layers):
-          before-after (the default) a before/after pair with what ran process by process,
-          marked one marked diagram, path the message's path as a flow diagram, build what
-          the pull request comment shows: per scenario the Before/Now summary, what ran process
-          by process with the step tree of each changed process, the message's path, and the
-          marked wiring collapsed. json prints the raw comparison.
+          produces now. build (the default) prints what the pull request comment shows, as GitHub
+          Markdown with Mermaid: the tree of what changes in what Ecotone registers
+          (MessagingSystem > module > endpoint > layers), then per scenario the Before/Now summary,
+          what ran process by process with the step tree of each changed process, the message's
+          path, and the marked wiring collapsed. json prints the raw comparison.
 
     The committed baseline is
     USAGE . ' ' . BUILD_FLOW_BASELINE . ".\n";
@@ -71,7 +69,7 @@ try {
         $generated = $options['to'];
     }
     $tooling->runConsoleCommand('ecotone:build-flow:' . $command, match ($command) {
-        'compare' => ['from' => $options['from'] ?? $baseline, 'to' => $options['to'], 'presentation' => $options['presentation'] ?? 'before-after'],
+        'compare' => ['from' => $options['from'] ?? $baseline, 'to' => $options['to'], 'presentation' => $options['presentation'] ?? 'build'],
         'snapshot' => ['location' => $options['location'] ?? dirname(__DIR__) . '/' . BUILD_FLOW_LOCAL_SNAPSHOT],
         default => ['location' => $options['location'] ?? $baseline],
     });

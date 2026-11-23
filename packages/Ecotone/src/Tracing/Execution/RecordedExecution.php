@@ -154,7 +154,7 @@ final class RecordedExecution
         return $lines;
     }
 
-    public static function hintLine(int $depth, string $key, string $value): string
+    private static function hintLine(int $depth, string $key, string $value): string
     {
         return str_repeat('  ', $depth + 1) . self::HINT_MARKER . $key . ': ' . $value;
     }

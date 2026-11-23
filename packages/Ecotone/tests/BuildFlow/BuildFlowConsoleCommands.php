@@ -16,6 +16,9 @@ use Ecotone\Tracing\Execution\ExecutionRecordingReader;
  */
 final class BuildFlowConsoleCommands
 {
+    private const BUILD_PRESENTATION = 'build';
+    private const JSON_PRESENTATION = 'json';
+
     #[ConsoleCommand('ecotone:build-flow:record', 'Framework development: stores the framework wiring of this application and the steps traced so far as the snapshot of the named scenario')]
     public function record(ConsoleWriter $writer, MessageFlowFrameworkReader $frameworkReader, ExecutionRecordingReader $recordingReader, #[ConsoleParameterOption] string $scenario, #[ConsoleParameterOption] string $location): void
     {
@@ -63,13 +66,16 @@ final class BuildFlowConsoleCommands
         $writer->success('All ' . (count($files) - 1) . " flow snapshots in {$location} match what the code produces");
     }
 
-    #[ConsoleCommand('ecotone:build-flow:compare', 'Framework development: prints what changed between the snapshots stored in two locations, cut to the changed parts, as GitHub Markdown with Mermaid: --presentation=before-after (the default) a before/after pair, marked one marked diagram, path the message path as a flow diagram, build what the pull request comment shows (the framework tree, then per scenario the Before/Now summary, what ran process by process with the step tree of each changed process, the message path, and the marked wiring collapsed), json the raw comparison')]
-    public function compare(ConsoleWriter $writer, #[ConsoleParameterOption] string $from, #[ConsoleParameterOption] string $to, #[ConsoleParameterOption] string $presentation = FlowComparisonMarkdown::BEFORE_AFTER_PAIR): void
+    #[ConsoleCommand('ecotone:build-flow:compare', 'Framework development: prints what changed between the snapshots stored in two locations, cut to the changed parts: --presentation=build (the default) what the pull request comment shows as GitHub Markdown with Mermaid (the framework tree, then per scenario the Before/Now summary, what ran process by process with the step tree of each changed process, the message path, and the marked wiring collapsed), json the raw comparison')]
+    public function compare(ConsoleWriter $writer, #[ConsoleParameterOption] string $from, #[ConsoleParameterOption] string $to, #[ConsoleParameterOption] string $presentation = self::BUILD_PRESENTATION): void
     {
+        if (! in_array($presentation, [self::BUILD_PRESENTATION, self::JSON_PRESENTATION], true)) {
+            throw InvalidArgumentException::create("ecotone:build-flow:compare was asked for presentation `{$presentation}`, which it cannot produce. Pass --presentation=build (the default) for what the pull request comment shows: the framework tree, then per scenario the Before/Now summary, what ran process by process, the message's path and the marked wiring collapsed; or --presentation=json for the raw comparison.");
+        }
         $before = new FlowSnapshots($from);
         $after = new FlowSnapshots($to);
         $comparison = FlowSnapshotComparison::between(before: $before->all(), after: $after->all(), sharedBefore: $before->shared(), sharedAfter: $after->shared());
 
-        $writer->write($presentation === 'json' ? $comparison->toJson() : FlowComparisonMarkdown::of($comparison, $presentation));
+        $writer->write($presentation === self::JSON_PRESENTATION ? $comparison->toJson() : FlowComparisonMarkdown::of($comparison));
     }
 }

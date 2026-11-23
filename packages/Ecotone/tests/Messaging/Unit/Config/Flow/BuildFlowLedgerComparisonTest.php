@@ -172,19 +172,17 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         self::assertSame([['module' => 'Acme\ReportingModule', 'entries' => [['change' => 'added', 'kind' => 'service', 'name' => 'Acme\Reports', 'after' => ['module' => 'Acme\ReportingModule', 'kind' => 'service', 'name' => 'Acme\Reports', 'class' => 'Acme\Reports']]]]], $comparison['groups'][0]['build']);
     }
 
-    public function test_every_presentation_opens_with_one_framework_tree_rooted_at_the_messaging_system(): void
+    public function test_the_comparison_opens_with_one_framework_tree_rooted_at_the_messaging_system(): void
     {
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledWithAnAudit());
 
-        foreach (['before-after', 'marked', 'path', 'build'] as $presentation) {
-            $markdown = $this->presentation($presentation);
+        $markdown = $this->presentation('build');
 
-            self::assertSame(1, substr_count($markdown, "### Framework: what changes\n\n```text\nMessagingSystem\n"));
-            self::assertLessThan(strpos($markdown, '### `Handling lines`'), strpos($markdown, '### Framework: what changes'));
-            self::assertStringNotContainsString('#### Build', $markdown);
-            self::assertStringNotContainsString('Ecotone\\', $this->treeOf($markdown));
-        }
+        self::assertSame(1, substr_count($markdown, "### Framework: what changes\n\n```text\nMessagingSystem\n"));
+        self::assertLessThan(strpos($markdown, '### `Handling lines`'), strpos($markdown, '### Framework: what changes'));
+        self::assertStringNotContainsString('#### Build', $markdown);
+        self::assertStringNotContainsString('Ecotone\\', $this->treeOf($markdown));
     }
 
     public function test_an_added_endpoint_nests_each_layer_inside_the_one_that_wraps_it_down_to_the_handler(): void
@@ -243,7 +241,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
             . "        └ interceptors (unchanged)\n"
             . "          └ class@anonymous#1::handle(…)\n"
             . "            └ + array \$lines\n",
-            $this->treeOf($this->presentation('path')),
+            $this->treeOf($this->presentation('build')),
         );
     }
 
@@ -252,7 +250,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         $this->record('Handling lines', 'before', $this->linesHandledWithAnAudit());
         $this->record('Handling lines', 'after', $this->linesHandledByAPlainHandler());
 
-        self::assertMatchesRegularExpression('/[├└] - endpoint audit\n.*[│ ]   on audit\.target\n/u', $this->treeOf($this->presentation('marked')));
+        self::assertMatchesRegularExpression('/[├└] - endpoint audit\n.*[│ ]   on audit\.target\n/u', $this->treeOf($this->presentation('build')));
     }
 
     public function test_registrations_without_a_chain_fold_into_one_count_per_module_with_their_names_below_the_tree(): void

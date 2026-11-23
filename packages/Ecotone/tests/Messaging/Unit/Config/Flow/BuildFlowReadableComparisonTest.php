@@ -138,35 +138,34 @@ final class BuildFlowReadableComparisonTest extends TestCase
         self::assertSame(['before' => self::BEFORE, 'now' => self::NOW], $this->comparison('json')['groups'][0]['summary']);
     }
 
-    public function test_every_presentation_opens_with_the_summary_names_the_scenarios_it_applies_to_and_leaves_what_is_off_the_path_to_the_build(): void
+    public function test_the_comparison_opens_with_the_summary_names_the_scenarios_it_applies_to_and_leaves_what_is_off_the_path_to_the_framework_tree(): void
     {
         $this->recordARunThatGainsItsCompletion('backfill');
         $this->recordARunThatGainsItsCompletion('rebuild');
 
-        foreach (['before-after', 'marked', 'path'] as $presentation) {
-            $markdown = $this->comparison($presentation);
+        $markdown = $this->comparison('build');
 
-            self::assertStringStartsWith(
-                "## Message flow: what changed\n\n2 of 2 scenarios change their message path.\n\n### 2 scenarios with the same change\n\n"
-                . "Applies to: `projection backfill run`, `projection rebuild run`. Shown for `backfill`; the same holds with `rebuild` in its place.\n\n"
-                . str_replace('rebuild', 'backfill', self::BEFORE) . "\n\n" . str_replace('rebuild', 'backfill', self::NOW) . "\n\n",
-                $markdown,
-                $presentation,
-            );
-            self::assertStringNotContainsString('not on this path', $markdown, $presentation);
-            self::assertStringNotContainsString('Build: what', $markdown, $presentation);
-            self::assertStringContainsString($presentation === 'path' ? "\nGreen marks what happens only now" : "\n_Legend: ", $markdown, $presentation);
-            self::assertStringNotContainsString('class@anonymous', $markdown, $presentation);
-            self::assertStringNotContainsString('Bridge::handle', $markdown, $presentation);
-            self::assertStringNotContainsString('ecotone.channel.ecotone:', $markdown, $presentation);
-        }
+        self::assertStringStartsWith("## Message flow: what changed\n\n2 of 2 scenarios change their message path.\n\n", $markdown);
+        self::assertStringContainsString(
+            "\n### 2 scenarios with the same change\n\n"
+            . "Applies to: `projection backfill run`, `projection rebuild run`. Shown for `backfill`; the same holds with `rebuild` in its place.\n\n"
+            . str_replace('rebuild', 'backfill', self::BEFORE) . "\n\n" . str_replace('rebuild', 'backfill', self::NOW) . "\n\n",
+            $markdown,
+        );
+        self::assertStringNotContainsString('not on this path', $markdown);
+        self::assertStringNotContainsString('Framework: what', $markdown);
+        self::assertStringContainsString("\nGreen marks what happens only now", $markdown);
+        self::assertStringContainsString("\n_Legend: ", $markdown);
+        self::assertStringNotContainsString('class@anonymous', $markdown);
+        self::assertStringNotContainsString('Bridge::handle', $markdown);
+        self::assertStringNotContainsString('ecotone.channel.ecotone:', $markdown);
     }
 
     public function test_diagrams_use_words_a_reviewer_knows_and_explain_their_marks(): void
     {
         $this->recordARunThatGainsItsCompletion('rebuild');
 
-        $marked = $this->comparison('marked');
+        $marked = $this->comparison('build');
 
         self::assertStringContainsString('"Internal Handler<br/>consumer of rebuild"', $marked);
         self::assertStringContainsString('"Internal Handler<br/>ProjectionRunCompletion::complete"', $marked);
@@ -182,22 +181,12 @@ final class BuildFlowReadableComparisonTest extends TestCase
         self::assertStringNotContainsString('steps unchanged', $marked);
     }
 
-    public function test_before_after_pair_marks_the_new_steps_in_its_after_list(): void
-    {
-        $this->recordARunThatGainsItsCompletion('rebuild');
-
-        $pair = $this->comparison('before-after');
-
-        self::assertStringContainsString("        process whenPlaced of projection orders\n```\n\nAfter:", $pair);
-        self::assertStringContainsString("      send rebuild (part report by GatheringPartCompletion to ecotone.projection.rebuild.completion:orders)   ← new\n        receive rebuild   ← new\n          process ProjectionRunCompletion::complete (from the wiring: no span is recorded)   ← new\n```\n", $pair);
-        self::assertStringContainsString('_Legend: dotted outline = registered by Ecotone, solid outline = declared by the application; ', $pair);
-    }
-
     public function test_message_path_draws_sender_channel_and_receiving_handler_as_separate_nodes(): void
     {
         $this->recordARunThatGainsItsCompletion('rebuild');
 
-        $path = $this->comparison('path');
+        $markdown = $this->comparison('build');
+        $path = substr($markdown, (int) strpos($markdown, "#### The message's path\n"), (int) strpos($markdown, '<details><summary>Marked wiring') - (int) strpos($markdown, "#### The message's path\n"));
 
         foreach (['consumer of rebuild', 'partition batch orders', 'gatherer (Enterprise only)', 'ProjectionRunCompletion::complete'] as $box) {
             self::assertMatchesRegularExpression('/^  p\d+\["' . preg_quote($box, '/') . '"\](:::new)?$/m', $path);

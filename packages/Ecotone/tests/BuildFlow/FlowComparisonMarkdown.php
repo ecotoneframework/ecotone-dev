@@ -11,28 +11,19 @@ use Ecotone\Api\Messaging\Flow\FlowNode;
 use Ecotone\Api\Messaging\Flow\FlowNodeChange;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
-use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Tracing\Execution\RecordedExecution;
 
 /**
  * licence Apache-2.0
  */
 final class FlowComparisonMarkdown
 {
-    public const BEFORE_AFTER_PAIR = 'before-after';
-    public const MARKED_DIAGRAM = 'marked';
-    public const MESSAGE_PATH = 'path';
-    public const BUILD_VIEW = 'build';
     private const STEPS_PER_LIST = 40;
     private const SCENARIOS_PER_LINE = 6;
     private const EMPTY_FLOWCHART = "flowchart LR\n";
     private const DERIVED_STEP = ' (from the wiring: no span is recorded)';
 
-    public static function of(FlowSnapshotComparison $comparison, string $presentation): string
+    public static function of(FlowSnapshotComparison $comparison): string
     {
-        if (! in_array($presentation, [self::BEFORE_AFTER_PAIR, self::MARKED_DIAGRAM, self::MESSAGE_PATH, self::BUILD_VIEW], true)) {
-            throw InvalidArgumentException::create("ecotone:build-flow:compare was asked for presentation `{$presentation}`, which it cannot produce. Pass --presentation=before-after (the default) for a before/after pair of diagrams and step lists, --presentation=marked for one diagram with the changes marked and one step list, --presentation=path for the message's path as a flow diagram with what changed in sentences, --presentation=build for the build, the message's path and the marked wiring collapsed, or --presentation=json for the raw comparison.");
-        }
         $title = "## Message flow: what changed\n\n";
         if ($comparison->groups === [] && $comparison->everyScenario === null) {
             return $title . ($comparison->scenariosCompared === 1 ? "The 1 scenario did not change its wiring, what Ecotone registers for it or its traced spans.\n" : "None of {$comparison->scenariosCompared} scenarios changed its wiring, its build or its traced spans.\n");
@@ -55,18 +46,12 @@ final class FlowComparisonMarkdown
         $sections = array_map(
             fn (array $group): string => self::headingOf($group['scenarios'], $group['varyingNames'])
                 . implode("\n\n", $group['change']->summary()) . "\n\n"
-                . match ($presentation) {
-                    self::BEFORE_AFTER_PAIR => self::beforeAfterPair($group['change']),
-                    self::MARKED_DIAGRAM => self::markedDiagram($group['change']),
-                    self::MESSAGE_PATH => self::messagePath($group['change']),
-                    default => self::stepsOfEveryProcess($group['change']) . self::messagePath($group['change']) . "\n<details><summary>Marked wiring and traced spans</summary>\n\n" . self::markedDiagram($group['change']) . "\n</details>\n",
-                }
-            . ($presentation === self::BUILD_VIEW ? '' : self::whatRan($group['change'])),
+                . self::stepsOfEveryProcess($group['change']) . self::messagePath($group['change']) . "\n<details><summary>Marked wiring and traced spans</summary>\n\n" . self::markedDiagram($group['change']) . "\n</details>\n",
             $pathGroups,
         );
         $tree = FlowFrameworkTree::of($comparison);
 
-        $changedScenarios = $presentation === self::BUILD_VIEW ? self::changedScenariosOf($pathGroups) : '';
+        $changedScenarios = self::changedScenariosOf($pathGroups);
 
         return $title . $summary . "\n\n" . $changedScenarios . implode("\n", array_filter([$tree, ...$sections]));
     }
@@ -328,185 +313,10 @@ final class FlowComparisonMarkdown
         return $rows;
     }
 
-    private static function whatRan(FlowScenarioChange $change): string
-    {
-        if (! $change->hasExecutionChanges()) {
-            return '';
-        }
-        $sections = [];
-        $printedAlone = [];
-        foreach (self::inFlowOrder($change->execution) as $process) {
-            $state = match (true) {
-                $process['change'] === FlowScenarioChange::UNCHANGED => 'unchanged.',
-                $process['change'] === FlowScenarioChange::ADDED => 'runs only now.',
-                $process['change'] === FlowScenarioChange::REMOVED => 'ran only before.',
-                $process['steps'] === [] => 'runs the same steps.',
-                default => FlowWording::ofChangedProcess($process['steps']),
-            };
-            $entries = $process['steps'] ?? [];
-            if ($process['change'] === FlowScenarioChange::ADDED) {
-                $entries = self::withSharedPreambleLeftOut($entries, array_values(array_filter($change->after->execution, fn (array $other): bool => in_array($other['process'], array_column($change->before->execution, 'process'), true))));
-            }
-            $lines = [];
-            foreach ($entries as $entry) {
-                array_push($lines, ...self::linesOfStep($entry));
-            }
-            $alike = $lines === [] ? null : self::alikeOf($lines, $printedAlone[$process['change']] ?? []);
-            if ($alike !== null) {
-                $lines = array_values(array_diff_assoc($lines, $alike['lines']));
-                $state = ($process['change'] === FlowScenarioChange::ADDED ? 'runs only now' : 'runs other steps now')
-                    . ($lines === [] ? ', with the same steps as `' . $alike['process'] . '`.' : ', like `' . $alike['process'] . '` except:');
-            } elseif ($lines !== []) {
-                $printedAlone[$process['change']][] = ['process' => $process['process'], 'lines' => $lines];
-            }
-            $sections[] = 'Process `' . $process['process'] . '`' . (isset($process['sentBy']) ? ', a sub-flow of `' . $process['sentBy'] . '`' : '') . ': ' . $state . ($lines === [] ? '' : "\n\n```diff\n" . implode("\n", $lines) . "\n```");
-        }
-        $subFlows = FlowWording::ofSubFlowChanges($change->execution);
-
-        return "\n#### What ran, process by process\n\n" . ($subFlows === '' ? '' : $subFlows . "\n\n") . implode("\n\n", $sections) . "\n";
-    }
-
-    /**
-     * @param list<array{process: string, change: string, sentBy?: string, sentAt?: int, sentByBefore?: ?string, steps?: list<array<string, mixed>>}> $execution
-     * @return list<array{process: string, change: string, sentBy?: string, sentAt?: int, sentByBefore?: ?string, steps?: list<array<string, mixed>>}>
-     */
-    private static function inFlowOrder(array $execution): array
-    {
-        $subFlows = [];
-        $flows = [];
-        foreach ($execution as $position => $process) {
-            $sender = isset($process['sentBy']) ? self::senderPositionOf($execution, $process) : false;
-            if ($sender === false || $sender === $position) {
-                $flows[] = $position;
-                continue;
-            }
-            $subFlows[$sender][] = $position;
-        }
-        $ordered = [];
-        $visit = function (int $position) use (&$visit, &$ordered, $execution, $subFlows): void {
-            if (isset($ordered[$position])) {
-                return;
-            }
-            $ordered[$position] = $execution[$position];
-            $children = $subFlows[$position] ?? [];
-            usort($children, fn (int $first, int $second): int => [$execution[$first]['sentAt'] ?? 0, $first] <=> [$execution[$second]['sentAt'] ?? 0, $second]);
-            foreach ($children as $child) {
-                $visit($child);
-            }
-        };
-        foreach ($flows as $flow) {
-            $visit($flow);
-        }
-        foreach (array_keys($execution) as $position) {
-            $visit($position);
-        }
-
-        return array_values($ordered);
-    }
-
-    /**
-     * @param list<array{process: string, change: string, sentBy?: string}> $execution
-     * @param array{process: string, change: string, sentBy?: string} $subFlow
-     */
-    private static function senderPositionOf(array $execution, array $subFlow): int|false
-    {
-        $otherSide = $subFlow['change'] === FlowScenarioChange::REMOVED ? FlowScenarioChange::ADDED : FlowScenarioChange::REMOVED;
-        foreach ($execution as $position => $process) {
-            if ($process['process'] === ($subFlow['sentBy'] ?? null) && $process['change'] !== $otherSide) {
-                return $position;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param list<string> $lines
-     * @param list<array{process: string, lines: list<string>}> $printed
-     * @return array{process: string, lines: list<string>}|null
-     */
-    private static function alikeOf(array $lines, array $printed): ?array
-    {
-        $withoutNumbers = fn (array $of): array => array_map(fn (string $line): string => (string) preg_replace('/\d+/', '#', $line), $of);
-        foreach ($printed as $earlier) {
-            if (count($earlier['lines']) === count($lines) && $withoutNumbers($earlier['lines']) === $withoutNumbers($lines)) {
-                return $earlier;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param list<array<string, mixed>> $entries
-     * @param list<array{process: string, steps: list<array{depth: int, label: string, hints: list<array{key: string, value: string, shownInLines: bool}>}>}> $after
-     * @return list<array<string, mixed>>
-     */
-    private static function withSharedPreambleLeftOut(array $entries, array $after): array
-    {
-        $keyOf = fn (string $step, array $hints): string => $step . json_encode(array_values(array_filter($hints, fn (array $hint): bool => $hint['shownInLines'])), JSON_THROW_ON_ERROR);
-        $best = ['process' => '', 'steps' => 0];
-        foreach ($after as $other) {
-            $shared = 0;
-            while (isset($entries[$shared + 1], $other['steps'][$shared + 1])
-                && $keyOf((string) $entries[$shared + 1]['step'], $entries[$shared + 1]['hints'] ?? []) === $keyOf(str_repeat('  ', $other['steps'][$shared + 1]['depth']) . $other['steps'][$shared + 1]['label'], $other['steps'][$shared + 1]['hints'])) {
-                $shared++;
-            }
-            if ($shared > $best['steps']) {
-                $best = ['process' => $other['process'], 'steps' => $shared];
-            }
-        }
-        if ($best['steps'] < 3) {
-            return $entries;
-        }
-
-        return [$entries[0], ['change' => FlowScenarioChange::LEFT_OUT, 'steps' => $best['steps'], 'asIn' => $best['process']], ...array_slice($entries, 1 + $best['steps'])];
-    }
-
-    /**
-     * @param array<string, mixed> $entry
-     * @return list<string>
-     */
-    private static function linesOfStep(array $entry): array
-    {
-        $depth = intdiv(strspn((string) ($entry['step'] ?? ''), ' '), 2);
-        $prefix = match ($entry['change']) {
-            FlowScenarioChange::ADDED => '+ ',
-            FlowScenarioChange::REMOVED => '- ',
-            default => '  ',
-        };
-        $lines = [match ($entry['change']) {
-            FlowScenarioChange::LEFT_OUT => '  … ' . $entry['steps'] . (isset($entry['asIn']) ? ' steps as in `' . $entry['asIn'] . '`' : ' unchanged steps'),
-            FlowScenarioChange::MOVED => '  ' . FlowWording::ofMovedSteps($entry),
-            default => $prefix . $entry['step'],
-        }];
-        foreach ($entry['hints'] ?? [] as $hint) {
-            $lines[] = $prefix . RecordedExecution::hintLine(depth: $depth, key: $hint['key'], value: $hint['value']);
-        }
-        $details = [];
-        foreach ($entry['hintChanges'] ?? [] as $change) {
-            if (! ($change['shownInLines'] ?? true)) {
-                $details[] = $change['key'];
-                continue;
-            }
-            if ($change['before'] !== '') {
-                $lines[] = '- ' . RecordedExecution::hintLine(depth: $depth, key: $change['key'], value: $change['before']);
-            }
-            if ($change['now'] !== '') {
-                $lines[] = '+ ' . RecordedExecution::hintLine(depth: $depth, key: $change['key'], value: $change['now']);
-            }
-        }
-        if ($details !== []) {
-            $lines[] = '  ' . RecordedExecution::hintLine(depth: $depth, key: count($details) . ' detail hint' . (count($details) === 1 ? '' : 's') . ' changed', value: implode(', ', $details) . '; the json presentation shows ' . (count($details) === 1 ? 'its values' : 'their values'));
-        }
-
-        return $lines;
-    }
-
     /**
      * @param list<MessageFlowGraph> $drawn
      */
-    private static function flowchartLegend(array $drawn, ?FlowScenarioChange $marked): string
+    private static function flowchartLegend(array $drawn, FlowScenarioChange $marked): string
     {
         $nodes = array_merge(...array_map(fn (MessageFlowGraph $graph): array => $graph->nodes(), $drawn));
         $edges = array_merge(...array_map(fn (MessageFlowGraph $graph): array => $graph->edges(), $drawn));
@@ -517,7 +327,7 @@ final class FlowComparisonMarkdown
         $hasArrow = fn (FlowEdgeKind $kind): bool => array_filter($edges, fn (FlowEdge $edge): bool => $edge->kind === $kind) !== [];
         $registeredByEcotone = array_filter($nodes, fn (FlowNode $node): bool => ($node->attributes['framework'] ?? false) === true);
         $groups = array_filter([
-            $marked === null ? '' : implode(', ', array_filter([
+            implode(', ', array_filter([
                 $isDrawn($marked->wiring->addedNodes, $marked->wiring->addedEdges) ? 'green = added' : null,
                 $isDrawn($marked->wiring->removedNodes, $marked->wiring->removedEdges) ? 'red dashed = removed' : null,
                 $isDrawn(array_map(fn (FlowNodeChange $change): FlowNode => $change->after, $marked->wiring->changedNodes), array_map(fn (FlowEdgeChange $change): FlowEdge => $change->after, $marked->wiring->changedEdges)) ? 'yellow = changed' : null,
@@ -554,28 +364,6 @@ final class FlowComparisonMarkdown
                 ? 'Applies to: ' . implode(', ', $names) . '.' . $shownFor . "\n\n"
                 : "<details><summary>Applies to</summary>\n\n" . implode("\n", array_map(fn (string $name): string => '- ' . $name, $names)) . "\n\n</details>\n\n" . ($shownFor === '' ? '' : trim($shownFor) . "\n\n")
         );
-    }
-
-    private static function beforeAfterPair(FlowScenarioChange $change): string
-    {
-        $markdown = self::wiringHeading($change);
-        $drawn = [];
-        foreach ($change->wiringParts() as $position => $part) {
-            $drawn[] = $change->wiringPartBefore($position);
-            $drawn[] = $change->wiringPartAfter($position);
-            $markdown .= self::partHeading($change, $position)
-                . "Before:\n\n" . self::flowchart(self::readable(change: $change, part: $change->wiringPartBefore($position), whole: $change->before->wiring)->toMermaid())
-                . "After:\n\n" . self::flowchart(self::readable(change: $change, part: $change->wiringPartAfter($position), whole: $change->after->wiring)->toMermaid())
-                . self::leftOutLine($part['unchangedNeighboursLeftOut']);
-        }
-        $markdown .= self::flowchartLegend($drawn, null);
-        if (! $change->hasTraceChanges()) {
-            return $markdown . "#### Traced spans\n\nUnchanged.\n";
-        }
-
-        return $markdown . "#### Traced spans\n\n"
-            . "Before:\n\n" . self::stepList(change: $change, skippedChange: FlowScenarioChange::ADDED, wiring: $change->before->wiring)
-            . "After:\n\n" . self::stepList(change: $change, skippedChange: FlowScenarioChange::REMOVED, wiring: $change->after->wiring);
     }
 
     private static function markedDiagram(FlowScenarioChange $change): string
@@ -756,24 +544,6 @@ final class FlowComparisonMarkdown
     private static function leftOutLine(int $unchangedNeighboursLeftOut): string
     {
         return $unchangedNeighboursLeftOut === 0 ? '' : "_and {$unchangedNeighboursLeftOut} more unchanged neighbours_\n\n";
-    }
-
-    private static function stepList(FlowScenarioChange $change, string $skippedChange, MessageFlowGraph $wiring): string
-    {
-        $lines = [];
-        foreach ($change->scopedTrace() as $entry) {
-            if ($entry['change'] === $skippedChange) {
-                continue;
-            }
-            $lines[] = match ($entry['change']) {
-                FlowScenarioChange::LEFT_OUT => "… {$entry['steps']} steps unchanged",
-                FlowScenarioChange::ADDED => self::stepLine($entry['step'], $wiring) . '   ← new',
-                FlowScenarioChange::REMOVED => self::stepLine($entry['step'], $wiring) . '   ← gone',
-                default => self::stepLine($entry['step'], $wiring),
-            };
-        }
-
-        return "```text\n" . implode("\n", self::capped($lines)) . "\n```\n\n";
     }
 
     /**

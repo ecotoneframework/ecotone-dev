@@ -205,10 +205,7 @@ docker compose exec -T app php bin/test-build-flow-comment.php  # the tests of t
 
 | Presentation | What it shows |
 |---|---|
-| `before-after` (default) | the changed wiring before and after, the traced steps before and after, and what ran, process by process |
-| `marked` | one diagram with the changes marked, and one list of the traced steps |
-| `path` | the message's path as a flow diagram, with what changed in sentences |
-| `build` | what the pull request comment shows: the framework tree, then per scenario the Before/Now summary, what ran process by process with the step tree of each changed process, the message's path, and the marked wiring and traced spans collapsed |
+| `build` (default) | what the pull request comment shows: the framework tree, then per scenario the Before/Now summary, what ran process by process with the step tree of each changed process, the message's path, and the marked wiring and traced spans collapsed |
 | `json` | the raw comparison, for tooling |
 
 A scenario of the catalogue is a `FlowScenario` returned by a private static method of one of the
@@ -329,7 +326,7 @@ under it. The terms they use:
 
 | Term | Meaning |
 |---|---|
-| a dashed arrow, `(framework, no span)` | in the message's path, a hand-over taken from what Ecotone registers (its framework section or the wiring), because no span is recorded for it; a solid arrow is a traced step. The flow diagram shows it dashed only; the other presentations also print `(framework, no span)` or `(wiring, no span)` after it |
+| a dashed arrow, `(framework, no span)` | in the message's path, a hand-over taken from what Ecotone registers (its framework section or the wiring), because no span is recorded for it; a solid arrow is a traced step. The flow diagram shows it dashed, without the `(framework, no span)` or `(wiring, no span)` the comparison puts after its label |
 | the message's path | one Mermaid flow diagram per changed scenario: a box per place the message passes (a channel as a cylinder), one arrow per distinct hand-over, drawn once however often it happens, in the order it first happens now, then the gone ones. A green arrow labelled `+ ` happens only now, a red one labelled `- ` happened only before, a plain one happens both before and now; a box only green arrows touch is green, one only red arrows touch is red. The sentence above the diagram says the same |
 | `+` / `-` | new in the pull request / gone in it |
 | process, sub-flow | a process is one entry into Ecotone: a gateway call, a console command or one consumed message. A sub-flow is a process started by a message another process sent; `sent by:` / `taken by:` name the two sides |
@@ -349,7 +346,6 @@ under it. The terms they use:
 | `chosen by: licence, over X` | with an Enterprise licence Ecotone runs this implementation in place of the open-core `X` |
 | `chosen by: …` (other values) | what picked the route or the handler: a routing key, a routing slip, the service map |
 | `{generated#1}` | an id Ecotone generates while it builds (an endpoint id, a channel name), numbered in order of appearance so two builds compare equal |
-| `moved, now run under the X step` / `no longer run under` | a step that still runs, but inside another step now (or no longer), for example under an interceptor added around it |
 | `↳ key: value` | a hint of the step above it: what decided where the message went, or that it failed |
 | Marked wiring | the part of the message flow graph the change touches, drawn once with what is new and what is gone marked; collapsed under the message's path |
 | Traced spans, and What ran, process by process | Traced spans lists the application's own spans (buses, handlers, channels) the change adds or removes, as at the default tracing level; What ran lists every step Ecotone ran, process by process, as the framework level records it |
@@ -357,7 +353,6 @@ under it. The terms they use:
 | `Also new: a gathering group of 2 parts opens, and 2 gatherer runs take the part reports in.` | the end of a scenario's Now sentence: what the change adds that the message's path does not show |
 | `- X: 2 of 6 processes changed` / `wiring only` / `traced spans only` / `· left out of this comment` | the list of changed scenarios at the top of the comment: how many of a scenario's processes changed, or that only its wiring or its traced spans did; a scenario left out to stay within the comment limit is marked there |
 | `· not shown here`, `N scenarios are not shown here (a changed, b new, c gone)` | the pull request comment shows in full the 2 changed scenarios with the most changed steps (new plus gone; a scenario changing only its wiring or traced spans ranks after every one with changed steps; ties keep the comparison's order, which is the order of scenario names), then every new scenario in the order of their names; a gone scenario is only listed. Every scenario not shown is marked in the list and counted by kind in one sentence at the end, which also says how many of them GitHub's 65,536 character limit left out (those are marked `· left out of this comment`) and names a new one among them. `bin/build-flow.php compare --presentation=build` and the `build-flow-comparison` artifact always print every scenario; only `bin/build-flow-comment.php` selects (`scenariosShownOf()`, `CHANGED_SCENARIOS_SHOWN`) |
-| `like X except:`, `… N steps as in X` | in the other presentations (`before-after`, `marked`, `path`): a process that runs what the earlier process `X` runs, with only the lines listed below it different / steps left out because they are the same as in `X` |
 | `(1 of 2)` after a process title | the first of two processes with the same title, numbered in run order |
 | `(part 1 of 2)` after a process title | a gatherer run that took in part 1 of a gathering group of 2 parts |
 | `chosen by: routing slip, its last entry` / `chosen by: routing slip, next: Y, Z` | the step was forwarded to the next entry on the message's routing slip: `its last entry`, nothing is left on the slip after it; `next: Y, Z`, those are still on the slip, in that order. The bare `chosen by: routing slip` does not occur: a forward by the slip always takes its first entry |
@@ -368,7 +363,7 @@ under it. The terms they use:
 | `collected:` | the message is held by the message collector until the handler ends (`held until the handler ends`) and sent then (`released after the handler ended`), so a failing handler sends nothing |
 | gathering group, part report, gatherer, Enterprise part completion | a gathering group is the set of parts one dispatch splits its work into (`open gathering group of 2 parts`); each part's run ends with a part report sent to the group's completion channel; the gatherer (`GatheringMessageHandler`) records each part as it arrives and releases the group once every part is in; the Enterprise part completion, `GatheringPartCompletion`, is what sends the part report in place of the open-core `no hand-over` |
 | step words | `around X` an around interceptor; `before send X` / `after send X` / `after successful send X` a channel interceptor before a message is sent, after it is sent whatever the result, and only after it was sent; `span X` a span Ecotone opens; `direct channel X` a synchronous channel the message passes through; `forward to X` the handler's result or the message handed to the next channel; `put on channel X` the message stored on a queue channel, taken later by a consumer run; `entrypoint sends to X` a message Ecotone sends itself; `handler X` the method that handles the message; `bridge X` the bridge Ecotone puts between a consumed channel and the endpoint it calls; `orchestrator X` an orchestrator returning the steps it puts on the routing slip; `splitter X` a splitter sending each element on; `repository finds` / `repository saves` an aggregate loaded / stored; `recover X` an interceptor recovering from a failed send; `chained X` a step of a chain of handlers run one after the other |
-| `@@ N steps unchanged @@` | in the traced spans of the other presentations, N spans left out because they did not change |
+| `@@ N steps unchanged @@` | in the traced spans under the marked wiring, N spans left out because they did not change |
 
 ## What CI actually runs
 

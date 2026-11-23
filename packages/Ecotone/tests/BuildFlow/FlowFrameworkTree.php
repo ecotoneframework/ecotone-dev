@@ -7,7 +7,7 @@ namespace Test\Ecotone\BuildFlow;
 /**
  * licence Apache-2.0
  */
-final class FlowBuildTree
+final class FlowFrameworkTree
 {
     private const EVERY_SCENARIO = "\0every scenario";
     private const SIGNS = [FlowScenarioChange::ADDED => '+', FlowScenarioChange::REMOVED => '-', FlowScenarioChange::CHANGED => '~'];
@@ -55,7 +55,7 @@ final class FlowBuildTree
             $details .= $lines === [] ? '' : "\n<details><summary>{$summary}</summary>\n\n" . implode("\n", $lines) . "\n\n</details>\n";
         }
 
-        return "### Build: what changes\n\n```text\nMessagingSystem\n" . implode("\n", $this->lines($moduleNodes, '')) . "\n```\n" . $details;
+        return "### Framework: what changes\n\n```text\nMessagingSystem\n" . implode("\n", $this->lines($moduleNodes, '')) . "\n```\n" . $details;
     }
 
     /**

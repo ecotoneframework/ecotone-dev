@@ -113,7 +113,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         self::assertContains(['change' => 'added', 'layer' => 'handler class@anonymous#1::handle(array $lines)'], $entries['handler:handleLines']['chain']);
     }
 
-    public function test_scenarios_with_the_same_build_change_stay_one_group(): void
+    public function test_scenarios_with_the_same_framework_change_stay_one_group(): void
     {
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledByASplitter());
@@ -129,7 +129,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         self::assertNotSame([], $comparison['groups'][0]['build']);
     }
 
-    public function test_a_build_change_of_what_every_application_gets_is_listed_once_and_left_out_of_the_groups(): void
+    public function test_a_framework_change_of_what_every_application_gets_is_listed_once_and_left_out_of_the_groups(): void
     {
         $this->recordTwoScenariosSharingAChangedReportsService();
 
@@ -158,7 +158,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         self::assertSame(['service:Acme\Reports'], array_keys($this->entriesOf($comparison['everyScenario']['build'])));
     }
 
-    public function test_a_change_of_the_build_alone_makes_a_scenario_changed(): void
+    public function test_a_change_of_the_framework_alone_makes_a_scenario_changed(): void
     {
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledByAPlainHandler());
@@ -172,7 +172,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         self::assertSame([['module' => 'Acme\ReportingModule', 'entries' => [['change' => 'added', 'kind' => 'service', 'name' => 'Acme\Reports', 'after' => ['module' => 'Acme\ReportingModule', 'kind' => 'service', 'name' => 'Acme\Reports', 'class' => 'Acme\Reports']]]]], $comparison['groups'][0]['build']);
     }
 
-    public function test_every_presentation_opens_with_one_build_tree_rooted_at_the_messaging_system(): void
+    public function test_every_presentation_opens_with_one_framework_tree_rooted_at_the_messaging_system(): void
     {
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledWithAnAudit());
@@ -180,8 +180,8 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         foreach (['before-after', 'marked', 'path', 'build'] as $presentation) {
             $markdown = $this->presentation($presentation);
 
-            self::assertSame(1, substr_count($markdown, "### Build: what changes\n\n```text\nMessagingSystem\n"));
-            self::assertLessThan(strpos($markdown, '### `Handling lines`'), strpos($markdown, '### Build: what changes'));
+            self::assertSame(1, substr_count($markdown, "### Framework: what changes\n\n```text\nMessagingSystem\n"));
+            self::assertLessThan(strpos($markdown, '### `Handling lines`'), strpos($markdown, '### Framework: what changes'));
             self::assertStringNotContainsString('#### Build', $markdown);
             self::assertStringNotContainsString('Ecotone\\', $this->treeOf($markdown));
         }
@@ -274,7 +274,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
 
         $markdown = $this->presentation('build');
 
-        $positions = array_map(fn (string $part): int|false => strpos($markdown, $part), ['1 of 1 scenario changes its message path.', '### Build: what changes', '### `Handling lines`', 'Before', 'Now: ', "#### The message's path", '<details><summary>Marked wiring and traced spans</summary>', '#### Wiring', 'classDef added']);
+        $positions = array_map(fn (string $part): int|false => strpos($markdown, $part), ['1 of 1 scenario changes its message path.', '### Framework: what changes', '### `Handling lines`', 'Before', 'Now: ', "#### The message's path", '<details><summary>Marked wiring and traced spans</summary>', '#### Wiring', 'classDef added']);
         self::assertStringEndsWith("\n</details>\n", $markdown);
         self::assertNotContains(false, $positions);
         $sorted = $positions;
@@ -282,7 +282,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         self::assertSame($sorted, $positions);
     }
 
-    public function test_a_service_chosen_by_the_licence_is_one_node_with_both_choices_and_a_build_only_scenario_gets_no_section(): void
+    public function test_a_service_chosen_by_the_licence_is_one_node_with_both_choices_and_a_framework_only_scenario_gets_no_section(): void
     {
         $this->record('Handling lines', 'before', $this->linesHandledByAPlainHandler());
         $this->record('Handling lines', 'after', $this->linesHandledByAPlainHandler());
@@ -291,13 +291,13 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         file_put_contents($this->location . '/after/handling-lines.json', json_encode($stored, JSON_THROW_ON_ERROR));
 
         self::assertSame(
-            "## Message flow: what changed\n\nNo scenario of 1 changes its message path. 1 changes only its build.\n\n"
-            . "### Build: what changes\n\n```text\nMessagingSystem\n└ ReportingModule\n  └ + service Reports\n      Enterprise -> GatheredReports, open core -> PlainReports\n```\n",
+            "## Message flow: what changed\n\nNo scenario of 1 changes its message path. 1 changes only what Ecotone registers.\n\n"
+            . "### Framework: what changes\n\n```text\nMessagingSystem\n└ ReportingModule\n  └ + service Reports\n      Enterprise -> GatheredReports, open core -> PlainReports\n```\n",
             $this->presentation('build'),
         );
     }
 
-    public function test_a_build_change_of_what_every_application_gets_is_one_node_scoped_to_every_scenario(): void
+    public function test_a_framework_change_of_what_every_application_gets_is_one_node_scoped_to_every_scenario(): void
     {
         $this->recordTwoScenariosSharingAChangedReportsService();
 
@@ -336,7 +336,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
         self::assertSame(1, substr_count($this->treeOf($markdown), 'endpoint handleLines'));
         self::assertStringContainsString("  └ ~ endpoint handleLines (2 scenarios)\n", $this->treeOf($markdown));
         self::assertStringContainsString("<details><summary>Scenarios of each scope</summary>\n\n- endpoint handleLines: `Handling lines`, `Handling lines again`\n\n</details>\n", $markdown);
-        self::assertStringContainsString('No scenario of 3 changes its message path. 2 change only their build.', $markdown);
+        self::assertStringContainsString('No scenario of 3 changes its message path. 2 change only what Ecotone registers.', $markdown);
         self::assertStringNotContainsString('### `Handling lines', $markdown);
     }
 
@@ -442,7 +442,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
 
     private function treeOf(string $markdown): string
     {
-        self::assertSame(1, preg_match('/^### Build: what changes\n\n```text\n(.*?)```\n/ms', $markdown, $tree));
+        self::assertSame(1, preg_match('/^### Framework: what changes\n\n```text\n(.*?)```\n/ms', $markdown, $tree));
 
         return $tree[1];
     }

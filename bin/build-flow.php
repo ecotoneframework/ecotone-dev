@@ -16,10 +16,10 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 const BUILD_FLOW_BASELINE = 'packages/Ecotone/tests/BuildFlow/baseline';
 const BUILD_FLOW_LOCAL_SNAPSHOT = 'var/build-flow-snapshot';
 const BUILD_FLOW_USAGE = <<<'USAGE'
-    Framework development: the build view of the message flow of the flow scenario catalogue.
+    Framework development: the framework view of the message flow of the flow scenario catalogue.
 
       php bin/build-flow.php snapshot [--location=<directory>]
-          Runs every catalogue scenario and stores its build wiring and traced steps,
+          Runs every catalogue scenario and stores its framework wiring and traced steps,
           one file per scenario. Without --location it writes to var/build-flow-snapshot, never
           to the committed baseline: main's CI regenerates the baseline after each merge, with
           --location=packages/Ecotone/tests/BuildFlow/baseline.
@@ -31,7 +31,7 @@ const BUILD_FLOW_USAGE = <<<'USAGE'
           Prints what changed between two sets of snapshots, scoped to the change. Without --from
           it compares from the committed baseline, without --to it compares to what the code
           produces now. Presentations, as GitHub Markdown with Mermaid, each opening with one
-          tree of what the build changes (MessagingSystem > module > endpoint > layers):
+          tree of what changes in what Ecotone registers (MessagingSystem > module > endpoint > layers):
           before-after (the default) a before/after pair with what ran process by process,
           marked one marked diagram, path the message's path as a flow diagram, build what
           the pull request comment shows: per scenario the Before/Now summary, what ran process

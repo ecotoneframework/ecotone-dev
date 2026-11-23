@@ -35,7 +35,7 @@ final class FlowComparisonMarkdown
         }
         $title = "## Message flow: what changed\n\n";
         if ($comparison->groups === [] && $comparison->everyScenario === null) {
-            return $title . ($comparison->scenariosCompared === 1 ? "The 1 scenario did not change its wiring, its build or its traced spans.\n" : "None of {$comparison->scenariosCompared} scenarios changed its wiring, its build or its traced spans.\n");
+            return $title . ($comparison->scenariosCompared === 1 ? "The 1 scenario did not change its wiring, what Ecotone registers for it or its traced spans.\n" : "None of {$comparison->scenariosCompared} scenarios changed its wiring, its build or its traced spans.\n");
         }
         $changesItsPath = fn (array $group): bool => ! $group['change']->runsTheSameSteps() && ($group['change']->state !== FlowScenarioChange::CHANGED || $group['change']->wiring->hasChanges() || $group['change']->hasTraceChanges() || $group['change']->hasExecutionChanges());
         $pathGroups = array_values(array_filter($comparison->groups, fn (array $group): bool => $changesItsPath($group) || $group['change']->runsTheSameSteps()));
@@ -49,7 +49,7 @@ final class FlowComparisonMarkdown
                 ? "No scenario of {$comparison->scenariosCompared} changes its message path."
                 : "{$withPath} of {$comparison->scenariosCompared} scenario" . ($comparison->scenariosCompared === 1 ? '' : 's') . ' change' . ($withPath === 1 ? 's its' : ' their') . ' message path.',
             $sameSteps === 0 ? null : $sameSteps . ($withPath === 0 ? '' : ' more') . ($sameSteps === 1 ? ' runs' : ' run') . ' the same steps with other hints.',
-            $onlyBuild === 0 ? null : $onlyBuild . ($withPath + $sameSteps === 0 ? '' : ' more') . ' change' . ($onlyBuild === 1 ? 's only its' : ' only their') . ' build.',
+            $onlyBuild === 0 ? null : $onlyBuild . ($withPath + $sameSteps === 0 ? '' : ' more') . ' change' . ($onlyBuild === 1 ? 's' : '') . ' only what Ecotone registers.',
             $forEveryScenario === 0 ? null : $forEveryScenario . ' registration' . ($forEveryScenario === 1 ? ' changes' : 's change') . ' for every scenario.',
         ]));
         $sections = array_map(
@@ -64,7 +64,7 @@ final class FlowComparisonMarkdown
             . ($presentation === self::BUILD_VIEW ? '' : self::whatRan($group['change'])),
             $pathGroups,
         );
-        $tree = FlowBuildTree::of($comparison);
+        $tree = FlowFrameworkTree::of($comparison);
 
         $changedScenarios = $presentation === self::BUILD_VIEW ? self::changedScenariosOf($pathGroups) : '';
 
@@ -666,7 +666,7 @@ final class FlowComparisonMarkdown
         $distinct = function (array $path): array {
             $edges = [];
             foreach ($path as $arrow) {
-                $label = (string) preg_replace('/ \((build|wiring), no span\)$/', '', (string) preg_replace('/^[+-] /', '', $arrow['label']));
+                $label = (string) preg_replace('/ \((framework|wiring), no span\)$/', '', (string) preg_replace('/^[+-] /', '', $arrow['label']));
                 $edges[$arrow['from'] . "\0" . $arrow['to'] . "\0" . $label] ??= ['from' => $arrow['from'], 'to' => $arrow['to'], 'label' => $label, 'derived' => $arrow['derived']];
             }
 

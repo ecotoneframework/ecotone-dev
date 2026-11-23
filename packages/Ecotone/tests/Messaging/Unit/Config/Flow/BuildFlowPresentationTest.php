@@ -54,7 +54,7 @@ final class BuildFlowPresentationTest extends TestCase
 
         $markdown = $this->presentation('before-after');
 
-        self::assertStringStartsWith("## Message flow: what changed\n\n1 of 1 scenario changes its message path.\n\n### Build: what changes\n\n```text\nMessagingSystem\n", $markdown);
+        self::assertStringStartsWith("## Message flow: what changed\n\n1 of 1 scenario changes its message path.\n\n### Framework: what changes\n\n```text\nMessagingSystem\n", $markdown);
         self::assertStringContainsString("\n### `Placing an order`\n\nBefore: `send event order.placed` was followed directly by `route whenOrderWasPlaced`.\n\nNow: after `send event order.placed`, it is routed to `audit.target`; `event handler audit` handles it.\n\n#### Wiring\n\nBefore:\n\n```mermaid\nflowchart LR\n", $markdown);
         [$before, $after] = $this->mermaidBlocksOf($markdown);
         self::assertStringNotContainsString('audit', $before);
@@ -353,7 +353,7 @@ final class BuildFlowPresentationTest extends TestCase
 
         $markdown = $this->presentation('marked');
 
-        self::assertStringContainsString("2 of 2 scenarios change their message path.\n\n### Build: what changes\n", $markdown);
+        self::assertStringContainsString("2 of 2 scenarios change their message path.\n\n### Framework: what changes\n", $markdown);
         self::assertStringContainsString("\n### 2 scenarios with the same change\n\nApplies to: `First ordering`, `Second ordering`.\n\n", $markdown);
         self::assertCount(1, $this->mermaidBlocksOf($markdown));
     }
@@ -364,7 +364,7 @@ final class BuildFlowPresentationTest extends TestCase
         $this->record('Placing an order', 'after', $this->ordering());
 
         foreach (['before-after', 'marked', 'path'] as $presentation) {
-            self::assertSame("## Message flow: what changed\n\nThe 1 scenario did not change its wiring, its build or its traced spans.\n", $this->presentation($presentation));
+            self::assertSame("## Message flow: what changed\n\nThe 1 scenario did not change its wiring, what Ecotone registers for it or its traced spans.\n", $this->presentation($presentation));
         }
     }
 

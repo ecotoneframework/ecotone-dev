@@ -230,7 +230,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
         self::assertStringNotContainsString('the consumer of `rebuild` sends', $markdown);
     }
 
-    public function test_a_change_of_the_build_alone_is_summarised_as_such_and_draws_nothing(): void
+    public function test_a_change_of_the_framework_alone_is_summarised_as_such_and_draws_nothing(): void
     {
         $this->recordARunThatGainsItsCompletion('rebuild', withoutTheNewSteps: true);
         copy($this->location . '/after/projection-rebuild-run.json', $this->location . '/before/projection-rebuild-run.json');
@@ -242,8 +242,8 @@ final class BuildFlowReadableComparisonTest extends TestCase
         $markdown = $this->comparison('build');
 
         self::assertSame(
-            "## Message flow: what changed\n\nNo scenario of 1 changes its message path. 1 changes only its build.\n\n"
-            . "### Build: what changes\n\n```text\nMessagingSystem\n└ PlanningModule\n  └ + 2 services\n```\n\n"
+            "## Message flow: what changed\n\nNo scenario of 1 changes its message path. 1 changes only what Ecotone registers.\n\n"
+            . "### Framework: what changes\n\n```text\nMessagingSystem\n└ PlanningModule\n  └ + 2 services\n```\n\n"
             . "<details><summary>Counted registrations</summary>\n\n- PlanningModule + service: `Plan`, `Planner`\n\n</details>\n",
             $markdown,
         );

@@ -253,14 +253,14 @@ $cases = [
             [utf16Length($comment['body']) <= 65_536, 'within the limit'],
         ]);
     },
-    'the build tree opens the comment and is not taken for a scenario' => function (): ?string {
-        $result = run("## Message flow: what changed\n\nNo scenario of 94 changes its message path. 2 change only their build.\n\n### Build: what changes\n\n```text\nMessagingSystem\n└── + module\n```\n");
+    'the framework tree opens the comment and is not taken for a scenario' => function (): ?string {
+        $result = run("## Message flow: what changed\n\nNo scenario of 94 changes its message path. 2 change only what Ecotone registers.\n\n### Framework: what changes\n\n```text\nMessagingSystem\n└── + module\n```\n");
         $comment = read($result['output']);
 
         return expectAll([
             [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
             [$comment['changed'] === true, 'a build change is a change'],
-            [str_contains($comment['body'], "### Build: what changes\n"), 'the build tree is shown'],
+            [str_contains($comment['body'], "### Framework: what changes\n"), 'the framework tree is shown'],
             [! str_contains($comment['body'], 'left out'), 'nothing left out'],
         ]);
     },
@@ -301,7 +301,7 @@ $cases = [
         ]);
     },
     'no changed flow among one scenario, or an unknown number, reads as a sentence' => function (): ?string {
-        $one = read(run("## Message flow: what changed\n\nThe 1 scenario did not change its wiring, its build or its traced spans.\n")['output']);
+        $one = read(run("## Message flow: what changed\n\nThe 1 scenario did not change its wiring, what Ecotone registers for it or its traced spans.\n")['output']);
         $unknown = read(run("## Message flow: what changed\n\nNothing to compare.\n")['output']);
 
         return expectAll([
@@ -309,15 +309,15 @@ $cases = [
             [str_contains($unknown['body'], 'As of `aaaaaaa`, this pull request changes the message path of none of the catalogue scenarios.'), 'no count: ' . $unknown['body']],
         ]);
     },
-    'a build tree too long for the comment is left out with a note, and the scenarios still follow' => function (): ?string {
-        $tree = "### Build: what changes\n\n```text\nMessagingSystem\n" . str_repeat("└── + a registration of a module with a long name\n", 2_000) . "```\n\n";
+    'a framework tree too long for the comment is left out with a note, and the scenarios still follow' => function (): ?string {
+        $tree = "### Framework: what changes\n\n```text\nMessagingSystem\n" . str_repeat("└── + a registration of a module with a long name\n", 2_000) . "```\n\n";
         $result = run("## Message flow: what changed\n\n1 of 94 scenarios changes its message path.\n\n" . $tree . scenario('order placed', 'diagram'));
         $comment = read($result['output']);
 
         return expectAll([
             [$result['exit'] === 0, 'exit 0, got ' . $result['exit'] . ': ' . $result['stderr']],
             [utf16Length($comment['body']) <= 65_536, 'at most 65,536 characters, got ' . utf16Length($comment['body'])],
-            [preg_match('/The build tree has [\d,]+ characters, more than the 16,000 this comment gives it beside the scenarios/', $comment['body']) === 1, 'says the tree is left out for its size'],
+            [preg_match('/The framework tree has [\d,]+ characters, more than the 16,000 this comment gives it beside the scenarios/', $comment['body']) === 1, 'says the tree is left out for its size'],
             [str_contains($comment['body'], '### `order placed`'), 'the scenario is still shown'],
         ]);
     },

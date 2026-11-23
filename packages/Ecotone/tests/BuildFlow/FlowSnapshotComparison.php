@@ -103,7 +103,7 @@ final class FlowSnapshotComparison
     {
         return [
             'scenariosCompared' => $this->scenariosCompared,
-            'everyScenario' => ['build' => $this->everyScenario?->buildByModule() ?? []],
+            'everyScenario' => ['build' => $this->everyScenario?->frameworkByModule() ?? []],
             'groups' => array_map(fn (array $group): array => ['scenarios' => $group['scenarios'], 'varyingNames' => $group['varyingNames'], ...$group['change']->toArray()], $this->groups),
         ];
     }

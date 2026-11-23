@@ -11,8 +11,8 @@ const COMPARISON_HEADING = '## Message flow: what changed';
 const GITHUB_COMMENT_LIMIT = 65_536;
 const GITHUB_MERMAID_LIMIT = 50_000;
 const COMPARISON_ARTIFACT = 'build-flow-comparison';
-const BUILD_TREE_HEADING = '### Build: what changes';
-const BUILD_TREE_LIMIT = 16_000;
+const FRAMEWORK_TREE_HEADING = '### Framework: what changes';
+const FRAMEWORK_TREE_LIMIT = 16_000;
 const CHANGED_SCENARIOS_SHOWN = 2;
 const USAGE = <<<'USAGE'
     Builds the pull request comment that shows how the message flow changed.
@@ -66,10 +66,10 @@ if (! str_starts_with(ltrim($comparison), COMPARISON_HEADING)) {
 }
 
 [$preamble, $scenarios] = scenariosOf(withoutMentions($comparison));
-$changed = $scenarios !== [] || str_contains($preamble, "\n" . BUILD_TREE_HEADING . "\n");
+$changed = $scenarios !== [] || str_contains($preamble, "\n" . FRAMEWORK_TREE_HEADING . "\n");
 $commit = substr($options['head-sha'], 0, 7);
 $body = $changed
-    ? commentOf(preamble: withExplanation(preamble: withBoundedBuildTree($preamble, $options['run-url']), headSha: $options['head-sha'], baseSha: $options['base-sha'], comparedWith: $options['compared-with'], runUrl: $options['run-url']), scenarios: $scenarios, runUrl: $options['run-url'])
+    ? commentOf(preamble: withExplanation(preamble: withBoundedFrameworkTree($preamble, $options['run-url']), headSha: $options['head-sha'], baseSha: $options['base-sha'], comparedWith: $options['compared-with'], runUrl: $options['run-url']), scenarios: $scenarios, runUrl: $options['run-url'])
     : COMMENT_MARKER . "\n" . COMPARISON_HEADING . "\n\nAs of `{$commit}`, this pull request " . noChangeOf($preamble) . "\n";
 
 file_put_contents($options['output'], json_encode(['pullRequest' => (int) $options['pull-request'], 'headSha' => $options['head-sha'], 'changed' => $changed, 'body' => $body], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n");
@@ -84,7 +84,7 @@ function lengthOf(string $text): int
  */
 function scenariosOf(string $comparison): array
 {
-    $parts = preg_split('/^(?=### (?!Build: what changes$))/m', $comparison);
+    $parts = preg_split('/^(?=### (?!Framework: what changes$))/m', $comparison);
     $preamble = (string) array_shift($parts);
 
     return [$preamble, array_values($parts)];
@@ -121,15 +121,15 @@ function refusalUpToItsReason(string $refusal): string
     return $end === false ? $refusal : substr($refusal, 0, $end + strlen('cannot be drawn.'));
 }
 
-function withBoundedBuildTree(string $preamble, string $runUrl): string
+function withBoundedFrameworkTree(string $preamble, string $runUrl): string
 {
-    $position = strpos($preamble, BUILD_TREE_HEADING . "\n");
-    if ($position === false || lengthOf(substr($preamble, $position)) <= BUILD_TREE_LIMIT) {
+    $position = strpos($preamble, FRAMEWORK_TREE_HEADING . "\n");
+    if ($position === false || lengthOf(substr($preamble, $position)) <= FRAMEWORK_TREE_LIMIT) {
         return $preamble;
     }
     $size = lengthOf(substr($preamble, $position));
 
-    return substr($preamble, 0, $position) . BUILD_TREE_HEADING . "\n\nThe build tree has " . number_format($size) . ' characters, more than the ' . number_format(BUILD_TREE_LIMIT) . ' this comment gives it beside the scenarios, so it is left out here. It is in the `' . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n\n";
+    return substr($preamble, 0, $position) . FRAMEWORK_TREE_HEADING . "\n\nThe framework tree has " . number_format($size) . ' characters, more than the ' . number_format(FRAMEWORK_TREE_LIMIT) . ' this comment gives it beside the scenarios, so it is left out here. It is in the `' . COMPARISON_ARTIFACT . "` artifact of [this run]({$runUrl}).\n\n";
 }
 
 /**

@@ -129,7 +129,7 @@ final class FlowScenarioChange
     /**
      * @return list<array{module: string, entries: list<array<string, mixed>>}>
      */
-    public function buildByModule(): array
+    public function frameworkByModule(): array
     {
         $modules = [];
         foreach ($this->build as $change) {
@@ -373,9 +373,9 @@ final class FlowScenarioChange
                 };
                 $sender = FlowWording::withShortClassNames($step[self::PART_REPORT]['sender']);
                 if (isset($placeAtDepth[$step['depth']])) {
-                    $path[] = ['from' => $placeAtDepth[$step['depth']], 'to' => $sender, 'label' => $mark . 'ends, its part completion runs (build, no span)', 'derived' => true];
+                    $path[] = ['from' => $placeAtDepth[$step['depth']], 'to' => $sender, 'label' => $mark . 'ends, its part completion runs (framework, no span)', 'derived' => true];
                 }
-                $path[] = ['from' => $sender, 'to' => 'channel ' . $step[self::PART_REPORT]['channel'], 'label' => $mark . 'sends part report (build, no span)', 'derived' => true];
+                $path[] = ['from' => $sender, 'to' => 'channel ' . $step[self::PART_REPORT]['channel'], 'label' => $mark . 'sends part report (framework, no span)', 'derived' => true];
                 $path[] = ['from' => 'channel ' . $step[self::PART_REPORT]['channel'], 'to' => 'channel ' . $subject, 'label' => $mark . 'asynchronous routing sends', 'derived' => false];
                 $placeAtDepth[$step['depth']] = 'channel ' . $subject;
                 continue;
@@ -400,8 +400,8 @@ final class FlowScenarioChange
                     default => '',
                 };
                 $path[] = ['from' => $from, 'to' => 'channel ' . $gathered['inputChannel'], 'label' => $mark . 'routed to (wiring, no span)', 'derived' => true];
-                $path[] = ['from' => 'channel ' . $gathered['inputChannel'], 'to' => 'gatherer (Enterprise only)', 'label' => $mark . 'delivers (build, no span)', 'derived' => true];
-                $path[] = ['from' => 'gatherer (Enterprise only)', 'to' => $place, 'label' => $mark . 'invokes (build, no span)', 'derived' => true];
+                $path[] = ['from' => 'channel ' . $gathered['inputChannel'], 'to' => 'gatherer (Enterprise only)', 'label' => $mark . 'delivers (framework, no span)', 'derived' => true];
+                $path[] = ['from' => 'gatherer (Enterprise only)', 'to' => $place, 'label' => $mark . 'invokes (framework, no span)', 'derived' => true];
                 $placeAtDepth[$step['depth']] = $place;
                 continue;
             }
@@ -458,7 +458,7 @@ final class FlowScenarioChange
                 ? implode('; ', array_map(fn (array $process): string => 'process `' . $process['process'] . '` ' . rtrim(FlowWording::ofChangedProcess($process['steps']), '.'), $changed)) . '.'
                 : implode(' ', array_filter([FlowWording::ofSubFlowChanges($this->execution), $changed === [] ? '' : count($changed) . ' process' . (count($changed) === 1 ? ' runs' : 'es run') . ' other steps.']));
 
-            return ['before' => 'Before and now: the wiring, the build and the traced spans are the same.', 'now' => 'Now: ' . $now];
+            return ['before' => 'Before and now: the wiring, what Ecotone registers and the traced spans are the same.', 'now' => 'Now: ' . $now];
         }
         if (! $this->hasTraceChanges() && ! $this->wiring->hasChanges()) {
             $counts = [];
@@ -471,7 +471,7 @@ final class FlowScenarioChange
                 $counted[] = $count . ' ' . $kind . ($count === 1 ? ' ' : 's ') . $change;
             }
 
-            return ['before' => 'Before and now: the wiring and the traced spans are the same.', 'now' => 'Now: only the build changed: ' . implode(', ', $counted) . '.'];
+            return ['before' => 'Before and now: the wiring and the traced spans are the same.', 'now' => 'Now: only what Ecotone registers changed: ' . implode(', ', $counted) . '.'];
         }
         if (! $this->hasTraceChanges()) {
             $names = fn (array $nodes, MessageFlowGraph $wiring): string => implode(', ', array_map(fn (FlowNode $node): string => '`' . FlowWording::ofNode($node, $wiring) . '`', array_slice($nodes, 0, 4))) . (count($nodes) > 4 ? ' and ' . (count($nodes) - 4) . ' more' : '');
@@ -693,7 +693,7 @@ final class FlowScenarioChange
             'wiring' => $this->wiring->toArray(),
             'wiringParts' => $this->wiringParts(),
             'registeredOffThePath' => array_map(fn (array $nodes): array => array_map(fn (FlowNode $node): string => $node->id, $nodes), $this->registeredOffThePath()),
-            'build' => $this->buildByModule(),
+            'build' => $this->frameworkByModule(),
             'trace' => $this->scopedTrace(),
             'execution' => $this->execution,
         ];

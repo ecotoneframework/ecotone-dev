@@ -125,7 +125,7 @@ final class BuildFlowSnapshotTest extends TestCase
         self::assertSame(count($build['chains']), preg_match_all('/^            \{"handler":/m', $stored));
     }
 
-    public function test_recorded_snapshot_holds_the_build_wiring_of_the_application(): void
+    public function test_recorded_snapshot_holds_the_framework_wiring_of_the_application(): void
     {
         $ecotone = $this->orderingApplication($this->orderingService());
 

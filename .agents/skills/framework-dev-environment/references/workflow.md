@@ -208,7 +208,7 @@ docker compose exec -T app php bin/test-build-flow-comment.php  # the tests of t
 | `before-after` (default) | the changed wiring before and after, the traced steps before and after, and what ran, process by process |
 | `marked` | one diagram with the changes marked, and one list of the traced steps |
 | `path` | the message's path as a flow diagram, with what changed in sentences |
-| `build` | what the pull request comment shows: the build tree, then per scenario the Before/Now summary, what ran process by process with the step tree of each changed process, the message's path, and the marked wiring and traced spans collapsed |
+| `build` | what the pull request comment shows: the framework tree, then per scenario the Before/Now summary, what ran process by process with the step tree of each changed process, the message's path, and the marked wiring and traced spans collapsed |
 | `json` | the raw comparison, for tooling |
 
 A scenario of the catalogue is a `FlowScenario` returned by a private static method of one of the
@@ -258,13 +258,14 @@ handler's process. The text prints flows in run order and each sub-flow as `sub-
 in the order the sender sent them; process numbers stay the run order. `compare` states a new, gone or re-attached
 sub-flow and shows each one right after its sender.
 
-The framework wiring (`ecotone:flow:dump --framework`, and the wiring and build of a snapshot) is read only at the
+The framework wiring (`ecotone:flow:dump --framework`, and the wiring and framework section of a snapshot) is read only at the
 framework tracing level, and needs no span recorder. `MessageFlowModule` adds the step that reads it before the
 recording step, so it is the wiring the application declared, never the recording's wrappers. At the application
 level, `--framework` and `ecotone:build-flow:record` are refused; `ecotone:flow:dump` without `--framework` is the
 same at both levels. In the dump the part Ecotone registers itself is under the JSON key `framework`, its nodes and
-edges carry the attribute `framework: true`, and Mermaid draws them with `classDef framework`; the repository's own
-build-flow snapshots keep the word `build` for their sections.
+edges carry the attribute `framework: true`, and Mermaid draws them with `classDef framework`. A build-flow snapshot
+stores the same framework section under its stored key `build` (and `compare --presentation=json` under
+`everyScenario.build`): the key is part of the snapshot format, whose baseline main's CI commits.
 
 A test reads the recording with `$ecotone->popExecutionRecording()` on its `FlowTestSupport`, which returns what ran
 since the last pop. In flow testing the framework level needs one line,
@@ -328,7 +329,7 @@ under it. The terms they use:
 
 | Term | Meaning |
 |---|---|
-| a dashed arrow, `(build, no span)` | in the message's path, a hand-over taken from what Ecotone registers (the build or the wiring), because no span is recorded for it; a solid arrow is a traced step. The flow diagram shows it dashed only; the other presentations also print `(build, no span)` or `(wiring, no span)` after it |
+| a dashed arrow, `(framework, no span)` | in the message's path, a hand-over taken from what Ecotone registers (its framework section or the wiring), because no span is recorded for it; a solid arrow is a traced step. The flow diagram shows it dashed only; the other presentations also print `(framework, no span)` or `(wiring, no span)` after it |
 | the message's path | one Mermaid flow diagram per changed scenario: a box per place the message passes (a channel as a cylinder), one arrow per distinct hand-over, drawn once however often it happens, in the order it first happens now, then the gone ones. A green arrow labelled `+ ` happens only now, a red one labelled `- ` happened only before, a plain one happens both before and now; a box only green arrows touch is green, one only red arrows touch is red. The sentence above the diagram says the same |
 | `+` / `-` | new in the pull request / gone in it |
 | process, sub-flow | a process is one entry into Ecotone: a gateway call, a console command or one consumed message. A sub-flow is a process started by a message another process sent; `sent by:` / `taken by:` name the two sides |

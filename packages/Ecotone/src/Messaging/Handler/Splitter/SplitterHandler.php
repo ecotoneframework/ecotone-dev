@@ -25,11 +25,17 @@ class SplitterHandler implements MessageHandler
         private ChannelResolver  $channelResolver,
         private MessageBuilder   $messageBuilder,
         private string           $name = '',
+        private bool             $removeInheritedTypeId = false,
     ) {
     }
 
     public function handle(Message $message): void
     {
+        if ($this->removeInheritedTypeId) {
+            $message = $this->messageBuilder->fromMessage($message)
+                ->removeHeader(MessageHeaders::TYPE_ID)
+                ->build();
+        }
         $replyMessage = $this->messageProcessor->process($message);
 
         if (! $replyMessage) {

@@ -6,8 +6,8 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
@@ -15,10 +15,10 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
@@ -85,6 +85,9 @@ final class SplitterModule extends NoExternalConfigurationModule
             }
         }
 
+        if ($splitter->getRequiredInterceptorNames() !== []) {
+            throw ConfigurationException::create("Split handler {$name} sets requiredInterceptorNames on #[Splitter]. Move the names to the handler attribute requiredInterceptorNames so they run once around the handler, or move #[Splitter] to a separate method.");
+        }
         $interface = $registry->getFor($registration->getClassName(), $registration->getMethodName());
         if ($registration->hasClassAnnotation(Aggregate::class) && $interface->isFactoryMethod()) {
             throw ConfigurationException::create("Split handler {$name} is an aggregate or saga factory whose output contains saved identifiers. Split from an action method, use a separate splitter handler receiving the factory output, or remove #[Splitter].");
@@ -119,6 +122,7 @@ final class SplitterModule extends NoExternalConfigurationModule
         $channel = 'ecotone.splitter.' . $handler->getEndpointId();
         $configuration->registerMessageHandler(
             SplitterBuilder::createMessagePayloadSplitter()
+                ->withoutInheritedTypeId()
                 ->withoutMethodInterceptors()
                 ->withGatherChannelName($splitter->gatherChannelName)
                 ->withInputChannelName($channel)

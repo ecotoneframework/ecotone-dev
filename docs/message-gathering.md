@@ -63,6 +63,31 @@ handler's output flow. It does not resume the split request's routing slip or an
 Sending another command or publishing an event starts a separate flow, without the current group headers.
 A nested splitter must name its own gather channel; its gathered result becomes the outer part's result.
 
+## Gather a handler's split output
+
+A handler can open the group directly by stacking `#[Splitter]`. Give each handler attribute an explicit stable
+`endpointId`, set its `outputChannelName` to the part handler, and put only `gatherChannelName` on the splitter:
+
+```php
+use Ecotone\Api\Attribute\CommandHandler;
+
+#[CommandHandler('import.rows', endpointId: 'import.rows.handler', outputChannelName: 'import.work')]
+#[Splitter(gatherChannelName: 'import.summary')]
+public function import(array $rows): array
+{
+    return $rows;
+}
+```
+
+The `work()` and `summarize()` methods above work unchanged. Group identity uses the incoming message id and
+`import.rows.handler.splitter`, so replaying the same input rejoins the same group. The original payload recorded
+for gathering is the handler's result, which is the payload passed to the split. Empty output still invokes the
+asynchronous gathered handler with zero parts. A failed part follows the normal dead-letter and replay flow.
+
+`#[Asynchronous]` belongs to the ordinary handler. Splitting and group creation happen after it returns in the
+same consumer transaction. [Splitting a handler's output](message-splitting.md) describes supported handlers,
+aggregate and saga actions, interceptor configuration and bootstrap refusals.
+
 ## Failure, timeout and storage
 
 Without `timeout`, the group waits for all parts. A failed part remains missing: fix it and replay it from the

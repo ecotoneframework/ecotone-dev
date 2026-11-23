@@ -45,7 +45,6 @@ use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\Attribute\Splitter;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
@@ -68,6 +67,7 @@ use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut;
 use Ecotone\Messaging\Handler\Type;
@@ -491,7 +491,7 @@ final class MessageFlowDiscovery
         if (isset($this->nodes[$id]->attributes['routingKeys'], $attributes['routingKeys'])) {
             $attributes['routingKeys'] = array_values(array_unique([...$this->nodes[$id]->attributes['routingKeys'], ...$attributes['routingKeys']]));
         }
-        $this->nodes[$id] = new FlowNode($id, $kind, $this->shortName($registration->getClassName()) . '::' . $registration->getMethodName(), array_merge([
+        $this->nodes[$id] = new FlowNode($id, $kind, $this->shortName($registration->getClassName()) . '::' . $registration->getMethodName() . (($attributes['splitting'] ?? false) ? ' (splitting)' : ''), array_merge([
             'class' => $registration->getClassName(),
             'method' => $registration->getMethodName(),
             'endpointId' => $annotation->isEndpointIdGenerated() ? null : $annotation->getEndpointId(),

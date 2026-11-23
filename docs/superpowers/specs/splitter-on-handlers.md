@@ -72,7 +72,8 @@ shared registration paths. The broad repository suite remains CI's responsibilit
 
 ## Round-one review decisions
 
-The hidden splitter normalizes arrays and traversable results to a list in iteration order before splitting.
+The hidden splitter normalizes arrays and traversable results to a list in iteration order before gathering
+opens the group or splitting starts. GatheredParts.originalPayload is that list, including for generator results.
 Standalone splitter behavior is unchanged. A factory/action pair sharing a route, either header-changing form,
 and methods on projection classes are refused at bootstrap; projection rebuild/backfill would otherwise resend parts.
 Static gathered-flow validation follows the ordinary handler input and output for stacked splitters and names

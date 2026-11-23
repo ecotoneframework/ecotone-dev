@@ -83,7 +83,7 @@ public function import(ImportFile $command): array
 
 The `work()` and `summarize()` methods above work unchanged. Group identity uses the incoming message id and
 `import.file.handler.splitter`, so replaying the same input rejoins the same group. The original payload recorded
-for gathering is the handler's result, which is the payload passed to the split. Empty output still invokes the
+for gathering is the handler's result normalized to a list in iteration order before the group opens. Empty output still invokes the
 asynchronous gathered handler with zero parts. A failed part follows the normal dead-letter and replay flow.
 
 `#[Asynchronous]` belongs to the ordinary handler. Splitting and group creation happen after it returns in the

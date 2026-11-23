@@ -35,6 +35,8 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\FromStream;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -649,6 +651,20 @@ final class HandlerSplitterTest extends TestCase
             }
         };
         $this->expectExceptionMessage('Split handler ' . $handler::class . '::split changes headers instead of returning output messages. Remove #[ChangingHeaders] or set changingHeaders: false, move the split to a separate handler, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class], containerOrAvailableServices: [$handler], enabledModules: [], licenceKey: self::ENTERPRISE_LICENCE);
+    }
+
+    public function test_projection_event_handler_with_splitter_is_refused(): void
+    {
+        $handler = new #[Projection('orders'), FromStream('orders')] class () {
+            #[EventHandler('order.placed', outputChannelName: 'parts')]
+            #[Splitter]
+            public function split(array $event): array
+            {
+                return [1, 2];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split belongs to a projection whose events are replayed during rebuild and backfill. Move the split to a separate event handler outside the projection, or remove #[Splitter].');
         EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class], containerOrAvailableServices: [$handler], enabledModules: [], licenceKey: self::ENTERPRISE_LICENCE);
     }
 

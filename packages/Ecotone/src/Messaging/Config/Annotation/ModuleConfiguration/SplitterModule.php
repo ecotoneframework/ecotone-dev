@@ -14,6 +14,7 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Configuration;
@@ -75,6 +76,9 @@ final class SplitterModule extends NoExternalConfigurationModule
         $name = $registration->getClassName() . '::' . $registration->getMethodName();
         if ($registration->hasMethodAnnotation(QueryHandler::class)) {
             throw ConfigurationException::create("Split handler {$name} is a query handler whose caller expects one reply. Use #[CommandHandler], #[EventHandler] or #[InternalHandler] with outputChannelName, move #[Splitter] to a separate method, or remove #[Splitter].");
+        }
+        if ($registration->hasClassAnnotation(Projection::class)) {
+            throw ConfigurationException::create("Split handler {$name} belongs to a projection whose events are replayed during rebuild and backfill. Move the split to a separate event handler outside the projection, or remove #[Splitter].");
         }
         $splitter = $registration->getAnnotationForMethod();
         foreach ([

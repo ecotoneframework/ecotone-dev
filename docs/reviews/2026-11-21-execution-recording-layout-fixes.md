@@ -35,7 +35,7 @@ The layout (T1 to T9) stands.
 
 ## Follow-up
 
-- F1. The one Tracing run with 1 failure and 721 assertions: find it or bound it. Every run keeps `--log-junit` under
-  `var/flaky/`; the Tracing suite 30 times (half in random order, seeds kept) and the memory-growth test alone 50
+- F1. The one Tracing run with 1 failure and 721 assertions: find it or bound it. Every run keeps its `--log-junit`
+  output; the Tracing suite 30 times (half in random order, seeds kept) and the memory-growth test alone 50
   times; every assertion in Tracing and the new coroutine and OpenTelemetry tests that depends on bytes, wall-clock
   time or `usleep` ordering is listed and made deterministic, or shown unable to fail by chance.

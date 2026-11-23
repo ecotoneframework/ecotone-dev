@@ -54,8 +54,7 @@ No fact recorded by R1 to R6 is dropped; it moves.
 
 ## S3. A machine-readable export for the page
 
-The coordinator renders the #771 recording as a page with hint boxes. Add `var/771-execution-before.json` and
-`var/771-execution-after.json` next to the text files: per process its title and steps, per step depth, label and
-hints with the critical flag. Derive them with the same script as the text files (`var/771/record-execution.php`),
-from the snapshot data, so the page does not parse text.
+The coordinator renders the #771 recording as a page with hint boxes. Add a JSON export of the recording before and
+after next to the text files: per process its title and steps, per step depth, label and hints with the critical
+flag. Derive it with the same script as the text files, from the snapshot data, so the page does not parse text.
 

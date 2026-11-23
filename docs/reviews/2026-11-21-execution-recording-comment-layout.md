@@ -26,4 +26,4 @@ elements, and the only element that indents by a small step is a quote block.
   line around every fence and HTML block.
 - T8. The comment keeps its order; the glossary explains the fold summaries, the dots, the icons and the bar, and
   drops the forms T6 removes.
-- T9. `compare --presentation=build` prints the same tree; `var/771/pr-comment.md` regenerated; baselines unchanged.
+- T9. `compare --presentation=build` prints the same tree; the #771 comment regenerated; baselines unchanged.

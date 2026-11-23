@@ -24,8 +24,7 @@ Guidelines, Breaking changes and Developer experience sessions, and the Behaviou
 - Q10. The glossary row of the routing slip forms reads without contradiction.
 - Q14. The build-flow tests that record or compare an execution finish when the queue is empty; the flow suite
   under the 1 ms probe, before and after; no other `createWithTestingSetup()` added by the branch.
-- Q15. Red-first evidence for N1, N2, N3, N6, N9, N10, N13 and every test this list adds, kept under
-  `var/review-evidence/`.
+- Q15. Red-first evidence for N1, N2, N3, N6, N9, N10, N13 and every test this list adds.
 - Q16. The coroutine that outlives its handler links to the nearest still-open ancestor: asserted exactly, and
   said in row 3h and the skill.
 

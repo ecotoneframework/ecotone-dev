@@ -7,8 +7,8 @@ PASSED
   - the handler receives a message equal to the one sent;
   - the recording holds the send and the receive processes, each with its conversion step;
   - no recorded line, even with every hint, contains the protected values. This goes beyond what I asked for.
-  - Run here as part of the whole DataProtection suite: 1399 tests, 0 failures (var/review/r4-dataprotection.xml).
-- BH2 — covered — the combination already worked, as my probe showed, so the test is a characterisation test. Report var/771/review-list-3-report.md lines 38-40 states two reverted mutations that turn it red: dropping `#[Sensitive]`, and running at the application level.
+  - Run here as part of the whole DataProtection suite: 1399 tests, 0 failures.
+- BH2 — covered — the combination already worked, as my probe showed, so the test is a characterisation test. The BH14 report states two reverted mutations that turn it red: dropping `#[Sensitive]`, and running at the application level.
 - BH12 — covered — the new test uses only `Ecotone\Api\*` types, `LicenceTesting` and the package's test channel. The named `OrderWithCardNumber` is a type the handler declares and that `#[Sensitive]` annotates, so PHP forces a named class.
 - No other requirement changes status: a2cae2ba0 only adds review documents, and 26b620eb0 only adds this test.
 
@@ -26,12 +26,12 @@ NOT PASSED: BH14
   - 0a7202aa1 turns `canConvert()` positional for exactly this reason: a service outside Ecotone may replace the conversion service. DataProtection is the shipped one, and no test runs it at `TracingLevel::Framework`.
   - I missed this combination in the first two rounds.
   - Scenario to cover: an `#[Asynchronous]` command carrying `#[Sensitive]` data, booted at the framework level with `DataProtectionConfiguration`. The payload on the channel must still be encrypted, the handler must receive the decrypted message, and `popExecutionRecording()` must hold the send and the receive processes.
-  - My scratch probe shows it works today: var/review/dataprotection-probe.php and .out. Both levels decrypt to the sent value and the handler receives an equal message. The recording holds `send command …AnnotatedMessage` (30 steps) and `receive test, TestCommandHandler::handleAnnotatedMessage` (25 steps). A probe is not a test.
+  - My scratch probe, not committed, shows it works today: both levels decrypt to the sent value and the handler receives an equal message. The recording holds `send command …AnnotatedMessage` (30 steps) and `receive test, TestCommandHandler::handleAnnotatedMessage` (25 steps). A probe is not a test.
   - Test to add: one in packages/DataProtection/tests/Integration, for example `test_protected_messages_are_encrypted_on_the_channel_and_recorded_at_the_framework_tracing_level`. Since the combination already works, no red-first run is needed beyond the probe at both levels.
   - skill: framework-testing.
 - BH13 — covered — rule 11 now exempts the class's `licence Apache-2.0 @internal` marker and allows a named gateway interface, and the rule-11 and rule-t1 graders decide what the rules state (0ecc07759).
-  - The rule changed together with its grader, and the reasons in var/771/review-list-2-report.md R6 match the answers. rule-10 was left strict.
-  - `RUNS=3 bin/test-agent-skills` on 45f4a66e7, all at or above 0.8 (var/review/r3-skills-*.txt):
+  - The rule changed together with its grader, and the reasons given for R6 match the answers. rule-10 was left strict.
+  - `RUNS=3 bin/test-agent-skills` on 45f4a66e7, all at or above 0.8:
     - framework-testing: cross-service-test 1.00, new-flow-scenario 1.00, write-feature-test 0.95 (was 0.71; rule-11 still FAIL in 1 of 3 runs);
     - framework-dev-environment: red-ci-check 1.00, run-tests 1.00;
     - framework-review-guidelines (known-deviations 6a and 18 changed): review-diff-guidelines 1.00, review-related-skills 1.00.
@@ -62,21 +62,20 @@ NOT PASSED: BH13
 - BH13 — missing — .agents/skills/framework-testing (changed by fd97dc663, T4): `RUNS=3 bin/test-agent-skills framework-testing`.
   - new-flow-scenario 1.00 and cross-service-test 1.00.
   - write-feature-test 0.71, below the 0.8 threshold, failing rule-11 (FAIL in all 3 runs), plus rule-t1 in 2 runs and rule-10 in 1.
-  - main's copy of the skill (git archive origin/main .agents into var/review/main-agents) scores 0.76 on the same case, with the same rule-11 failure, so the failure predates this branch and is not caused by T4. It still blocks BH13 under V7: fix the wording of framework-testing rule 11, or its grader, until the case reaches 0.8. skill: framework-agent-tooling.
-  - framework-review-behaviour: all 5 cases 1.00 (review-skill-change rerun alone with --case after the usage limit cut off the first attempt: 1.00 over 3 runs, var/review/r2-skills-review-skill-change.txt).
+  - main's copy of the skill (`git archive origin/main .agents`) scores 0.76 on the same case, with the same rule-11 failure, so the failure predates this branch and is not caused by T4. It still blocks BH13 under V7: fix the wording of framework-testing rule 11, or its grader, until the case reaches 0.8. skill: framework-agent-tooling.
+  - framework-review-behaviour: all 5 cases 1.00 (review-skill-change rerun alone with --case after the usage limit cut off the first attempt: 1.00 over 3 runs).
   - framework-agent-tooling new-rule-enforcement 1.00. framework-dev-environment red-ci-check 1.00, run-tests 1.00. framework-pull-request open-pr 0.96, update-open-pr 1.00.
-  - Outputs are in var/review/r2-skills-*.txt.
-- BH11 — covered — e899ec445 pins initialTime in every test this branch adds or changes that runs a consumer (table in var/771/review-list-1-report.md).
-  - Cause proven red: var/review-evidence/bh11-forced-red.{out,xml} (a clock moving 400 ms per read gives order 3,5,4,6).
+- BH11 — covered — e899ec445 pins initialTime in every test this branch adds or changes that runs a consumer.
+  - Cause proven red: a clock moving 400 ms per read gives order 3,5,4,6.
   - FlowTrackingTest keeps the real clock on purpose (bf3bc3f57) and runs no gathering.
-  - The Tracing suite passed 3 times in a row here: 223 tests, 0 failures (var/review/r2-tracing-{1,2,3}.xml).
+  - The Tracing suite passed 3 times in a row here: 223 tests, 0 failures.
 - BH22 — covered — the recording, the routing slip forms, retries, collected messages, gathering and partition batches are in the 94 baselines.
   - drops/replaces: new scenario GatewayFlowScenarios::orchestratorStepWhoseInterceptorTakesTheNextStepOffTheRoutingSlip, listed in all(). Its baseline is left to main, so check-build-flow reports only that file as missing.
   - In-memory redelivery: the failing-handler-whose-error-channel-send-fails baseline (two receive processes, sentBy the same send step).
   - Coroutine sub-flows and the sent-by-another-application hint cannot be scenarios (they need real coroutines or a second application). They are tested in CoroutineExecutionRecordingTest and ExecutionRecordingSubFlowTest.
   - bin/check-flow-catalogue.php passes, and bin/test-check-flow-catalogue.php passes its 4 cases.
 - Other requirements: their status is unchanged.
-  - New tests in the new commits: d5688d6e3 poll crash (TypeError red, per var/771/flow-diagram-report.md); D1–D7 red in var/review-evidence/d-red, d6-red, dx9-red.
+  - New tests in the new commits: d5688d6e3 poll crash (TypeError red); D1–D7 and DX9 were each run red before their fix.
   - The --framework rename keeps the BH9 refusals asserted (MessageFlowBuildTracingLevelTest is green).
   - Runs on this head, all green:
     - Flow unit 483 tests;
@@ -111,10 +110,10 @@ wall clock (BH11).
 
 - BH11 — missing — `packages/Ecotone/tests/Tracing/ExecutionRecordingExplanationTest.php:759` (`executionOf()`, used by
   the test at :86) — the failing scenario: `test_the_step_that_put_a_message_on_the_channel_points_to_the_later_consumer_run_that_took_it`
-  failed once in the full `packages/Ecotone/tests/Tracing` run (var/review/ecotone-tracing.out). It expected the
+  failed once in the full `packages/Ecotone/tests/Tracing` run. It expected the
   `taken by` hints 3, 4, 5, 6 and got 3, 5, 4, 6, so the part report of batch 1 was consumed before batch 2 and became
   process 4. It passed alone and with the Coverage class, and 200 standalone recordings of the scenario all gave
-  3, 4, 5, 6 (var/review/taken-by-order-200.out). `executionOf()` boots the catalogue scenario
+  3, 4, 5, 6. `executionOf()` boots the catalogue scenario
   `tag-partitioned projection backfilled asynchronously in two batches` without `initialTime`, so the clock is not
   pinned. `DelayableQueueChannel::receive()` takes the earliest message by `timestamp (seconds) * 1000 + delay`. Messages
   queued on either side of a wall-clock second change their consumption order, and with it the process numbers and the
@@ -135,11 +134,11 @@ wall clock (BH11).
   comment script's `bin/test-build-flow-comment.php`. All are green here except the BH11 test.
 - BH2 — covered — the feature's API (`TracingLevel`, `withLevel()`, `popExecutionRecording()`, `ExecutionRecording`) does
   not exist on origin/main, so every test that calls it is red there (from the diff). Later changes inside the branch
-  have red output against d4e49b017 in var/review-evidence (n3-q16, n-step-tree, q2-q9-q16, q4-q6-q7-q8-q12, q5, q8,
-  q11). The Q14 1 ms run limit has 12 failures before and 0 after. The behaviour change to main code is the in-memory
+  were run red against d4e49b017 (N3, the step tree, Q2, Q4 to Q9, Q11, Q12 and
+  Q16). The Q14 1 ms run limit has 12 failures before and 0 after. The behaviour change to main code is the in-memory
   redelivery (`InMemoryQueueAcknowledgeInterceptor::postSend`, faad6a7b6). It is proven by
   `InMemoryQueueRedeliveryTest::…keeps_the_headers_a_negative_precedence_channel_interceptor_added…`, reported "red
-  with F5 reversed" in var/771/pre-pr-round-2-report.md (B1). The `#[AddHeader]`/`#[RemoveHeader]`/`#[Delayed]` cases
+  with F5 reversed" by the second pre-PR round (B1). The `#[AddHeader]`/`#[RemoveHeader]`/`#[Delayed]` cases
   there are characterisation tests, green either way and stated as such.
 - BH3 — covered — bus by class: `ExecutionRecordingTest::test_before_around_and_after_interceptors…`. Routed send:
   `ExecutionRecordingReaderTest` (`sendCommandWithRouting`). Gateway / business interface:
@@ -180,7 +179,7 @@ wall clock (BH11).
 - BH13 — covered — `RUNS=3 bin/test-agent-skills` on the tree as it is. ecotone-testing: execution-recording 1.00,
   ticket-lifecycle 1.00 (previously 0.72 on this branch and 0.78 on main's copy). framework-dev-environment:
   red-ci-check 1.00, run-tests 1.00. framework-review-guidelines: review-diff-guidelines 1.00, review-related-skills 1.00.
-  Threshold 0.8, no failing grader (var/review/skills-*.txt). The only new rule, ecotone-testing rule 6, has grader
+  Threshold 0.8, no failing grader. The only new rule, ecotone-testing rule 6, has grader
   `api/evals/ecotone-testing/execution-recording/graders/rule-6.md`. The other two skills change only references.
 - BH14 — covered — handlers, interceptors (before/around/after/presend, channel interceptors): `ExecutionRecordingTest`.
   Aggregates, event-sourced aggregates, sagas, identifier resolution, fetched aggregate: `ExecutionRecordingCoverageTest`.
@@ -214,7 +213,7 @@ wall clock (BH11).
 - BH21 — covered — both new coroutine test files are in `COROUTINE_TESTS` of `.github/workflows/test-monorepo.yml`
   (lines 236 and 238).
 
-Runs (this worktree's containers, one at a time, junit under var/review/):
+Runs (this worktree's containers, one at a time):
 - Ecotone Tracing: 222 tests, 1 failure (BH11), 3 skipped (coroutine, no extension in `app`).
 - Ecotone Flow unit: 479 tests, green, 1 skipped.
 - Dbal recording/Pulse/tracking (filtered): 218 tests on PostgreSQL, MySQL and MariaDB, green.

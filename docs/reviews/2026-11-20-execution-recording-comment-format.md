@@ -12,7 +12,7 @@ Maintainer decisions.
   in its own `<details open>`; processes that repeat another keep "like X except:". Order: heading and what is
   compared, the Before/Now summary, this section, the message-path diagram, the collapsed wiring. The 65,536 limit
   rules stay: cut whole processes or scenarios from the end, never inside a tree, a diagram or a `<details>`. Glossary,
-  presentation tests and `var/771/pr-comment.md` updated; the baselines do not change.
+  presentation tests and the #771 comment updated; the baselines do not change.
 - C2. The baseline workflow pushes with the bot token `release.yml` uses and the git identity it configures;
   the separate baseline token secret is removed everywhere; `paths-ignore` stays; `workflow.md` says what runs on that commit;
   the refused-push message says to check that the bot's token may push to `main`. The comment workflow keeps

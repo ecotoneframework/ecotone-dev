@@ -405,12 +405,21 @@ final class GatheringModule extends NoExternalConfigurationModule
         }
         $outputs = [];
         $splitters = [];
-        foreach ([Splitter::class, InternalHandler::class, CommandHandler::class, Transformer::class] as $attribute) {
+        foreach ([Splitter::class, InternalHandler::class, CommandHandler::class, EventHandler::class, Transformer::class] as $attribute) {
             foreach ($this->annotationFinder->findAnnotatedMethods($attribute) as $registration) {
                 $endpoint = $registration->getAnnotationForMethod();
-                $outputs[$endpoint->getInputChannelName()][] = $endpoint->getOutputChannelName();
+                if ($endpoint instanceof Splitter && SplitterModule::isStacked($registration)) {
+                    continue;
+                }
+                $input = $endpoint instanceof EventHandler ? $endpoint->listenTo : $endpoint->getInputChannelName();
+                $outputs[$input][] = $endpoint->getOutputChannelName();
                 if ($endpoint instanceof Splitter) {
-                    $splitters[$endpoint->getInputChannelName()][] = $endpoint;
+                    $splitters[$input][] = [$endpoint, $endpoint->getEndpointId()];
+                } elseif ($registration->hasMethodAnnotation(Splitter::class)) {
+                    $splitters[$input][] = [
+                        $registration->getMethodAnnotationsWithType(Splitter::class)[0],
+                        $registration->getClassName() . '::' . $registration->getMethodName(),
+                    ];
                 }
             }
         }
@@ -419,7 +428,12 @@ final class GatheringModule extends NoExternalConfigurationModule
             if ($splitter->gatherChannelName === '') {
                 continue;
             }
-            $pending = [$splitter->getOutputChannelName()];
+            $pending = SplitterModule::isStacked($registration)
+                ? array_map(static fn ($handler) => $handler->getOutputChannelName(), array_filter(
+                    $registration->getMethodAnnotations(),
+                    static fn ($handler) => $handler instanceof CommandHandler || $handler instanceof EventHandler || $handler instanceof InternalHandler,
+                ))
+                : [$splitter->getOutputChannelName()];
             $visited = [];
             while ($pending !== []) {
                 $channel = array_pop($pending);
@@ -427,9 +441,9 @@ final class GatheringModule extends NoExternalConfigurationModule
                     continue;
                 }
                 $visited[$channel] = true;
-                foreach ($splitters[$channel] ?? [] as $nestedSplitter) {
+                foreach ($splitters[$channel] ?? [] as [$nestedSplitter, $name]) {
                     if ($nestedSplitter->gatherChannelName === '') {
-                        throw UngatheredSplitterProcessor::refusal($nestedSplitter->getEndpointId());
+                        throw UngatheredSplitterProcessor::refusal($name);
                     }
                 }
                 $pending = [...$pending, ...($outputs[$channel] ?? [])];

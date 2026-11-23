@@ -668,6 +668,72 @@ final class HandlerSplitterTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class], containerOrAvailableServices: [$handler], enabledModules: [], licenceKey: self::ENTERPRISE_LICENCE);
     }
 
+    public function test_outer_stacked_splitter_refuses_an_ungathered_splitter_at_bootstrap(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', endpointId: 'outer', outputChannelName: 'rows')]
+            #[Splitter(gatherChannelName: 'summary')]
+            public function split(array $rows): array
+            {
+                return $rows;
+            }
+
+            #[Splitter('rows', endpointId: 'inner', outputChannelName: 'cells')]
+            public function rows(array $cells): array
+            {
+                return $cells;
+            }
+
+            #[InternalHandler('cells')]
+            public function cell(int $cell): int
+            {
+                return $cell;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summary(GatheredParts $parts): void
+            {
+            }
+        };
+        $this->expectExceptionMessage("Splitter 'inner' has no gatherChannelName inside a gathered flow, so its sub-parts cannot be accounted for as one outer part. Set gatherChannelName on this #[Splitter], or send the sub-work through CommandBus::send() or EventBus::publish() to leave the gathered flow.");
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class], containerOrAvailableServices: [$handler], enabledModules: [], licenceKey: self::ENTERPRISE_LICENCE);
+    }
+
+    public function test_inner_stacked_splitter_is_refused_at_bootstrap_inside_a_gathered_flow(): void
+    {
+        $handler = new class () {
+            #[Splitter('split', endpointId: 'outer', outputChannelName: 'rows', gatherChannelName: 'summary')]
+            public function split(array $rows): array
+            {
+                return $rows;
+            }
+
+            #[InternalHandler('rows', outputChannelName: 'cells')]
+            #[Splitter]
+            public function rows(array $cells): array
+            {
+                return $cells;
+            }
+
+            #[InternalHandler('cells')]
+            public function cell(int $cell): int
+            {
+                return $cell;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summary(GatheredParts $parts): void
+            {
+            }
+        };
+        $this->expectExceptionMessage("Splitter '" . $handler::class . "::rows' has no gatherChannelName inside a gathered flow, so its sub-parts cannot be accounted for as one outer part. Set gatherChannelName on this #[Splitter], or send the sub-work through CommandBus::send() or EventBus::publish() to leave the gathered flow.");
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class], containerOrAvailableServices: [$handler], enabledModules: [], licenceKey: self::ENTERPRISE_LICENCE);
+    }
+
     public function test_aggregate_factory_with_splitter_is_refused(): void
     {
         $aggregate = new #[Aggregate] class () {

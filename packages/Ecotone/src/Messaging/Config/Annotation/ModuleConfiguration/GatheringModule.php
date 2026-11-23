@@ -138,11 +138,7 @@ final class GatheringModule extends NoExternalConfigurationModule
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        foreach ($this->annotationFinder->findAnnotatedMethods(Splitter::class) as $registration) {
-            if (SplitterModule::isStacked($registration)) {
-                SplitterModule::validate($registration, $interfaceToCallRegistry);
-            }
-        }
+        $this->refuseInvalidSplitHandlers($interfaceToCallRegistry);
         $this->assertLicence($messagingConfiguration);
         $this->validateWiring($interfaceToCallRegistry);
         $this->validateTimeouts($extensionObjects, $interfaceToCallRegistry);
@@ -395,6 +391,15 @@ final class GatheringModule extends NoExternalConfigurationModule
                 description: $description,
             );
             $configuration->registerMessageHandler($handler)->registerConsoleCommand($command);
+        }
+    }
+
+    private function refuseInvalidSplitHandlers(InterfaceToCallRegistry $registry): void
+    {
+        foreach ($this->annotationFinder->findAnnotatedMethods(Splitter::class) as $registration) {
+            if (SplitterModule::isStacked($registration)) {
+                SplitterModule::validate($registration, $registry);
+            }
         }
     }
 

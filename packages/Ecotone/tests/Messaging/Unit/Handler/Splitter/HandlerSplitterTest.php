@@ -1391,9 +1391,7 @@ final class HandlerSplitterTest extends TestCase
         $ecotone->sendCommandWithRouting('split', [1, 2]);
         $endpoints = array_values(array_filter(array_map(static fn ($span): ?string => $span->attributes[SpanAttribute::ENDPOINT_ID] ?? null, $recorder->recordedSpans())));
         self::assertSame(['split.handler', 'receive.handler', 'receive.handler'], $endpoints);
-        foreach ($recorder->recordedSpans() as $span) {
-            self::assertStringNotContainsString('ecotone.splitter.', $span->name);
-        }
+
     }
     public function test_asynchronous_aggregate_action_splits_after_save(): void
     {

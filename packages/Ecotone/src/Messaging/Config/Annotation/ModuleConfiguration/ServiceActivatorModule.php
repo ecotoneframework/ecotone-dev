@@ -61,7 +61,7 @@ class ServiceActivatorModule extends MessageHandlerRegisterConfiguration
         }
 
         foreach ($this->splitterFindings as $registration) {
-            SplitterModule::registerHandlerOutput($registration, $messagingConfiguration);
+            SplitterModule::registerHiddenSplitterOf($registration, $messagingConfiguration);
         }
 
         parent::prepare($messagingConfiguration, $extensionObjects, $moduleReferenceSearchService, $interfaceToCallRegistry);
@@ -87,7 +87,7 @@ class ServiceActivatorModule extends MessageHandlerRegisterConfiguration
         )
             ->withEndpointId($annotation->getEndpointId())
             ->withRequiredReply($annotation->requiresReply)
-            ->withOutputMessageChannel($annotationRegistration->hasMethodAnnotation(Splitter::class) ? 'ecotone.splitter.' . $annotation->getEndpointId() : $annotation->getOutputChannelName())
+            ->withOutputMessageChannel(SplitterModule::outputChannelOf($annotationRegistration))
             ->withInputChannelName($annotation->getInputChannelName())
             ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames());
     }

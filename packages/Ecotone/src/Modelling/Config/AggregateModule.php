@@ -587,10 +587,11 @@ final class AggregateModule implements AnnotationModule, RoutingEventHandler
         ;
         $messagingConfiguration->registerMessageHandler($aggregateIdentifierHandlerPreCheck);
 
+        SplitterModule::registerHiddenSplitterOf($registration, $messagingConfiguration);
         $serviceActivatorHandler = MessageProcessorActivatorBuilder::create()
             ->withEndpointId($endpointId)
             ->withInputChannelName($connectionChannel)
-            ->withOutputMessageChannel(SplitterModule::registerHandlerOutput($registration, $messagingConfiguration))
+            ->withOutputMessageChannel(SplitterModule::outputChannelOf($registration))
             ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames())
             ->chain(TransformerProcessorBuilder::create(
                 TransformerBuilder::createHeaderEnricher([

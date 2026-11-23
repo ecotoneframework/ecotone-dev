@@ -76,10 +76,11 @@ final class ServiceHandlerModule implements AnnotationModule, RoutingEventHandle
             ? TransformerBuilder::create(AnnotatedDefinitionReference::getReferenceFor($registration), $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName()))
             : MessageProcessorActivatorBuilder::createForMethod(AnnotatedDefinitionReference::getReferenceFor($registration), $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName()));
 
+        SplitterModule::registerHiddenSplitterOf($registration, $event->getBusRoutingMapBuilder()->getMessagingConfiguration());
         $event->getBusRoutingMapBuilder()->getMessagingConfiguration()->registerMessageHandler(
             $handler
                 ->withInputChannelName($event->getDestinationChannel())
-                ->withOutputMessageChannel(SplitterModule::registerHandlerOutput($registration, $event->getBusRoutingMapBuilder()->getMessagingConfiguration()))
+                ->withOutputMessageChannel(SplitterModule::outputChannelOf($registration))
                 ->withEndpointId($methodAnnotation->getEndpointId())
                 ->withMethodParameterConverters($parameterConverters)
                 ->withRequiredInterceptorNames($methodAnnotation->getRequiredInterceptorNames())

@@ -32,17 +32,15 @@ use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDef
  */
 final class SplitterModule extends NoExternalConfigurationModule
 {
-    private function __construct(private array $standaloneSplitters, private array $stackedSplitters)
+    private function __construct(private array $standaloneSplitters)
     {
     }
 
     public static function create(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $splitters = [];
-        $stacked = [];
         foreach ($annotationFinder->findAnnotatedMethods(Splitter::class) as $registration) {
             if (self::isStacked($registration)) {
-                $stacked[] = $registration;
                 continue;
             }
             $splitters[] = self::createMessageHandlerFrom($registration, $interfaceToCallRegistry)
@@ -50,14 +48,11 @@ final class SplitterModule extends NoExternalConfigurationModule
                     $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())
                 ));
         }
-        return new self($splitters, $stacked);
+        return new self($splitters);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        foreach ($this->stackedSplitters as $registration) {
-            self::validate($registration, $interfaceToCallRegistry);
-        }
         foreach ($this->standaloneSplitters as $splitter) {
             $messagingConfiguration->registerMessageHandler($splitter);
         }
@@ -145,14 +140,22 @@ final class SplitterModule extends NoExternalConfigurationModule
         }
     }
 
-    public static function registerHandlerOutput(AnnotatedFinding $registration, Configuration $configuration): string
+    public static function outputChannelOf(AnnotatedFinding $registration): string
+    {
+        $handler = $registration->getAnnotationForMethod();
+        return $registration->hasMethodAnnotation(Splitter::class)
+            ? 'ecotone.splitter.' . $handler->getEndpointId()
+            : $handler->getOutputChannelName();
+    }
+
+    public static function registerHiddenSplitterOf(AnnotatedFinding $registration, Configuration $configuration): void
     {
         $handler = $registration->getAnnotationForMethod();
         if (! $registration->hasMethodAnnotation(Splitter::class)) {
-            return $handler->getOutputChannelName();
+            return;
         }
         $splitter = $registration->getMethodAnnotationsWithType(Splitter::class)[0];
-        $channel = 'ecotone.splitter.' . $handler->getEndpointId();
+        $channel = self::outputChannelOf($registration);
         $configuration->registerMessageHandler(
             SplitterBuilder::createWithDefinition(DirectMessageSplitter::class, 'splitIterable')
                 ->withoutInheritedTypeId()
@@ -162,13 +165,9 @@ final class SplitterModule extends NoExternalConfigurationModule
                 ->withEndpointId($handler->getEndpointId() . '.splitter')
                 ->withOutputMessageChannel($handler->getOutputChannelName())
         );
-        return $channel;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public static function createMessageHandlerFrom(AnnotatedFinding $annotationRegistration, InterfaceToCallRegistry $interfaceToCallRegistry): MessageHandlerBuilderWithParameterConverters
+    private static function createMessageHandlerFrom(AnnotatedFinding $annotationRegistration, InterfaceToCallRegistry $interfaceToCallRegistry): MessageHandlerBuilderWithParameterConverters
     {
         /** @var Splitter $annotation */
         $annotation = $annotationRegistration->getAnnotationForMethod();
@@ -183,14 +182,6 @@ final class SplitterModule extends NoExternalConfigurationModule
                 ->withInputChannelName($annotation->getInputChannelName())
                 ->withOutputMessageChannel($annotation->getOutputChannelName())
                 ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames());
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public static function getMessageHandlerAnnotation(): string
-    {
-        return Splitter::class;
     }
 
     public function getModulePackageName(): string

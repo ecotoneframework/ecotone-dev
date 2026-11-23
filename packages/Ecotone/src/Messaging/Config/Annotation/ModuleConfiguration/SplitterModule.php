@@ -81,8 +81,23 @@ final class SplitterModule extends NoExternalConfigurationModule
             throw ConfigurationException::create("Split handler {$name} belongs to a projection whose events are replayed during rebuild and backfill. Move the split to a separate event handler outside the projection, or remove #[Splitter].");
         }
         $splitter = $registration->getAnnotationForMethod();
+        if ($splitter->getInputChannelName() !== '') {
+            $parameters = [];
+            foreach ($registration->getMethodAnnotations() as $handler) {
+                $parameter = match (true) {
+                    $handler instanceof CommandHandler => 'routingKey on #[CommandHandler]',
+                    $handler instanceof EventHandler => 'listenTo on #[EventHandler]',
+                    $handler instanceof InternalHandler => 'inputChannelName on #[InternalHandler]',
+                    default => null,
+                };
+                if ($parameter !== null) {
+                    $parameters[] = $parameter;
+                }
+            }
+            $parameters = implode(' and ', array_unique($parameters));
+            throw ConfigurationException::create("Split handler {$name} sets inputChannelName on #[Splitter]. Remove inputChannelName from #[Splitter] and configure {$parameters}, or move #[Splitter] to a separate method.");
+        }
         foreach ([
-            'inputChannelName' => $splitter->getInputChannelName() !== '',
             'endpointId' => ! $splitter->isEndpointIdGenerated(),
             'outputChannelName' => $splitter->getOutputChannelName() !== '',
         ] as $setting => $isSet) {
@@ -114,11 +129,18 @@ final class SplitterModule extends NoExternalConfigurationModule
             if (! $handler instanceof CommandHandler && ! $handler instanceof EventHandler && ! $handler instanceof InternalHandler) {
                 continue;
             }
+            $attribute = match (true) {
+                $handler instanceof CommandHandler => 'CommandHandler',
+                $handler instanceof EventHandler => 'EventHandler',
+                default => 'InternalHandler',
+            };
+            $route = $handler instanceof EventHandler ? $handler->listenTo : $handler->getInputChannelName();
+            $description = "#[{$attribute}('{$route}')]";
             if ($splitter->gatherChannelName !== '' && $handler->isEndpointIdGenerated()) {
-                throw ConfigurationException::create("Split handler {$name} uses gatherChannelName without an explicit handler endpointId. Set endpointId on every handler attribute, or remove gatherChannelName from #[Splitter].");
+                throw ConfigurationException::create("Split handler {$name} uses gatherChannelName without an explicit endpointId on {$description}. Set endpointId on every handler attribute, or remove gatherChannelName from #[Splitter].");
             }
             if ($handler->getOutputChannelName() === '') {
-                throw ConfigurationException::create("Split handler {$name} has no outputChannelName. Set outputChannelName on every handler attribute, or remove #[Splitter].");
+                throw ConfigurationException::create("Split handler {$name} has no outputChannelName on {$description}. Set outputChannelName on every handler attribute, or remove #[Splitter].");
             }
         }
     }

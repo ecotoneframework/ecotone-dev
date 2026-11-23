@@ -486,7 +486,26 @@ final class HandlerSplitterTest extends TestCase
                 return [];
             }
         };
-        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split has no outputChannelName. Set outputChannelName on every handler attribute, or remove #[Splitter].');
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split has no outputChannelName on #[CommandHandler(\'split\')]. Set outputChannelName on every handler attribute, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+    }
+
+    public function test_repeated_split_handler_names_the_attribute_without_output(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('first', outputChannelName: 'parts')]
+            #[CommandHandler('split')]
+            #[Splitter]
+            public function split(): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split has no outputChannelName on #[CommandHandler(\'split\')]. Set outputChannelName on every handler attribute, or remove #[Splitter].');
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
@@ -504,7 +523,43 @@ final class HandlerSplitterTest extends TestCase
                 return [];
             }
         };
-        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split sets inputChannelName on #[Splitter]. Remove inputChannelName from #[Splitter] and configure it on the handler, or move #[Splitter] to a separate method.');
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split sets inputChannelName on #[Splitter]. Remove inputChannelName from #[Splitter] and configure routingKey on #[CommandHandler], or move #[Splitter] to a separate method.');
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+    }
+
+    public function test_eventhandler_splitter_input_channel_names_its_parameter(): void
+    {
+        $handler = new class () {
+            #[EventHandler('split', outputChannelName: 'parts')]
+            #[Splitter(inputChannelName: 'other')]
+            public function split(): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split sets inputChannelName on #[Splitter]. Remove inputChannelName from #[Splitter] and configure listenTo on #[EventHandler], or move #[Splitter] to a separate method.');
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+    }
+
+    public function test_internalhandler_splitter_input_channel_names_its_parameter(): void
+    {
+        $handler = new class () {
+            #[InternalHandler('split', outputChannelName: 'parts')]
+            #[Splitter(inputChannelName: 'other')]
+            public function split(): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split sets inputChannelName on #[Splitter]. Remove inputChannelName from #[Splitter] and configure inputChannelName on #[InternalHandler], or move #[Splitter] to a separate method.');
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
@@ -594,7 +649,26 @@ final class HandlerSplitterTest extends TestCase
                 return [];
             }
         };
-        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split uses gatherChannelName without an explicit handler endpointId. Set endpointId on every handler attribute, or remove gatherChannelName from #[Splitter].');
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split uses gatherChannelName without an explicit endpointId on #[CommandHandler(\'split\')]. Set endpointId on every handler attribute, or remove gatherChannelName from #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+    }
+
+    public function test_repeated_gathering_split_handler_names_the_attribute_without_endpoint_id(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('first', endpointId: 'first.handler', outputChannelName: 'parts')]
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[Splitter(gatherChannelName: 'summary')]
+            public function split(): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split uses gatherChannelName without an explicit endpointId on #[CommandHandler(\'split\')]. Set endpointId on every handler attribute, or remove gatherChannelName from #[Splitter].');
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
@@ -737,6 +811,23 @@ final class HandlerSplitterTest extends TestCase
     public function test_aggregate_factory_with_splitter_is_refused(): void
     {
         $aggregate = new #[Aggregate] class () {
+            #[Identifier]
+            public string $id = 'one';
+
+            #[CommandHandler('create', outputChannelName: 'parts')]
+            #[Splitter]
+            public static function create(): self
+            {
+                return new self();
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $aggregate::class . '::create is an aggregate or saga factory whose output contains saved identifiers. Split from an action method, use a separate splitter handler receiving the factory output, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$aggregate::class], enabledModules: []);
+    }
+
+    public function test_saga_factory_with_splitter_is_refused(): void
+    {
+        $aggregate = new #[Saga] class () {
             #[Identifier]
             public string $id = 'one';
 

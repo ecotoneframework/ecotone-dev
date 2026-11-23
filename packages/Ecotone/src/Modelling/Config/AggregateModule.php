@@ -24,6 +24,7 @@ use Ecotone\Messaging\Attribute\EndpointId;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -619,6 +620,12 @@ final class AggregateModule implements AnnotationModule, RoutingEventHandler
 
     public function registerRoutedFactoryHandler(AnnotatedFinding $factoryRegistration, AnnotatedFinding $actionRegistration, string $destinationChannel, Configuration $messagingConfiguration): void
     {
+        foreach ([$factoryRegistration, $actionRegistration] as $registration) {
+            if ($registration->hasMethodAnnotation(Splitter::class)) {
+                $name = $registration->getClassName() . '::' . $registration->getMethodName();
+                throw ConfigurationException::create("Split handler {$name} shares a route with a factory, so its result cannot be split independently. Give the action its own routingKey or listenTo, move the split to a separate handler, or remove #[Splitter].");
+            }
+        }
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
 
         $aggregateClassDefinition = $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($factoryRegistration->getClassName()));

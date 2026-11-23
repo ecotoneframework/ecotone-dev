@@ -599,6 +599,29 @@ final class HandlerSplitterTest extends TestCase
         );
     }
 
+    public function test_action_sharing_a_route_with_a_factory_with_splitter_is_refused(): void
+    {
+        $aggregate = new #[Aggregate] class () {
+            #[Identifier]
+            public string $id = 'one';
+
+            #[CommandHandler('place')]
+            public static function create(HandlerSplitCommand $command): self
+            {
+                return new self();
+            }
+
+            #[CommandHandler('place', outputChannelName: 'parts')]
+            #[Splitter]
+            public function act(HandlerSplitCommand $command): array
+            {
+                return [1, 2];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $aggregate::class . '::act shares a route with a factory, so its result cannot be split independently. Give the action its own routingKey or listenTo, move the split to a separate handler, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$aggregate::class], enabledModules: []);
+    }
+
     public function test_aggregate_factory_with_splitter_is_refused(): void
     {
         $aggregate = new #[Aggregate] class () {

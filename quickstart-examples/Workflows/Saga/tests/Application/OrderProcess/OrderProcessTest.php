@@ -13,7 +13,7 @@ use App\Workflow\Saga\Application\Payment\PaymentProcessor;
 use App\Workflow\Saga\Application\Payment\PaymentService;
 use App\Workflow\Saga\Infrastructure\StubOrderService;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
@@ -86,7 +86,7 @@ final class OrderProcessTest extends TestCase
             $ecotoneLite
                 ->publishEvent(new OrderWasPlaced($orderId))
                 ->run('async_saga')
-                ->advanceTimeBy(new TimeSpan(hours: 1, minutes: 1))
+                ->advanceTimeBy(new Duration(hours: 1, minutes: 1))
                 ->run('async_saga')
                 ->sendQueryWithRouting('orderProcess.getStatus', metadata: ['aggregate.id' => $orderId])
         );

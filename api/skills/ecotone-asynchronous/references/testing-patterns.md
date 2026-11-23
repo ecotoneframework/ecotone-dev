@@ -45,10 +45,10 @@ $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(
 `advanceTimeBy()` first, then run:
 
 ```php
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
 $ecotone
-    ->advanceTimeBy(TimeSpan::withSeconds(60))
+    ->advanceTimeBy(Duration::seconds(60))
     ->run('reminders');
 ```
 

@@ -7,7 +7,7 @@ namespace Ecotone\Api\Laravel;
 use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Laravel\Queue\LaravelQueueAcknowledgementCallback;
 use Ecotone\Laravel\Queue\LaravelQueueMessageChannel;
 use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
@@ -33,7 +33,7 @@ final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSeria
         return true;
     }
 
-    public function maximumDelay(): ?TimeSpan
+    public function maximumDelay(): ?Duration
     {
         return null;
     }

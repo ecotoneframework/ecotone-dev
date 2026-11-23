@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Channel\PollableChannel\Serialization;
 
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
 /**
  * licence Apache-2.0
@@ -22,13 +22,13 @@ class OutboundMessage
     /** @var int|null */
     private $priority;
 
-    public function __construct($payload, array $headers, ?string $contentType, int|TimeSpan|null $deliveryDelay, int|TimeSpan|null $timeToLive, ?int $priority)
+    public function __construct($payload, array $headers, ?string $contentType, int|Duration|null $deliveryDelay, int|Duration|null $timeToLive, ?int $priority)
     {
         $this->payload = $payload;
         $this->headers = $headers;
         $this->contentType = $contentType;
-        $this->deliveryDelay = $deliveryDelay instanceof TimeSpan ? $deliveryDelay->toMilliseconds() : $deliveryDelay;
-        $this->timeToLive = $timeToLive instanceof TimeSpan ? $timeToLive->toMilliseconds() : $timeToLive;
+        $this->deliveryDelay = $deliveryDelay instanceof Duration ? $deliveryDelay->inMilliseconds() : $deliveryDelay;
+        $this->timeToLive = $timeToLive instanceof Duration ? $timeToLive->inMilliseconds() : $timeToLive;
         $this->priority = $priority;
     }
 

@@ -72,7 +72,7 @@ class OrderProcess
         return new TakePayment($this->orderId, $orderService->getTotalPriceFor($this->orderId));
     }
 
-    #[Delayed(new TimeSpan(hours: 1))]
+    #[Delayed(new Duration(hours: 1))]
     #[Asynchronous('async')]
     #[EventHandler(endpointId: 'whenPaymentFailedEndpoint', outputChannelName: 'takePayment')]
     public function whenPaymentFailed(PaymentFailed $event, OrderService $orderService): ?TakePayment

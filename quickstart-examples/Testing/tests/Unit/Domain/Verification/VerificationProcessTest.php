@@ -22,7 +22,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\App\Fixture\StubTokenGenerator;
@@ -68,7 +68,7 @@ final class VerificationProcessTest extends TestCase
                 ->sendCommand(new VerifyEmail($userId, VerificationToken::from($emailToken)))
                 ->discardRecordedMessages()
                 ->sendCommand(new VerifyPhoneNumber($userId, VerificationToken::from($phoneNumberToken)))
-                ->advanceTimeBy(TimeSpan::withHours(25))
+                ->advanceTimeBy(Duration::hours(25))
                 ->run(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)
                 ->popRecordedCommandsWithRouting()
         );
@@ -90,7 +90,7 @@ final class VerificationProcessTest extends TestCase
                 ->publishEvent(new UserWasRegistered($userId, $email, $phoneNumber))
                 ->sendCommand(new VerifyEmail($userId, VerificationToken::from($emailToken)))
                 ->discardRecordedMessages()
-                ->advanceTimeBy(TimeSpan::withHours(25))
+                ->advanceTimeBy(Duration::hours(25))
                 ->run(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)
                 ->popRecordedCommandsWithRouting()
         );

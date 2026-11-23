@@ -6,7 +6,7 @@ namespace Ecotone\Api\Attribute;
 
 use Attribute;
 use Closure;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Attribute\WithExpression;
 
 #[Attribute(Attribute::TARGET_METHOD)]
@@ -19,7 +19,7 @@ final class Collected implements WithExpression
 {
     public function __construct(
         public readonly ?int $maxSize = null,
-        public readonly ?TimeSpan $maxWait = null,
+        public readonly ?Duration $maxWait = null,
         public readonly string|Closure|null $groupBy = null,
     ) {
     }

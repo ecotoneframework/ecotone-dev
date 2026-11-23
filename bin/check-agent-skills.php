@@ -429,7 +429,15 @@ function checkPublicSkillImports(string $root, array &$violations): void
         if ($file->getExtension() !== 'md') {
             continue;
         }
-        foreach (array_unique(referencedEcotoneClasses(file_get_contents($file->getPathname()))) as $class) {
+        $markdown = file_get_contents($file->getPathname());
+        foreach (array_unique(methodCallsInsideAttributes($markdown)) as $call) {
+            $violations[] = sprintf(
+                "%s calls %s() inside an attribute.\nAn attribute argument is a constant expression, so PHP refuses the file with 'Constant expression contains invalid operations' and a user who pastes the sample can not load the class. Build the value with new and named arguments, e.g. #[Delayed(new Duration(minutes: 5))], or pass a constant.",
+                relativePath($root, $file->getPathname()),
+                $call,
+            );
+        }
+        foreach (array_unique(referencedEcotoneClasses($markdown)) as $class) {
             if (! classResolves($class, $namespaces)) {
                 $violations[] = sprintf(
                     "%s references %s, which does not exist in packages/.\nA user who pastes the sample gets a class-not-found error. Verify the name against the tree; upgrade/namespace-map-2.0.csv maps 1.x names to 2.0.",
@@ -439,6 +447,13 @@ function checkPublicSkillImports(string $root, array &$violations): void
             }
         }
     }
+}
+
+function methodCallsInsideAttributes(string $markdown): array
+{
+    preg_match_all('/^\s*#\[\\\\?\w[\w\\\\]*\(.*?\b([A-Z]\w*::[a-z]\w*)\(/m', $markdown, $calls);
+
+    return $calls[1];
 }
 
 function referencedEcotoneClasses(string $markdown): array

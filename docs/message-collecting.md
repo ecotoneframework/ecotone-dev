@@ -9,9 +9,9 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Messaging\CollectedMessages;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
-#[Collected(maxSize: 500, maxWait: new TimeSpan(seconds: 10))]
+#[Collected(maxSize: 500, maxWait: new Duration(seconds: 10))]
 #[Asynchronous('search')]
 #[EventHandler(listenTo: ProductChanged::class, endpointId: 'search.index')]
 public function index(CollectedMessages $changes): void
@@ -40,7 +40,7 @@ Without `groupBy`, a handler collects all its messages into one open batch. With
 ```php
 use Ecotone\Api\Attribute\InternalHandler;
 
-#[Collected(maxSize: 100, maxWait: new TimeSpan(minutes: 5), groupBy: 'payload.orderId')]
+#[Collected(maxSize: 100, maxWait: new Duration(minutes: 5), groupBy: 'payload.orderId')]
 #[Asynchronous('shipping')]
 #[InternalHandler(inputChannelName: 'shipping.pack', endpointId: 'shipping.pack.handler')]
 public function pack(CollectedMessages $items): void
@@ -54,7 +54,7 @@ String expressions can use `payload` and `headers`. PHP 8.5 also supports a stat
 ```php
 use Ecotone\Api\Attribute\Header;
 
-#[Collected(maxWait: new TimeSpan(hours: 1), groupBy: static function (CommentAdded $event, #[Header('tenantId')] string $tenant): string {
+#[Collected(maxWait: new Duration(hours: 1), groupBy: static function (CommentAdded $event, #[Header('tenantId')] string $tenant): string {
     return $tenant . ':' . $event->userId;
 })]
 #[Asynchronous('notifications')]
@@ -178,12 +178,12 @@ use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\CollectedMessages;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
 $handler = new class () {
     public array $batches = [];
 
-    #[Collected(maxSize: 2, maxWait: new TimeSpan(seconds: 10))]
+    #[Collected(maxSize: 2, maxWait: new Duration(seconds: 10))]
     #[Asynchronous('search')]
     #[CommandHandler(routingKey: 'index', endpointId: 'index.handler')]
     public function index(CollectedMessages $batch): void
@@ -207,7 +207,7 @@ assert(count($handler->batches) === 1);
 $ecotone->sendCommandWithRouting('index', 'third');
 $ecotone->run('search');
 assert(count($handler->batches) === 1);
-$ecotone->advanceTimeBy(new TimeSpan(seconds: 10));
+$ecotone->advanceTimeBy(new Duration(seconds: 10));
 $ecotone->run('search');
 assert(array_column($handler->batches[1]->messages, 'payload') === ['third']);
 ```
@@ -249,7 +249,7 @@ Pulse's Gathering tab lists batches and gathered groups in one table with the fi
 release / Discard actions. A batch without `maxSize` displays no expected size.
 
 Closed batches and their message identities follow `GatheringConfiguration` retention, seven days by default.
-`GatheringConfiguration::createWithDefaults()->withRetention(new TimeSpan(days: 14))` returned from a
+`GatheringConfiguration::createWithDefaults()->withRetention(new Duration(days: 14))` returned from a
 `#[ServiceContext]` method changes that period. Cleanup removes expired closed batches and preserves open ones.
 After cleanup, replayed message ids can be collected again.
 

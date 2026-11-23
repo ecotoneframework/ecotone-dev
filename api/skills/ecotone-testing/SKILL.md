@@ -149,7 +149,7 @@ $ecotone = EcotoneLite::bootstrapFlowTesting(
 );
 $ecotone->publishEvent(new OrderPlaced('order-1'))->run('async');   // not due yet
 
-$ecotone->advanceTimeBy(TimeSpan::withHours(24))->run('async');     // due now, handled
+$ecotone->advanceTimeBy(Duration::hours(24))->run('async');     // due now, handled
 $ecotone->now();                                                    // DatePoint 2026-03-02 12:00:00
 ```
 
@@ -313,7 +313,7 @@ and compare `popRecordedEvents()` with the events you expect. No connection is n
 
 ### 4. Control time with the test clock, never with `sleep()`
 Pin the clock with `bootstrapFlowTesting(initialTime: new DateTimeImmutable(...))` (or `withTimeAt()` on a
-`TestConfiguration` you pass anyway), and move it with `advanceTimeBy(TimeSpan::with...())`; `run()` before the advance handles nothing that is not yet due.
+`TestConfiguration` you pass anyway), and move it with `advanceTimeBy(Duration::hours(24))`; `run()` before the advance handles nothing that is not yet due.
 - **Expected:** a delayed message is tested by running the channel before and after `advanceTimeBy()` (or
   `changeTimeTo()`), with no `sleep()`/`usleep()` and no real-time waiting.
 - **Verified by:** `eval:ticket-lifecycle`

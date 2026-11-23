@@ -8,7 +8,6 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Type;
@@ -168,10 +167,6 @@ class OutboundMessageConverter
 
         if ($deliveryDelay instanceof Duration) {
             $deliveryDelay = $deliveryDelay->inMilliseconds();
-        }
-
-        if ($deliveryDelay instanceof TimeSpan) {
-            $deliveryDelay = $deliveryDelay->toMilliseconds();
         }
 
         if ($deliveryDelay && $deliveryDelay < 0) {

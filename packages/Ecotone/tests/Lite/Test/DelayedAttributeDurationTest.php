@@ -9,7 +9,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
@@ -40,10 +40,10 @@ final class DelayedAttributeDurationTest extends TestCase
         $ecotone->changeTimeTo(new DateTimeImmutable('2026-03-01 12:00:00'));
 
         $ecotone->publishEventWithRouting('basket.changed', 'basket-1');
-        $ecotone->advanceTimeBy(TimeSpan::withMinutes(89))->run('async');
+        $ecotone->advanceTimeBy(Duration::minutes(89))->run('async');
         $this->assertSame([], $handler->expired);
 
-        $ecotone->advanceTimeBy(TimeSpan::withMinutes(1))->run('async');
+        $ecotone->advanceTimeBy(Duration::minutes(1))->run('async');
         $this->assertSame(['basket-1'], $handler->expired);
     }
 
@@ -52,6 +52,6 @@ final class DelayedAttributeDurationTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('#[Delayed] takes either $time or named durations (milliseconds, seconds, minutes, hours, days), not both.');
 
-        new Delayed(new TimeSpan(hours: 1), hours: 2);
+        new Delayed(new Duration(hours: 1), hours: 2);
     }
 }

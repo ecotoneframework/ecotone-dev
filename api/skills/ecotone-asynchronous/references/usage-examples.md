@@ -101,7 +101,7 @@ class OrderService
 
 ```php
 use Ecotone\Api\Attribute\TimeToLive;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 
 class NotificationService
 {
@@ -111,8 +111,8 @@ class NotificationService
     #[EventHandler(endpointId: 'sendNotification')]
     public function send(OrderWasPlaced $event): void { }
 
-    // TTL with TimeSpan
-    #[TimeToLive(time: TimeSpan::withMinutes(5))]
+    // TTL with Duration
+    #[TimeToLive(new Duration(minutes: 5))]
     #[Asynchronous('notifications')]
     #[EventHandler(endpointId: 'sendUrgentNotification')]
     public function sendUrgent(UrgentEvent $event): void { }

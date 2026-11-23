@@ -74,7 +74,7 @@ service"), never by naming the rule, so the case also proves the skill is found 
 
 | Id | Command | Enforces |
 |---|---|---|
-| `agent-skills` | `php bin/check-agent-skills.php` (its own tests: `php bin/test-check-agent-skills.php`) | AGENTS.md size and pointer, symlinks, skill format, rule headings, graders per rule, links and anchors, backticked paths, every rule cited in the review list and every citation there a real rule, marketplace list, public skill class references resolve |
+| `agent-skills` | `php bin/check-agent-skills.php` (its own tests: `php bin/test-check-agent-skills.php`) | AGENTS.md size and pointer, symlinks, skill format, rule headings, graders per rule, links and anchors, backticked paths, every rule cited in the review list and every citation there a real rule, marketplace list, public skill class references resolve, no method call inside an attribute in a public skill sample |
 | `licence-header` | `php bin/check-licence.php` | licence header on every `src` file |
 | `suite-parity` | `php bin/check-suite-parity.php` | root and per-package phpunit configs agree |
 | `monorepo-shards` | `php bin/check-monorepo-shards.php` | every test suite of `phpunit.xml.dist` belongs to exactly one shard of `.github/monorepo-shards.json` |

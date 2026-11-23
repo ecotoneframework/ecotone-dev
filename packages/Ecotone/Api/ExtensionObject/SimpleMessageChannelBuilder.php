@@ -6,7 +6,7 @@ namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\PollableChannel;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Channel\DelayableQueueChannel;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
@@ -101,7 +101,7 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return $this->messageChannel instanceof DelayableQueueChannel && ! $this->isStreamingChannel;
     }
 
-    public function maximumDelay(): ?TimeSpan
+    public function maximumDelay(): ?Duration
     {
         return null;
     }

@@ -4,7 +4,7 @@ namespace Ecotone\Api\Dbal\ExtensionObject;
 
 use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Dbal\DbalInboundChannelAdapterBuilder;
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
@@ -25,7 +25,7 @@ class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder imple
         return true;
     }
 
-    public function maximumDelay(): ?TimeSpan
+    public function maximumDelay(): ?Duration
     {
         return null;
     }

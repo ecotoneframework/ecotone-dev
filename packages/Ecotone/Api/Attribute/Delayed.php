@@ -8,7 +8,7 @@ use Attribute;
 use Closure;
 use DateTimeInterface;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Support\Assert;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
@@ -18,10 +18,10 @@ use Ecotone\Messaging\Support\Assert;
 class Delayed extends AddHeader
 {
     /**
-     * @param int|TimeSpan|DateTimeInterface $time if integer is provided it is treated as milliseconds
+     * @param int|Duration|DateTimeInterface $time if integer is provided it is treated as milliseconds
      */
     public function __construct(
-        int|TimeSpan|DateTimeInterface|null $time = null,
+        int|Duration|DateTimeInterface|null $time = null,
         string|Closure|null $expression = null,
         private readonly bool $shouldReplaceExistingHeader = true,
         int $milliseconds = 0,
@@ -30,8 +30,8 @@ class Delayed extends AddHeader
         int $hours = 0,
         int $days = 0,
     ) {
-        $namedDuration = new TimeSpan($milliseconds, $seconds, $minutes, $hours, $days);
-        if ($namedDuration->toMilliseconds() > 0) {
+        $namedDuration = new Duration(milliseconds: $milliseconds, seconds: $seconds, minutes: $minutes, hours: $hours, days: $days);
+        if ($namedDuration->isPositive()) {
             Assert::isTrue($time === null && $expression === null, '#[Delayed] takes either $time or named durations (milliseconds, seconds, minutes, hours, days), not both.');
             $time = $namedDuration;
         }

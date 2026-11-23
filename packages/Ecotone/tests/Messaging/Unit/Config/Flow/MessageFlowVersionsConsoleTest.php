@@ -20,7 +20,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Messaging\Flow\FlowVersionsConfiguration;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Test\LicenceTesting;
 use Exception;
 use FilesystemIterator;
@@ -216,7 +216,7 @@ final class MessageFlowVersionsConsoleTest extends TestCase
         $ecotone = $this->placingOrders();
 
         $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => 'release-b']);
-        $ecotone->advanceTimeBy(new TimeSpan(hours: 1));
+        $ecotone->advanceTimeBy(new Duration(hours: 1));
         $ecotone->runConsoleCommand('ecotone:flow:store', ['label' => 'release-a']);
         $ecotone->runConsoleCommand('ecotone:flow:versions');
 
@@ -293,7 +293,7 @@ final class MessageFlowVersionsConsoleTest extends TestCase
         $earlier = $this->placingOrders();
         $earlier->runConsoleCommand('ecotone:flow:store', ['label' => 'zeta']);
         $later = $this->placingAndRefundingOrders();
-        $later->advanceTimeBy(new TimeSpan(hours: 1));
+        $later->advanceTimeBy(new Duration(hours: 1));
         $later->runConsoleCommand('ecotone:flow:store', ['label' => 'alpha']);
 
         $later->runConsoleCommand('ecotone:flow:compare');

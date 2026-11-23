@@ -15,7 +15,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanStatus;
@@ -53,7 +53,7 @@ final class RecoverabilityFlowScenarios
                 ->withNoOtherSpans()
                 ->leavingWorkPending(),
             FlowStage::when(function (FlowTestSupport $ecotone): void {
-                $ecotone->advanceTimeBy(TimeSpan::withMinutes(2));
+                $ecotone->advanceTimeBy(Duration::minutes(2));
                 $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
             })
                 ->expect(

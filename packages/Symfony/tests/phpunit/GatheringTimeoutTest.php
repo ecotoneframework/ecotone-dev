@@ -12,7 +12,7 @@ use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\GatheredParts;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
@@ -40,7 +40,7 @@ final class GatheringTimeoutTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(days: 60))]
+            #[Gathered(timeout: new Duration(days: 60))]
             #[Asynchronous('summaries')]
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts): void

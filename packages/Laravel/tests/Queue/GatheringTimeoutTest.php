@@ -13,7 +13,7 @@ use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\GatheredParts;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Illuminate\Container\Container;
 use Illuminate\Queue\QueueManager;
 use PHPUnit\Framework\TestCase;
@@ -41,7 +41,7 @@ final class GatheringTimeoutTest extends TestCase
                 return $part;
             }
 
-            #[Gathered(timeout: new TimeSpan(days: 60))]
+            #[Gathered(timeout: new Duration(days: 60))]
             #[Asynchronous('summaries')]
             #[InternalHandler('summary', endpointId: 'summary.handler')]
             public function summarize(GatheredParts $parts): void

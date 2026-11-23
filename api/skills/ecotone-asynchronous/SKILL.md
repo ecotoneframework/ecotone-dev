@@ -129,7 +129,7 @@ class ChannelConfig
 ## 6. Priority and Time to Live
 
 - `#[Priority(10)]` on an asynchronous handler sets the `priority` header (default 1; a higher number means higher priority) for channels that order by it
-- `#[TimeToLive(60000)]` (milliseconds, or a `TimeSpan`) expires a message that was not consumed in time
+- `#[TimeToLive(60000)]` (milliseconds, or a `Duration`) expires a message that was not consumed in time
 - `#[Scheduled]` + `#[Poller]` (section 4) run periodic tasks
 
 ## Rules
@@ -177,6 +177,6 @@ Pass `SimpleMessageChannelBuilder::createQueueChannel('<channel>')` in the `exte
 
 ## Additional resources
 
-- [API reference](references/api-reference.md) — Constructor signatures and parameter lists for all async attributes: `#[Asynchronous]`, `#[Delayed]`, `#[Priority]`, `#[TimeToLive]`, `#[Scheduled]`, `#[Poller]`, `PollingMetadata`, `DynamicMessageChannelBuilder` factory methods, and `TimeSpan`. Load when you need exact parameter names, types, or default values.
+- [API reference](references/api-reference.md) — Constructor signatures and parameter lists for all async attributes: `#[Asynchronous]`, `#[Delayed]`, `#[Priority]`, `#[TimeToLive]`, `#[Scheduled]`, `#[Poller]`, `PollingMetadata`, `DynamicMessageChannelBuilder` factory methods, and `Duration`. Load when you need exact parameter names, types, or default values.
 - [Usage examples](references/usage-examples.md) — Complete code examples for channel configuration (all 5 channel types), polling metadata, priority handling, time-to-live patterns, scheduling variations (cron, fixed-rate, initial delay), and dynamic channel strategies (round-robin, header-based, throttling, custom). Load when implementing specific async patterns beyond the basics.
-- [Testing patterns](references/testing-patterns.md) — How to test async processing with `EcotoneLite::bootstrapFlowTesting`, channel registration through the `extensionObjects:` argument, `ExecutionPollingMetadata`, testing delayed messages with `TimeSpan`, and `sendDirectToChannel`. Load when writing tests for asynchronous handlers.
+- [Testing patterns](references/testing-patterns.md) — How to test async processing with `EcotoneLite::bootstrapFlowTesting`, channel registration through the `extensionObjects:` argument, `ExecutionPollingMetadata`, testing delayed messages with `Duration`, and `sendDirectToChannel`. Load when writing tests for asynchronous handlers.

@@ -233,10 +233,10 @@ final class GatheringModule extends NoExternalConfigurationModule
                 throw ConfigurationException::create("{$kind} handler {$handlerDescription} {$hasTimeout} but asynchronous channel '{$channelName}' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove {$setting} from #[{$kind}].");
             }
             $maximumDelay = $builder->maximumDelay();
-            if ($maximumDelay !== null && $timeout->toMilliseconds() > $maximumDelay->toMilliseconds()) {
+            if ($maximumDelay !== null && $timeout->inMilliseconds() > $maximumDelay->inMilliseconds()) {
                 $handlerChannel = $handler instanceof EventHandler ? $handler->listenTo : $handler->getInputChannelName();
-                $timeoutMilliseconds = $timeout->toMilliseconds();
-                $maximumMilliseconds = $maximumDelay->toMilliseconds();
+                $timeoutMilliseconds = $timeout->inMilliseconds();
+                $maximumMilliseconds = $maximumDelay->inMilliseconds();
                 throw ConfigurationException::create("{$kind} handler {$handlerDescription} {$setting} of {$timeoutMilliseconds} milliseconds exceeds asynchronous channel '{$channelName}' maximum delay of {$maximumMilliseconds} milliseconds. Reduce {$setting} in #[{$kind}], use a channel with a longer maximum delay, or remove {$setting}.");
             }
         }
@@ -260,7 +260,7 @@ final class GatheringModule extends NoExternalConfigurationModule
                 $interface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->getMethodAnnotations();
                 foreach ($interface as $annotation) {
                     if ($annotation instanceof InternalHandler || $annotation instanceof CommandHandler) {
-                        $timeouts[$annotation->getInputChannelName()] = $gathered->timeout?->toMilliseconds();
+                        $timeouts[$annotation->getInputChannelName()] = $gathered->timeout?->inMilliseconds();
                     }
                 }
             }
@@ -285,7 +285,7 @@ final class GatheringModule extends NoExternalConfigurationModule
             }
             $messagingConfiguration->registerServiceDefinition(InMemoryGatheredGroupStore::class, new Definition(InMemoryGatheredGroupStore::class, [new Reference(EcotoneClockInterface::class), new Reference(MessageBuilder::class)]));
             $messagingConfiguration->registerServiceDefinition(GatheredGroupStore::class, new Reference($store->serviceReference));
-            $messagingConfiguration->registerServiceDefinition(GatheredGroups::class, new Definition(GatheredGroupOperations::class, [new Reference(GatheredGroupStore::class), new Reference(EcotoneClockInterface::class), $configuration->retention->toMilliseconds(), new Reference(ChannelResolver::class), new Reference(MessageBuilder::class), $this->gatheredEndpointIds, array_values(array_unique($this->collectedEndpointIds))]));
+            $messagingConfiguration->registerServiceDefinition(GatheredGroups::class, new Definition(GatheredGroupOperations::class, [new Reference(GatheredGroupStore::class), new Reference(EcotoneClockInterface::class), $configuration->retention->inMilliseconds(), new Reference(ChannelResolver::class), new Reference(MessageBuilder::class), $this->gatheredEndpointIds, array_values(array_unique($this->collectedEndpointIds))]));
             $messagingConfiguration
                 ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(GatheredGroups::class, 'cleanupClosedGroups')->withInputChannelName('ecotone.gathering.cleanup'))
                 ->registerConsoleCommand(ConsoleCommandConfiguration::create(channelName: 'ecotone.gathering.cleanup', name: 'ecotone:gathering:cleanup', parameterNames: [], description: 'Removes closed gathering groups after their retention period'));

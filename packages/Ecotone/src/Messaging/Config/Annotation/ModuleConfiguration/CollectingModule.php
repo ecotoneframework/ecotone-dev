@@ -140,9 +140,9 @@ final class CollectingModule extends NoExternalConfigurationModule
         if ($collected->maxSize !== null && $collected->maxSize < 1) {
             throw ConfigurationException::create("Collected handler {$handlerDescription} maxSize is {$collected->maxSize}; maxSize must be at least 1. Set maxSize to a positive integer, omit maxSize and set maxWait, or remove #[Collected].");
         }
-        if ($collected->maxWait !== null && $collected->maxWait->toMilliseconds() <= 0) {
-            $milliseconds = $collected->maxWait->toMilliseconds();
-            throw ConfigurationException::create("Collected handler {$handlerDescription} maxWait is {$milliseconds} milliseconds; maxWait must be greater than 0. Set a positive TimeSpan, omit maxWait and set maxSize, or remove #[Collected].");
+        if ($collected->maxWait !== null && $collected->maxWait->inMilliseconds() <= 0) {
+            $milliseconds = $collected->maxWait->inMilliseconds();
+            throw ConfigurationException::create("Collected handler {$handlerDescription} maxWait is {$milliseconds} milliseconds; maxWait must be greater than 0. Set a positive Duration, omit maxWait and set maxSize, or remove #[Collected].");
         }
     }
 

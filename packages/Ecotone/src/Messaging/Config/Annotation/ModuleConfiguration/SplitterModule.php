@@ -103,9 +103,12 @@ final class SplitterModule extends NoExternalConfigurationModule
         if ($splitter->getRequiredInterceptorNames() !== []) {
             throw ConfigurationException::create("Split handler {$name} sets requiredInterceptorNames on #[Splitter]. Move the names to the handler attribute requiredInterceptorNames so they run once around the handler, or move #[Splitter] to a separate method.");
         }
+        if ($registration->hasMethodAnnotation(ChangingHeaders::class)) {
+            throw ConfigurationException::create("Split handler {$name} changes headers instead of returning output messages. Remove #[ChangingHeaders], move the split to a separate handler, or remove #[Splitter].");
+        }
         foreach ($registration->getMethodAnnotations() as $handler) {
-            if ($registration->hasMethodAnnotation(ChangingHeaders::class) || ($handler instanceof InternalHandler && $handler->changingHeaders)) {
-                throw ConfigurationException::create("Split handler {$name} changes headers instead of returning output messages. Remove #[ChangingHeaders] or set changingHeaders: false, move the split to a separate handler, or remove #[Splitter].");
+            if ($handler instanceof InternalHandler && $handler->changingHeaders) {
+                throw ConfigurationException::create("Split handler {$name} changes headers instead of returning output messages. Set changingHeaders: false on #[InternalHandler], move the split to a separate handler, or remove #[Splitter].");
             }
         }
         $interface = $registry->getFor($registration->getClassName(), $registration->getMethodName());

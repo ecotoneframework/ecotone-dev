@@ -971,7 +971,7 @@ final class HandlerSplitterTest extends TestCase
                 return ['tenant' => 'acme'];
             }
         };
-        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split changes headers instead of returning output messages. Remove #[ChangingHeaders] or set changingHeaders: false, move the split to a separate handler, or remove #[Splitter].');
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split changes headers instead of returning output messages. Set changingHeaders: false on #[InternalHandler], move the split to a separate handler, or remove #[Splitter].');
         EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class], containerOrAvailableServices: [$handler], enabledModules: [], licenceKey: self::ENTERPRISE_LICENCE);
     }
 
@@ -986,7 +986,7 @@ final class HandlerSplitterTest extends TestCase
                 return ['tenant' => 'acme'];
             }
         };
-        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split changes headers instead of returning output messages. Remove #[ChangingHeaders] or set changingHeaders: false, move the split to a separate handler, or remove #[Splitter].');
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split changes headers instead of returning output messages. Remove #[ChangingHeaders], move the split to a separate handler, or remove #[Splitter].');
         EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class], containerOrAvailableServices: [$handler], enabledModules: [], licenceKey: self::ENTERPRISE_LICENCE);
     }
 

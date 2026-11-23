@@ -4,9 +4,11 @@ description: >-
   Ecotone framework rules for services and modules: no nullable or defaulted dependencies,
   stateless container services, query/command separation, interfaces only at real seams,
   attribute-plus-ServiceContext configuration compiled to Definitions, class metadata from
-  InterfaceToCallRegistry, step-list orchestration, final and strict_types. Use when adding
-  or changing a framework service, a constructor dependency, a module, an interface or a
-  Definition in the ecotone-dev repository.
+  InterfaceToCallRegistry, step-list orchestration, final and strict_types, one path per
+  component with a differing flow routed where it starts. Use when adding or changing a
+  framework service, a constructor dependency, a module, an interface or a Definition, or
+  when making one flow (a replay, a retry, a console call, a test) behave differently in a
+  channel, an interceptor or a handler, in the ecotone-dev repository.
 ---
 
 # Services, dependencies and modules
@@ -19,6 +21,8 @@ description: >-
 - Adding a module, a `Definition`, a compiler pass, or reading class/method metadata
 - Introducing an interface, a cache, or a property that changes between messages
 - Tracking something "current" while a message is handled: a stack, a flag, a scope, a held resource
+- Making one flow behave differently from the others in code a message passes through: a replay, a retry, a
+  console call, a test, a request, or adding an `if`, `match` or `?:` there
 
 ## Rules
 
@@ -97,6 +101,37 @@ Named arguments once past two parameters; enums, readonly, first-class callables
 - **Expected:** a call with three or more arguments uses named arguments.
 - **Verified by:** `eval:add-dependency`
 
+### 22. A component has one path; a flow that needs another is routed where it starts
+Framework code a message passes through does not decide what to do from which scenario the message belongs to: a
+replay, a retry, a console call, a test, an HTTP request. For every `if`, `match` or `?:` added on the message path
+or in the code that wires it, name what each part of the condition reads:
+
+- **The scenario**: a header or marker another feature sets, the concrete class of a caller or collaborator, the
+  runtime situation (inside a coroutine, a console command, an HTTP request). It may only refuse (throw). It never
+  selects between two ways of handling a message, and never lets one scenario past a refusal the others get.
+- **A mode known when the application boots**: a flag, an enum, a licence, an installed extension whose branch
+  chooses which code handles the message. Not a runtime branch: it is resolved when the container is built, into
+  one of two collaborators.
+- **The component's own contract**: data the component defines and documents as its input. A header (a channel
+  reading its delivery delay), or a setting it was built with that every message meets the same way: a size, a
+  limit, a wait, a name, which it passes on, compares against or guards (a pool whose wait is 0 fails at once).
+  It may be branched on.
+
+The flow that differs is, in order of preference: sent to another target where it starts (another channel, a
+routing slip, the endpoint directly); given an interceptor or decorator registered for that flow only; or served by
+a collaborator chosen at container build, as Enterprise features are. Registered for that flow only means the
+registration selects: one placed on every flow that asks per message whether this is its flow (by channel name, by
+payload) is a scenario branch. Chosen at container build means chosen by the module of the feature that needs it:
+a pass of another feature that compares a definition's class with that feature's class has learned about it, and
+asks a contract it defines instead (an interface, an attribute), which the other side declares. In all three the
+other path already exists: a second implementation of something the framework already does (invoking a handler,
+acknowledging, opening a transaction) breaks the rule even with no `if`.
+- **Expected:** a change that makes one flow behave differently adds no branch in the receiving component that
+  reads another feature's header, a caller's or collaborator's class, or the runtime situation to pick how the
+  message is handled or to skip a refusal; the flow is routed at its source, composed for that flow only, or chosen
+  at container build, onto a path that already exists, and the only scenario-reading branches left are refusals.
+- **Verified by:** `eval:route-replay-at-the-source`
+
 ## References
 
-- [references/rules.md](references/rules.md) — rules 2–5, 13, 13a, 15, 17, 18 in full.
+- [references/rules.md](references/rules.md) — rules 2–5, 13, 13a, 15, 17, 18, 22 in full.

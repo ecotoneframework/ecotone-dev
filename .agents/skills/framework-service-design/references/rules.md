@@ -377,3 +377,166 @@ parameters and positional calls are unreadable.
 
 ---
 
+## 22. A component has one path; a flow that needs another is routed where it starts
+
+A channel, an interceptor, a handler or a compiler pass that asks "which scenario is this message from?" has learned
+about one of its callers. The next scenario adds the next branch, each branch is a second way of doing something the
+framework already does one way, and the two ways drift like the two modes of a nullable dependency (rule 2). The
+component keeps one path; the flow that needs something different is routed differently where it starts and reuses
+a path that already exists.
+
+### Deciding a branch
+
+For every `if`, `match` or `?:` a change adds on the message path, or in the code that wires it, name what each part
+of the condition reads. A condition joined with `&&` or `||` is decided part by part.
+
+| The condition reads | Decision |
+|---|---|
+| **The scenario**: a header or marker another feature sets (`ErrorContext::DLQ_MESSAGE_REPLIED`, a retry counter), the concrete class of a caller or collaborator, the runtime situation (`Coroutine::getCid()`, `PHP_SAPI`, console or HTTP) | Breaks the rule, unless the branch only refuses (throws). A part of a condition that lets one scenario past a refusal the others get is not a refusal: it is the second path |
+| **A mode known when the application boots**: a flag, an enum, a licence, an installed extension, whose branch chooses which code handles the message | Breaks the rule as a runtime branch. It is resolved when the container is built, into one of two collaborators |
+| **The component's own contract**: data the component defines and documents as its input: a header, or a setting it was built with that every message meets the same way | Follows the rule |
+
+The ownership test for a header: it is defined for the component that reads it, and the component would still need
+it if every other feature were removed. A channel reads `MessageHeaders::DELIVERY_DELAY`, `PRIORITY` and
+`TIME_TO_LIVE` because delaying, ordering and expiring are what a channel does; a gateway reads `REPLY_CHANNEL`; the
+aggregate flow reads `AggregateMessage::AGGREGATE_ID`. These say what to do with this message. A header that says
+where the message has been (`ecotone.dlq.message_replied`, `ecotone_retry_number`) belongs to the feature that
+wrote it, and any sender can set it: a receiver that changes its behaviour on it hands that switch to every sender.
+
+A value known at boot is not always a mode. The question is what the branch on it selects. The examples are from
+the coroutine message channel's branch (pull request 779 at `ffee52a2e`), none of them is in the tree:
+
+- It is a **mode** when the two arms are two ways of doing the work, so that two classes could each hold one arm
+  and the container could pick: `extension_loaded('openswoole') ? 'OpenSwoole' : 'Swoole'` asked on every call of
+  that branch's `CoroutineMessageChannelSleep`. Nothing about it can change after boot, so the choice is made once,
+  when the container is built. Rule 2's table holds both halves: a null that meant two different behaviours splits
+  the class in two, and open core versus Enterprise picks one of two services in the container.
+- It is the component's **own setting** when the component is documented to take it and every message meets it
+  the same way: a size, a limit, a wait, a name. The component passes it on, compares against it or guards on it,
+  and no second class would hold "the other arm": both would be the same class with another number.
+
+```php
+// ConnectionPool::waitForReturnedConnection() as pull request 779 changes it: the pool gets a wait in seconds as a
+// setting, where the tree waits a constant. Follows the rule: the wait is the pool's own setting, 0 is documented
+// as "fail at once", the branch only refuses
+if ($this->connectionPoolWaitSeconds <= 0.0) {
+    throw ConnectionPoolExhausted::withAllConnectionsInUse(connectionName: $this->connectionName, connectionPoolSize: $this->size, waitedSeconds: 0.0);
+}
+$connection = $this->returnedToWaitingCoroutines->pop($this->connectionPoolWaitSeconds);
+```
+
+Four review sessions applied the rule to that guard of pull request 779 and two of them disagreed, one reading
+it as configuration branched at runtime. It is not: the value is read at boot but the question is asked of each
+acquire that finds the pool exhausted, the answer is the pool's one behaviour for that wait, and `pop(0)` would
+wait forever on both runtimes, so the branch cannot be removed by choosing a collaborator.
+
+A guard is not a second path. `if (<not inside a coroutine>) { throw ... }` reads the runtime situation and is
+allowed, because every message that reaches it is treated the same way: it is refused, with the ways out
+(`framework-error-handling` rule 1).
+
+### What the change does instead
+
+In order of preference, and in all three the other path already exists:
+
+1. **Route at the source.** The code that starts the differing flow sends it somewhere else: another channel, a
+   routing slip, the endpoint directly. The dead letter already works this way: `DeadLetterHandler::replayMessage()`
+   chooses the entrypoint of a replay itself (the `targetChannel` argument, the polled channel, the first step of
+   the stored routing slip) and no receiver is asked whether a message is a replay.
+2. **Compose for that flow only.** An interceptor or a decorator registered for the one flow, by the module that
+   owns the flow, so the component it wraps is unchanged for everyone else. The registration is the selection: an
+   interceptor placed on every asynchronous endpoint that logs a failure only when the message's polled channel is
+   one of its own, or one on a shared channel that drops a message when its payload matches (both were on pull
+   request 779's branch, in `CoroutineMessageChannelFailureLogger` and
+   `CoroutineMessageChannelConsumerStopInterceptor`), has moved the scenario branch into the interceptor. Register
+   it on the channels or endpoints it is for.
+3. **Choose at container build.** Two collaborators, one selected while compiling, by the module of the feature
+   that needs the other one: `LicenceDecider::prepareDefinition()` for Enterprise (rule 2's table,
+   `framework-enterprise-licensing` rule 7).
+
+A second implementation of something the framework already does (invoking a handler, acknowledging, opening a
+transaction, running an endpoint's interceptors) breaks the rule even when no `if` selects it: the test is whether
+the message can now be handled in two ways, not whether a keyword was added.
+
+### Evidence: the coroutine message channel (pull request 779 at `ffee52a2e`)
+
+Every "wrong" snippet below is code of that pull request's branch, not of the tree; each "right" one is what the
+rule asks for, and only the one with a commit was written.
+
+The pre-PR reviews passed the first two of the following at `ffee52a2e`, because no requirement spoke about them.
+
+**The channel executed in a second way when it was called outside a coroutine.**
+
+```php
+// wrong: CoroutineMessageChannel::enqueue() reads the runtime situation and handles the message in place
+parent::send($message);
+if (Coroutine::getCid() < 1) {
+    $this->consumer()->createConsumer()->run();
+    return;
+}
+$this->schedule(/* a coroutine that consumes the queue */);
+
+// right: the channel has one path, and a send it cannot serve is refused where it is made
+parent::send($message);
+$this->schedule(/* a coroutine that consumes the queue */);
+```
+
+The in-place run existed for one caller, the dead-letter replay from a console command. That flow is routed at its
+source instead: the code that replays sends the message to the endpoint, not through the channel.
+
+**The interceptor let one scenario past its refusal, on a header any sender can set.**
+
+```php
+// wrong: the second part reads the dead letter's header and exempts the replay from the refusal
+if (Coroutine::getCid() < 1 && ! $message->getHeaders()->containsKey(ErrorContext::DLQ_MESSAGE_REPLIED)) {
+    throw ConfigurationException::create("Coroutine message channel `{$this->channelName}` cannot send outside a Swoole or OpenSwoole coroutine. ...");
+}
+
+// right: the guard only refuses, the same way for every message
+if (Coroutine::getCid() < 1) {
+    throw ConfigurationException::create("Coroutine message channel `{$this->channelName}` cannot send outside a Swoole or OpenSwoole coroutine. ...");
+}
+```
+
+Decided part by part: `Coroutine::getCid() < 1` reads the runtime situation and only refuses, which is allowed.
+`! containsKey(ErrorContext::DLQ_MESSAGE_REPLIED)` reads a header the dead letter defines, and it does not refuse:
+it lets the replay through. Any application message carrying `ecotone.dlq.message_replied` skipped the refusal.
+
+**An open-core compiler pass named one feature's class** (`08d8e57bf`, on the same branch after `ffee52a2e`).
+
+```php
+// wrong: RecordExecutionCompilerPass, Apache-2.0, compares a channel's class with the Enterprise channel
+$innerChannel instanceof Definition && $innerChannel->getClassName() === CoroutineMessageChannel::class,
+
+// right (`6348dc35e`): the pass asks a question it owns, and any channel answers it
+$innerChannel instanceof Definition && is_a($innerChannel->getClassName(), ConsumedInTheSendingProcess::class, true),
+```
+
+This one runs at container build, which is where a choice belongs; what breaks the rule is who knows whom. The
+recording learned about one channel. With the marker the recording defines what it needs to know and the channel
+declares it, so the next channel consumed in the sending process needs no change to the pass.
+
+**What the same change did right:** the channel's delay handling.
+
+```php
+$delay = $message->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY) ? $message->getHeaders()->get(MessageHeaders::DELIVERY_DELAY) : 0;
+// ... a match over TimeSpan, Duration and DateTimeInterface, then
+if ($delay > 0) { /* release when due */ }
+```
+
+Three branches, all on the channel's own contract: a delay is what a delayed channel is given, by whoever sends.
+
+### Why no program decides this
+
+Measured on `5ec5f01aa` (`main`): 178 framework header constants under `packages/*/src` and `packages/*/Api`, 169
+reads of them from a message's headers, 139 of those in another module directory than the constant, 75 on a
+branching line. Nearly all are contracts: `MessageHeaders` (35 reads) and `AggregateMessage` (45) are shared
+vocabularies defined once and read by the components they are inputs of, so where a constant is defined says
+nothing about who owns it. An allow-list would start at 139 entries and every legitimate contract read would add
+one. Two of the three places above read no header at all. The rule is decided by a reviewer (requirement GL51).
+
+Code that predates the rule has not been audited against it; `RecordExecutionCompilerPass` on `main` is built on
+comparing definition classes. A review decides the rule on what a change adds (`framework-review-guidelines` rule
+G4).
+
+---
+

@@ -12,6 +12,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 final class FlowSnapshots
 {
     public const SHARED_FILE = 'shared.json';
+    public const BASELINE = 'packages/Ecotone/tests/BuildFlow/baseline';
 
     public function __construct(public readonly string $location)
     {
@@ -83,9 +84,13 @@ final class FlowSnapshots
 
     public function refuseWhenMissing(): void
     {
-        if (! is_dir($this->location)) {
-            throw InvalidArgumentException::create("Flow snapshots were expected in {$this->location}, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/build-flow.php snapshot --location={$this->location}` on the commit to compare with. The committed baseline, packages/Ecotone/tests/BuildFlow/baseline, exists only once main's CI has committed it after a merge: merge main to get it.");
+        if (is_dir($this->location)) {
+            return;
         }
+        if (str_ends_with(rtrim($this->location, '/'), self::BASELINE)) {
+            throw InvalidArgumentException::create("Flow snapshots were expected in {$this->location}, the committed baseline, but this checkout has none. A pull request leaves the baseline alone: main's CI commits it after the merge, so do not write it here. Snapshot the base instead, into a directory of your own: on main, run `php bin/build-flow.php snapshot --location=var/build-flow-main`. Then, on your branch, compare with it: `php bin/build-flow.php compare --presentation=build --from=var/build-flow-main`. Check compares a directory with what the checked-out code produces, so `php bin/build-flow.php check --location=var/build-flow-main` passes on main and, on your branch, names what your change alters. Once main's CI has committed the baseline, merge main and the defaults work again.");
+        }
+        throw InvalidArgumentException::create("Flow snapshots were expected in {$this->location}, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/build-flow.php snapshot --location={$this->location}`.");
     }
 
     private function createLocation(string $stored): void

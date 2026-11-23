@@ -203,7 +203,7 @@ final class BuildFlowComparisonTest extends TestCase
     {
         $this->record('Placing an order', 'before', $this->ordering());
 
-        $this->expectExceptionMessage("Flow snapshots were expected in {$this->location}/after, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/build-flow.php snapshot --location={$this->location}/after` on the commit to compare with. The committed baseline, packages/Ecotone/tests/BuildFlow/baseline, exists only once main's CI has committed it after a merge: merge main to get it.");
+        $this->expectExceptionMessage("Flow snapshots were expected in {$this->location}/after, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/build-flow.php snapshot --location={$this->location}/after`.");
 
         $this->comparison();
     }

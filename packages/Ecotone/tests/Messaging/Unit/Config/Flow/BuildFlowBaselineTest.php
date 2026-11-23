@@ -150,9 +150,29 @@ final class BuildFlowBaselineTest extends TestCase
 
     public function test_check_command_refuses_a_location_that_does_not_exist_with_the_command_that_writes_it(): void
     {
-        $this->expectExceptionMessage("Flow snapshots were expected in {$this->location}, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/build-flow.php snapshot --location={$this->location}` on the commit to compare with. The committed baseline, packages/Ecotone/tests/BuildFlow/baseline, exists only once main's CI has committed it after a merge: merge main to get it.");
+        $this->expectExceptionMessage("Flow snapshots were expected in {$this->location}, but that directory does not exist. Pass the directory the snapshots were written to, or write them first with `php bin/build-flow.php snapshot --location={$this->location}`.");
 
         $this->tooling()->runConsoleCommand('ecotone:build-flow:check', ['location' => $this->location]);
+    }
+
+    public function test_comparing_with_a_committed_baseline_this_checkout_lacks_says_main_commits_it_and_how_to_snapshot_the_base(): void
+    {
+        $baseline = $this->location . '/packages/Ecotone/tests/BuildFlow/baseline';
+        $tooling = $this->tooling();
+        $tooling->runConsoleCommand('ecotone:build-flow:snapshot', ['location' => $this->location . '/now']);
+
+        $this->expectExceptionMessage("Flow snapshots were expected in {$baseline}, the committed baseline, but this checkout has none. A pull request leaves the baseline alone: main's CI commits it after the merge, so do not write it here. Snapshot the base instead, into a directory of your own: on main, run `php bin/build-flow.php snapshot --location=var/build-flow-main`. Then, on your branch, compare with it: `php bin/build-flow.php compare --presentation=build --from=var/build-flow-main`. Check compares a directory with what the checked-out code produces, so `php bin/build-flow.php check --location=var/build-flow-main` passes on main and, on your branch, names what your change alters. Once main's CI has committed the baseline, merge main and the defaults work again.");
+
+        $tooling->runConsoleCommand('ecotone:build-flow:compare', ['from' => $baseline, 'to' => $this->location . '/now', 'presentation' => 'build']);
+    }
+
+    public function test_checking_a_committed_baseline_this_checkout_lacks_says_main_commits_it_and_how_to_snapshot_the_base(): void
+    {
+        $baseline = $this->location . '/packages/Ecotone/tests/BuildFlow/baseline';
+
+        $this->expectExceptionMessage("Flow snapshots were expected in {$baseline}, the committed baseline, but this checkout has none. A pull request leaves the baseline alone: main's CI commits it after the merge, so do not write it here. Snapshot the base instead, into a directory of your own: on main, run `php bin/build-flow.php snapshot --location=var/build-flow-main`. Then, on your branch, compare with it: `php bin/build-flow.php compare --presentation=build --from=var/build-flow-main`. Check compares a directory with what the checked-out code produces, so `php bin/build-flow.php check --location=var/build-flow-main` passes on main and, on your branch, names what your change alters. Once main's CI has committed the baseline, merge main and the defaults work again.");
+
+        $this->tooling()->runConsoleCommand('ecotone:build-flow:check', ['location' => $baseline]);
     }
 
     public function test_snapshot_command_refuses_a_location_it_cannot_write_a_snapshot_file_into(): void

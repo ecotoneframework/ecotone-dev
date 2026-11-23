@@ -10,10 +10,11 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
+use Test\Ecotone\BuildFlow\FlowSnapshots;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-const BUILD_FLOW_BASELINE = 'packages/Ecotone/tests/BuildFlow/baseline';
+const BUILD_FLOW_BASELINE = FlowSnapshots::BASELINE;
 const BUILD_FLOW_LOCAL_SNAPSHOT = 'var/build-flow-snapshot';
 const BUILD_FLOW_USAGE = <<<'USAGE'
     Framework development: the framework view of the message flow of the flow scenario catalogue.
@@ -37,8 +38,11 @@ const BUILD_FLOW_USAGE = <<<'USAGE'
           path, and the marked wiring collapsed. json prints the raw comparison.
 
     The committed baseline is
-    USAGE . ' ' . BUILD_FLOW_BASELINE . ", which main's CI commits after a merge; a checkout from before that has none, and\n"
-    . "compare and check then refuse, naming how to snapshot a commit of your own to compare with.\n";
+    USAGE . ' ' . BUILD_FLOW_BASELINE . ", which main's CI commits after a merge; a pull request leaves it alone.\n"
+    . "A checkout from before that has none, and compare and check then refuse. Snapshot the base into a directory of\n"
+    . "your own instead: on main, php bin/build-flow.php snapshot --location=var/build-flow-main; then, on your branch,\n"
+    . "compare --presentation=build --from=var/build-flow-main, or check --location=var/build-flow-main, which names what\n"
+    . "your change alters.\n";
 
 $command = $argv[1] ?? '';
 $options = [];

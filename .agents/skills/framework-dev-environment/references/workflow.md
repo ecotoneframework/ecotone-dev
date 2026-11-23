@@ -195,7 +195,7 @@ docker compose exec -T app php bin/add-enterprise-licence.php  # Enterprise modu
 # Build flow snapshots: what modules register, the chain of each handler, the wiring and the traced steps
 # of every flow catalogue scenario, committed under packages/Ecotone/tests/BuildFlow/baseline by main's CI
 # after each merge. A pull request leaves the baseline alone; its comment shows what the change does to the flow
-docker compose exec -T app php bin/build-flow.php compare --presentation=build    # what changed against the baseline, as the pull request comment shows it; refused while the checkout has no baseline (main's CI commits it after a merge): snapshot a commit of your own with --location and pass it with --from
+docker compose exec -T app php bin/build-flow.php compare --presentation=build    # what changed against the baseline, as the pull request comment shows it; refused while the checkout has no baseline (main's CI commits it after a merge; never write it in a pull request): on main, snapshot --location=var/build-flow-main, then on your branch pass --from=var/build-flow-main (check: --location=var/build-flow-main names what your change alters)
 docker compose exec -T app php bin/build-flow.php check     # whether the baseline is what the code produces
 docker compose exec -T app php bin/build-flow.php snapshot   # writes var/build-flow-snapshot; only an explicit --location writes the baseline
 docker compose exec -T app php bin/test-build-flow-comment.php  # the tests of the pull request comment builder

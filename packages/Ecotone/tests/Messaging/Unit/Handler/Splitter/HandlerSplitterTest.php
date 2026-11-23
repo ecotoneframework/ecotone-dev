@@ -72,6 +72,61 @@ final class HandlerSplitterTest extends TestCase
         self::assertNull($ecotone->getGateway(CommandBus::class)->sendWithRouting('split', [1, 2, 3]));
         self::assertSame([1, 2, 3], $handler->received);
     }
+    public function test_generator_result_is_split_into_one_message_per_element(): void
+    {
+        $handler = new class () {
+            public array $received = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[Splitter]
+            public function split(): \Generator
+            {
+                yield 'second' => 2;
+                yield 'first' => 1;
+            }
+
+            #[InternalHandler('parts')]
+            public function receive(int $value): void
+            {
+                $this->received[] = $value;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+        $ecotone->sendCommandWithRouting('split');
+        self::assertSame([2, 1], $handler->received);
+    }
+
+    public function test_keyed_array_result_is_split_into_one_message_per_element(): void
+    {
+        $handler = new class () {
+            public array $received = [];
+
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[Splitter]
+            public function split(): array
+            {
+                return ['second' => 2, 'first' => 1];
+            }
+
+            #[InternalHandler('parts')]
+            public function receive(int $value): void
+            {
+                $this->received[] = $value;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+        );
+        $ecotone->sendCommandWithRouting('split');
+        self::assertSame([2, 1], $handler->received);
+    }
+
     public function test_internal_handler_result_is_split_into_one_message_per_element(): void
     {
         $handler = new class () {

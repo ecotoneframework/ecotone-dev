@@ -21,6 +21,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
+use Ecotone\Messaging\Handler\Splitter\DirectMessageSplitter;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
 
 #[ModuleAnnotation]
@@ -121,7 +122,7 @@ final class SplitterModule extends NoExternalConfigurationModule
         $splitter = $registration->getMethodAnnotationsWithType(Splitter::class)[0];
         $channel = 'ecotone.splitter.' . $handler->getEndpointId();
         $configuration->registerMessageHandler(
-            SplitterBuilder::createMessagePayloadSplitter()
+            SplitterBuilder::createWithDefinition(DirectMessageSplitter::class, 'splitIterable')
                 ->withoutInheritedTypeId()
                 ->withoutMethodInterceptors()
                 ->withGatherChannelName($splitter->gatherChannelName)

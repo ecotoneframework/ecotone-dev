@@ -15,6 +15,12 @@ use Ecotone\Api\Messaging\Message;
  */
 class DirectMessageSplitter
 {
+    public function splitIterable(Message $message): array
+    {
+        $payload = $message->getPayload();
+        return is_array($payload) ? array_values($payload) : iterator_to_array($payload, false);
+    }
+
     /**
      * @param Message $message
      */

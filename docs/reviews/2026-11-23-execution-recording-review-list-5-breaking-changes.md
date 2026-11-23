@@ -1,5 +1,37 @@
 # Breaking changes review: dgafka/implement-execution-recording
 
+## Re-check round 5 at cd6f8a2fb, reading 71dff8a1d..cd6f8a2fb (cleanup U1 to U9)
+
+PASSED
+
+The range removes code; it adds no new surface, stored form or behaviour. `git diff --stat 71dff8a1d..HEAD -- upgrade-2.0.md 'packages/*/Api'` is empty.
+
+BC3 — covered:
+- **Removed from internal src/ (U4, U5):** `MessageFlowFrameworkReader`, `RecordingMessageFlowFrameworkReader`, `MessageFlowFrameworkNotRead`, `ExecutionRecordingReader::popSpans()`, `Configuration::getRegisteredBeforeSendInterceptors()` and `ExecutionHint::KEYS`. `RecordedExecution::hintLine()` became private.
+- **Why it breaks nothing:** all of these were added on this branch after 2.0.0-beta.10, none sits under `Api/`, and no `Api/` signature names them.
+- **Unchanged:** the public path `FlowTestSupport::popExecutionRecording()` still goes through `ExecutionRecordingReader::pop()`. Its refusal without the framework level keeps the same message (ExecutionRecordingNotSwitchedOn.php:18).
+- **No reference left:** `git grep` for `build-flow:record`, `MessageFlowFrameworkReader`, `MessageFlowFrameworkNotRead`, `popSpans`, `getRegisteredBeforeSendInterceptors`, `ExecutionHint::KEYS`, `check-build-flow` and `ofRegistration` has 0 hits outside docs/reviews.
+BC5 — covered:
+- `ecotone:flow:dump` keeps its name and its `--format` and `--framework` options; MessageFlowModule loses only the reader registration.
+- `ecotone:build-flow:record` is gone, but it was never shipped. It lived in packages/Ecotone/tests/BuildFlow and was registered only by bin/build-flow.php (known-deviations row 10), and it was added on this branch.
+- The removed `compare --presentation` values and bin/check-build-flow.php are the repository's own CI tooling, not commands an application runs.
+BC4 — covered — No default an application relies on changes. The default presentation of the internal `build-flow compare` tool becomes `build`, but that is CI tooling.
+BC6 — covered — No behaviour an application observes changes. The upgrade-2.0.md entries of the earlier rounds stay: §14 in-memory redelivery, and the OpenTelemetry level → `TracingConfiguration::withLevel()`.
+- **U9 reasoning, checked against tag 1.328.3:**
+  - 1.x has no `packages/Ecotone/Api/Tracing/TracingConfiguration.php` and no `Ecotone\Tracing` in Core.
+  - Its only `TracingConfiguration` is `packages/OpenTelemetry/src/Configuration/TracingConfiguration.php`, whose move and lost level upgrade-2.0.md already describes.
+  - 1.x has no file with Gather in its name.
+  - So the private constructor's new `level`, the two `Tracer` methods, `GatheredGroupStore::partsOf()` and refusing two `TracingConfiguration`s are all changes between unreleased 2.0 states. Under the beta rule they need no upgrade entry.
+BC1, BC2 — not-apply — Nothing stored by a deployment changes. The deleted `BuildFlow/baseline` is a repository test fixture, which main's CI now commits after the merge (U1), not storage an application holds.
+BC7 — not-apply — The release is a major (2.0.0-beta.10 → 2.0.x-dev), and the framework level is opt-in.
+BC8 — not-apply — Nothing in this range is written to a shared queue or table.
+
+Outside this section, for the behaviour and guidelines sessions: whether the deleted tests' coverage is kept, the U4 span expectation, the comment for a base without bin/build-flow.php, the baseline workflow's first run and the skill evals. No breaking-change requirement depends on any of them.
+
+Verdict: PASS (0 missing)
+
+---
+
 ## Re-check round 4 at 26b620eb0, reading 45f4a66e7..26b620eb0
 
 PASSED

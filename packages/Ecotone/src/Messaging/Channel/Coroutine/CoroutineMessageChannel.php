@@ -12,7 +12,6 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\SleepInterface;
-use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Channel\ConsumedInTheSendingProcess;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -53,7 +52,6 @@ final class CoroutineMessageChannel extends QueueChannel implements ConsumedInTh
     {
         $delay = $message->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY) ? $message->getHeaders()->get(MessageHeaders::DELIVERY_DELAY) : 0;
         $delay = match (true) {
-            $delay instanceof TimeSpan => $delay->toMilliseconds(),
             $delay instanceof Duration => $delay->inMilliseconds(),
             $delay instanceof DateTimeInterface => DatePoint::createFromInterface($delay)->durationSince($this->clock->now())->inMilliseconds(),
             default => $delay,

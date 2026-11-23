@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Api\Gateway\EcotoneClockInterface;
-use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannel;
 use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannelConsumer;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -67,7 +67,7 @@ final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, Del
         return true;
     }
 
-    public function maximumDelay(): ?TimeSpan
+    public function maximumDelay(): ?Duration
     {
         return null;
     }

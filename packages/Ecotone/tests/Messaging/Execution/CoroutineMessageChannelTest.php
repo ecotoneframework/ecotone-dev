@@ -39,7 +39,6 @@ use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\SleepInterface;
-use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -634,7 +633,7 @@ final class CoroutineMessageChannelTest extends TestCase
 
     public static function delivery_delays(): array
     {
-        return [[500], [TimeSpan::withMilliseconds(500)], [Duration::milliseconds(500)], [new DateTimeImmutable('2026-03-01 12:00:00.500000')]];
+        return [[500], [Duration::milliseconds(500)], [new DateTimeImmutable('2026-03-01 12:00:00.500000')]];
     }
 
     public function test_a_retried_sender_discards_messages_from_its_failed_attempt(): void

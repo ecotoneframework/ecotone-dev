@@ -624,6 +624,9 @@ final class AggregateModule implements AnnotationModule, RoutingEventHandler
         foreach ([$factoryRegistration, $actionRegistration] as $registration) {
             if ($registration->hasMethodAnnotation(Splitter::class)) {
                 $name = $registration->getClassName() . '::' . $registration->getMethodName();
+                if ($registration === $factoryRegistration) {
+                    throw ConfigurationException::create("Split handler {$name} is an aggregate or saga factory whose output contains saved identifiers. Split from an action method, use a separate splitter handler receiving the factory output, or remove #[Splitter].");
+                }
                 throw ConfigurationException::create("Split handler {$name} shares a route with a factory, so its result cannot be split independently. Give the action its own routingKey or listenTo, move the split to a separate handler, or remove #[Splitter].");
             }
         }

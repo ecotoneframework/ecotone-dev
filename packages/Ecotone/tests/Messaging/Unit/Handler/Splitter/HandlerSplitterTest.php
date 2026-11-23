@@ -938,6 +938,29 @@ final class HandlerSplitterTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(classesToResolve: [$aggregate::class], enabledModules: []);
     }
 
+    public function test_factory_sharing_a_route_with_an_action_with_splitter_is_refused(): void
+    {
+        $aggregate = new #[Aggregate] class () {
+            #[Identifier]
+            public string $id = 'one';
+
+            #[CommandHandler('place', outputChannelName: 'parts')]
+            #[Splitter]
+            public static function create(HandlerSplitCommand $command): self
+            {
+                return new self();
+            }
+
+            #[CommandHandler('place')]
+            public function act(HandlerSplitCommand $command): array
+            {
+                return [1, 2];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $aggregate::class . '::create is an aggregate or saga factory whose output contains saved identifiers. Split from an action method, use a separate splitter handler receiving the factory output, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$aggregate::class], enabledModules: []);
+    }
+
     public function test_changing_headers_split_handler_is_refused(): void
     {
         $handler = new class () {

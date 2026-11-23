@@ -25,7 +25,7 @@ namespace Ecotone\Messaging\Config\Flow;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 
-final class MessageFlowBuild implements DefinedObject
+final class MessageFlowFrameworkLedger implements DefinedObject
 {
     /**
      * @param list<array<string, scalar>> $ledger

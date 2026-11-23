@@ -9,12 +9,12 @@ namespace Ecotone\Messaging\Config\Flow;
 
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 
-interface MessageFlowBuildReader
+interface MessageFlowFrameworkReader
 {
     public function wiring(): MessageFlowGraph;
 
     /**
      * @return array<string, mixed>
      */
-    public function build(): array;
+    public function framework(): array;
 }

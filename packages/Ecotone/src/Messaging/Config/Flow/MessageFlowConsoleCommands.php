@@ -15,10 +15,10 @@ use Ecotone\Messaging\Config\ConfigurationException;
 
 final class MessageFlowConsoleCommands
 {
-    public function dump(ConfiguredMessagingSystem $messagingSystem, ConsoleWriter $writer, MessageFlowBuildGraphBuilder $buildGraph, MessageFlowBuild $messageFlowBuild, #[ConsoleParameterOption] string $format = 'mermaid', bool $framework = false): void
+    public function dump(ConfiguredMessagingSystem $messagingSystem, ConsoleWriter $writer, MessageFlowFrameworkGraphBuilder $frameworkGraph, MessageFlowFrameworkLedger $frameworkLedger, #[ConsoleParameterOption] string $format = 'mermaid', bool $framework = false): void
     {
         $framework
-            ? self::write(graph: $buildGraph->build(), writer: $writer, format: $format, framework: $messageFlowBuild->toArray())
+            ? self::write(graph: $frameworkGraph->build(), writer: $writer, format: $format, framework: $frameworkLedger->toArray())
             : self::write(graph: $messagingSystem->getMessageFlowGraph(), writer: $writer, format: $format, framework: null);
     }
 

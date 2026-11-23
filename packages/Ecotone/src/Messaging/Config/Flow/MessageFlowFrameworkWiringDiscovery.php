@@ -42,7 +42,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\UninterruptibleServiceActivator;
 
-final class MessageFlowBuildWiringDiscovery
+final class MessageFlowFrameworkWiringDiscovery
 {
     private const GENERATED_ID = '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/';
 
@@ -68,12 +68,12 @@ final class MessageFlowBuildWiringDiscovery
     ) {
     }
 
-    public static function discover(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, MessageFlowGraph $declared): MessageFlowBuildWiring
+    public static function discover(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, MessageFlowGraph $declared): MessageFlowFrameworkWiring
     {
         return (new self(configuration: $configuration, interfaceToCallRegistry: $interfaceToCallRegistry, declared: $declared))->run();
     }
 
-    private function run(): MessageFlowBuildWiring
+    private function run(): MessageFlowFrameworkWiring
     {
         $handlers = $this->configuration->getRegisteredMessageHandlers();
         foreach ($handlers as $handler) {
@@ -108,7 +108,7 @@ final class MessageFlowBuildWiringDiscovery
         ksort($this->edges, SORT_STRING);
         ksort($this->entryChannels, SORT_STRING);
 
-        return new MessageFlowBuildWiring(
+        return new MessageFlowFrameworkWiring(
             nodes: array_map(fn (FlowNode $node): array => $node->toArray(), array_values($this->nodes)),
             edges: array_map(fn (FlowEdge $edge): array => $edge->toArray(), array_values($this->edges)),
             entryChannels: $this->entryChannels,

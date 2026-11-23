@@ -23,9 +23,9 @@ use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
  * licence Apache-2.0
  * @internal
  */
-final class MessageFlowBuildTracingLevelTest extends TestCase
+final class MessageFlowFrameworkTracingLevelTest extends TestCase
 {
-    public function test_the_build_part_of_the_flow_dump_is_refused_at_the_application_tracing_level(): void
+    public function test_the_framework_part_of_the_flow_dump_is_refused_at_the_application_tracing_level(): void
     {
         $ecotone = $this->application(TracingLevel::Application);
 
@@ -34,7 +34,7 @@ final class MessageFlowBuildTracingLevelTest extends TestCase
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json', 'framework' => true]);
     }
 
-    public function test_the_flow_dump_without_its_build_part_is_the_same_at_both_tracing_levels(): void
+    public function test_the_flow_dump_without_its_framework_part_is_the_same_at_both_tracing_levels(): void
     {
         $dumps = [];
         foreach (TracingLevel::cases() as $level) {
@@ -48,7 +48,7 @@ final class MessageFlowBuildTracingLevelTest extends TestCase
         self::assertSame($dumps['application'], $dumps['framework']);
     }
 
-    public function test_the_build_view_at_the_framework_tracing_level_reads_the_wiring_before_the_recording_wraps_it(): void
+    public function test_the_framework_view_at_the_framework_tracing_level_reads_the_wiring_before_the_recording_wraps_it(): void
     {
         $ecotone = $this->application(TracingLevel::Framework);
 
@@ -85,7 +85,7 @@ final class MessageFlowBuildTracingLevelTest extends TestCase
         self::assertSame(['notifications'], $application->list());
     }
 
-    public function test_the_build_view_needs_no_span_recorder_that_keeps_spans(): void
+    public function test_the_framework_view_needs_no_span_recorder_that_keeps_spans(): void
     {
         $exporter = new class () implements SpanRecorder {
             public function record(Span $span): void

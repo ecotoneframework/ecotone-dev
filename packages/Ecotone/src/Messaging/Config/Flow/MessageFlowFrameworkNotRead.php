@@ -10,7 +10,7 @@ namespace Ecotone\Messaging\Config\Flow;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Messaging\Config\ConfigurationException;
 
-final class MessageFlowBuildNotRead implements MessageFlowBuildReader
+final class MessageFlowFrameworkNotRead implements MessageFlowFrameworkReader
 {
     public function __construct(private string $reason)
     {
@@ -21,7 +21,7 @@ final class MessageFlowBuildNotRead implements MessageFlowBuildReader
         throw $this->refusal();
     }
 
-    public function build(): array
+    public function framework(): array
     {
         throw $this->refusal();
     }

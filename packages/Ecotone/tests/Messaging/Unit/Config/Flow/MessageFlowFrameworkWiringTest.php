@@ -28,9 +28,9 @@ use PHPUnit\Framework\TestCase;
  * licence Apache-2.0
  * @internal
  */
-final class MessageFlowBuildWiringTest extends TestCase
+final class MessageFlowFrameworkWiringTest extends TestCase
 {
-    public function test_dump_without_build_stays_the_application_graph_byte_for_byte(): void
+    public function test_dump_without_framework_stays_the_application_graph_byte_for_byte(): void
     {
         $ecotone = $this->orderingApplication();
 
@@ -40,11 +40,11 @@ final class MessageFlowBuildWiringTest extends TestCase
 
         self::assertSame($ecotone->getMessageFlowGraph()->toJson() . "\n", $withoutOption);
         self::assertSame($withoutOption . $withoutOption, $ecotone->getInMemoryConsoleWriter()->getWrittenContent());
-        self::assertStringNotContainsString('"build"', $withoutOption);
+        self::assertStringNotContainsString('"framework"', $withoutOption);
         self::assertStringNotContainsString(CommandBus::class, $withoutOption);
     }
 
-    public function test_mermaid_dump_without_build_stays_the_application_flowchart_byte_for_byte(): void
+    public function test_mermaid_dump_without_framework_stays_the_application_flowchart_byte_for_byte(): void
     {
         $ecotone = $this->orderingApplication();
 
@@ -54,62 +54,62 @@ final class MessageFlowBuildWiringTest extends TestCase
         self::assertStringNotContainsString('classDef framework', $ecotone->getInMemoryConsoleWriter()->getWrittenContent());
     }
 
-    public function test_build_dump_keeps_every_node_and_arrow_of_the_application_graph(): void
+    public function test_framework_dump_keeps_every_node_and_arrow_of_the_application_graph(): void
     {
         $ecotone = $this->orderingApplication();
 
-        $build = $this->buildGraphOf($ecotone);
+        $frameworkGraph = $this->frameworkGraphOf($ecotone);
 
         foreach ($ecotone->getMessageFlowGraph()->nodes() as $node) {
-            self::assertSame($node->toArray(), $build->node($node->id)->toArray());
+            self::assertSame($node->toArray(), $frameworkGraph->node($node->id)->toArray());
         }
-        $buildEdges = array_map(fn (FlowEdge $edge): array => $edge->toArray(), $build->edges());
+        $frameworkEdges = array_map(fn (FlowEdge $edge): array => $edge->toArray(), $frameworkGraph->edges());
         foreach ($ecotone->getMessageFlowGraph()->edges() as $edge) {
-            self::assertContains($edge->toArray(), $buildEdges);
+            self::assertContains($edge->toArray(), $frameworkEdges);
         }
     }
 
-    public function test_build_dump_connects_the_command_bus_through_its_routing_to_the_command_handler(): void
+    public function test_framework_dump_connects_the_command_bus_through_its_routing_to_the_command_handler(): void
     {
-        $build = $this->buildGraphOf($this->orderingApplication());
+        $frameworkGraph = $this->frameworkGraphOf($this->orderingApplication());
 
-        $commandBus = $build->node('gateway:' . CommandBus::class . '::sendWithRouting');
+        $commandBus = $frameworkGraph->node('gateway:' . CommandBus::class . '::sendWithRouting');
         self::assertSame(FlowNodeKind::GATEWAY, $commandBus->kind);
         self::assertTrue($commandBus->attributes['framework']);
         self::assertSame(
             ['gateway', 'channel', 'internalHandler', 'channel', 'commandHandler'],
-            $this->kindsOnShortestPath($build, $commandBus->id, 'handler:placeOrder'),
+            $this->kindsOnShortestPath($frameworkGraph, $commandBus->id, 'handler:placeOrder'),
         );
-        self::assertNotEmpty($build->edgesOfKind(FlowEdgeKind::ROUTES_TO, to: 'channel:placeOrder.target'));
+        self::assertNotEmpty($frameworkGraph->edgesOfKind(FlowEdgeKind::ROUTES_TO, to: 'channel:placeOrder.target'));
     }
 
-    public function test_build_dump_connects_the_query_bus_and_the_event_bus_to_their_handlers(): void
+    public function test_framework_dump_connects_the_query_bus_and_the_event_bus_to_their_handlers(): void
     {
-        $build = $this->buildGraphOf($this->orderingApplication());
+        $frameworkGraph = $this->frameworkGraphOf($this->orderingApplication());
 
-        self::assertNotNull($this->kindsOnShortestPath($build, 'gateway:' . QueryBus::class . '::sendWithRouting', 'handler:orderStatus'));
-        self::assertNotNull($this->kindsOnShortestPath($build, 'gateway:' . EventBus::class . '::publish', 'handler:whenOrderWasPlaced'));
+        self::assertNotNull($this->kindsOnShortestPath($frameworkGraph, 'gateway:' . QueryBus::class . '::sendWithRouting', 'handler:orderStatus'));
+        self::assertNotNull($this->kindsOnShortestPath($frameworkGraph, 'gateway:' . EventBus::class . '::publish', 'handler:whenOrderWasPlaced'));
     }
 
-    public function test_build_dump_routes_an_asynchronous_handler_through_its_channel_and_the_consumer_of_that_channel(): void
+    public function test_framework_dump_routes_an_asynchronous_handler_through_its_channel_and_the_consumer_of_that_channel(): void
     {
-        $build = $this->buildGraphOf($this->orderingApplication());
+        $frameworkGraph = $this->frameworkGraphOf($this->orderingApplication());
 
-        self::assertNotNull($this->shortestPath($build, 'gateway:' . EventBus::class . '::publish', 'channel:whenOrderWasPlaced.target'));
-        self::assertCount(1, $build->edgesOfKind(FlowEdgeKind::OUTPUT, $build->edgesFrom('channel:whenOrderWasPlaced.target')[0]->to, 'channel:notifications'));
-        self::assertCount(1, $build->edgesOfKind(FlowEdgeKind::ROUTES_TO, 'endpoint:notifications', 'channel:whenOrderWasPlaced.target.execute'));
-        self::assertCount(1, $build->edgesOfKind(FlowEdgeKind::INPUT, 'channel:whenOrderWasPlaced.target.execute', 'handler:whenOrderWasPlaced'));
-        self::assertSame('polling', $build->edgesOfKind(FlowEdgeKind::INPUT, 'channel:notifications', 'endpoint:notifications')[0]->attributes['consumer']);
-        self::assertSame('eventDriven', $build->edgesOfKind(FlowEdgeKind::INPUT, to: 'handler:placeOrder')[0]->attributes['consumer']);
+        self::assertNotNull($this->shortestPath($frameworkGraph, 'gateway:' . EventBus::class . '::publish', 'channel:whenOrderWasPlaced.target'));
+        self::assertCount(1, $frameworkGraph->edgesOfKind(FlowEdgeKind::OUTPUT, $frameworkGraph->edgesFrom('channel:whenOrderWasPlaced.target')[0]->to, 'channel:notifications'));
+        self::assertCount(1, $frameworkGraph->edgesOfKind(FlowEdgeKind::ROUTES_TO, 'endpoint:notifications', 'channel:whenOrderWasPlaced.target.execute'));
+        self::assertCount(1, $frameworkGraph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:whenOrderWasPlaced.target.execute', 'handler:whenOrderWasPlaced'));
+        self::assertSame('polling', $frameworkGraph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:notifications', 'endpoint:notifications')[0]->attributes['consumer']);
+        self::assertSame('eventDriven', $frameworkGraph->edgesOfKind(FlowEdgeKind::INPUT, to: 'handler:placeOrder')[0]->attributes['consumer']);
     }
 
-    public function test_build_dump_shows_the_interceptors_the_framework_puts_around_the_command_bus(): void
+    public function test_framework_dump_shows_the_interceptors_the_framework_puts_around_the_command_bus(): void
     {
-        $build = $this->buildGraphOf($this->orderingApplication());
+        $frameworkGraph = $this->frameworkGraphOf($this->orderingApplication());
 
         $interceptors = array_map(
-            fn (FlowEdge $edge): FlowNode => $build->node($edge->to),
-            $build->edgesOfKind(FlowEdgeKind::INTERCEPTED_BY, 'gateway:' . CommandBus::class . '::send'),
+            fn (FlowEdge $edge): FlowNode => $frameworkGraph->node($edge->to),
+            $frameworkGraph->edgesOfKind(FlowEdgeKind::INTERCEPTED_BY, 'gateway:' . CommandBus::class . '::send'),
         );
 
         self::assertNotEmpty($interceptors);
@@ -120,21 +120,21 @@ final class MessageFlowBuildWiringTest extends TestCase
         }
     }
 
-    public function test_build_dump_marks_what_the_framework_registers_and_leaves_application_nodes_unmarked(): void
+    public function test_framework_dump_marks_what_the_framework_registers_and_leaves_application_nodes_unmarked(): void
     {
         $ecotone = $this->orderingApplication();
-        $build = $this->buildGraphOf($ecotone);
+        $frameworkGraph = $this->frameworkGraphOf($ecotone);
         $applicationNodeIds = array_map(fn (FlowNode $node): string => $node->id, $ecotone->getMessageFlowGraph()->nodes());
 
         self::assertSame([], array_values(array_map(
             fn (FlowNode $node): string => $node->id,
-            array_filter($build->nodes(), fn (FlowNode $node): bool => (! in_array($node->id, $applicationNodeIds, true)) !== (($node->attributes['framework'] ?? false) === true)),
+            array_filter($frameworkGraph->nodes(), fn (FlowNode $node): bool => (! in_array($node->id, $applicationNodeIds, true)) !== (($node->attributes['framework'] ?? false) === true)),
         )));
-        self::assertTrue($build->node('channel:placeOrder.target')->attributes['framework']);
-        self::assertArrayNotHasKey('framework', $build->node('channel:notifications')->attributes);
+        self::assertTrue($frameworkGraph->node('channel:placeOrder.target')->attributes['framework']);
+        self::assertArrayNotHasKey('framework', $frameworkGraph->node('channel:notifications')->attributes);
     }
 
-    public function test_build_dump_keeps_a_channel_the_application_registers_without_connecting_it_in_its_own_graph(): void
+    public function test_framework_dump_keeps_a_channel_the_application_registers_without_connecting_it_in_its_own_graph(): void
     {
         $ecotone = self::recordingApplication(
             enabledModules: [],
@@ -142,23 +142,23 @@ final class MessageFlowBuildWiringTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('unconnected')],
         );
 
-        $build = $this->buildGraphOf($ecotone);
+        $frameworkGraph = $this->frameworkGraphOf($ecotone);
 
         self::assertFalse($ecotone->getMessageFlowGraph()->hasNode('channel:unconnected'));
-        self::assertArrayNotHasKey('framework', $build->node('channel:unconnected')->attributes);
-        self::assertCount(1, $build->edgesOfKind(FlowEdgeKind::INPUT, 'channel:unconnected', 'endpoint:unconnected'));
+        self::assertArrayNotHasKey('framework', $frameworkGraph->node('channel:unconnected')->attributes);
+        self::assertCount(1, $frameworkGraph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:unconnected', 'endpoint:unconnected'));
     }
 
-    public function test_build_handlers_are_labelled_with_what_they_invoke_and_the_channel_they_consume(): void
+    public function test_framework_handlers_are_labelled_with_what_they_invoke_and_the_channel_they_consume(): void
     {
-        $build = $this->buildGraphOf($this->orderingApplication());
+        $frameworkGraph = $this->frameworkGraphOf($this->orderingApplication());
 
-        self::assertSame('ChainedMessageProcessor::process on ecotone.modelling.bus.command_by_name', $build->node('endpoint:ecotone.modelling.bus.command_by_name')->label);
-        self::assertSame('Bridge::handle on notifications', $build->node('endpoint:notifications')->label);
-        self::assertSame('RoutingSlipPrepender::transform on whenOrderWasPlaced.target', $build->node('endpoint:whenOrderWasPlaced.target')->label);
+        self::assertSame('ChainedMessageProcessor::process on ecotone.modelling.bus.command_by_name', $frameworkGraph->node('endpoint:ecotone.modelling.bus.command_by_name')->label);
+        self::assertSame('Bridge::handle on notifications', $frameworkGraph->node('endpoint:notifications')->label);
+        self::assertSame('RoutingSlipPrepender::transform on whenOrderWasPlaced.target', $frameworkGraph->node('endpoint:whenOrderWasPlaced.target')->label);
     }
 
-    public function test_build_node_ids_stay_the_same_when_the_application_is_built_again(): void
+    public function test_framework_node_ids_stay_the_same_when_the_application_is_built_again(): void
     {
         $handlerWithoutEndpointId = new class () {
             #[CommandHandler('stable.place')]
@@ -172,7 +172,7 @@ final class MessageFlowBuildWiringTest extends TestCase
             {
             }
         };
-        $build = fn (): string => $this->buildDumpOf(self::recordingApplication(
+        $frameworkGraph = fn (): string => $this->buildDumpOf(self::recordingApplication(
             [$handlerWithoutEndpointId::class],
             [$handlerWithoutEndpointId],
             [SimpleMessageChannelBuilder::createQueueChannel('stable_async')],
@@ -180,14 +180,14 @@ final class MessageFlowBuildWiringTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         ));
 
-        $first = $build();
+        $first = $frameworkGraph();
 
-        self::assertSame($first, $build());
+        self::assertSame($first, $frameworkGraph());
         self::assertDoesNotMatchRegularExpression('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/', $first);
         self::assertNotNull($this->kindsOnShortestPath(MessageFlowGraph::fromJson($first), 'gateway:' . CommandBus::class . '::sendWithRouting', 'handler:' . $handlerWithoutEndpointId::class . '::place'));
     }
 
-    public function test_build_mermaid_dump_draws_build_nodes_with_their_own_style(): void
+    public function test_framework_mermaid_dump_draws_framework_nodes_with_their_own_style(): void
     {
         $ecotone = $this->orderingApplication();
 
@@ -238,7 +238,7 @@ final class MessageFlowBuildWiringTest extends TestCase
         return substr($ecotone->getInMemoryConsoleWriter()->getWrittenContent(), $alreadyWritten);
     }
 
-    private function buildGraphOf(FlowTestSupport $ecotone): MessageFlowGraph
+    private function frameworkGraphOf(FlowTestSupport $ecotone): MessageFlowGraph
     {
         return MessageFlowGraph::fromJson($this->buildDumpOf($ecotone));
     }

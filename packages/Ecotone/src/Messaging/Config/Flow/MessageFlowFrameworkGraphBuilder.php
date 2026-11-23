@@ -29,11 +29,11 @@ use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Modelling\Config\MessageBusChannel;
 
-final class MessageFlowBuildGraphBuilder
+final class MessageFlowFrameworkGraphBuilder
 {
     public function __construct(
         private MessageFlowGraphBuilder $applicationFlow,
-        private MessageFlowBuildWiring $buildWiring,
+        private MessageFlowFrameworkWiring $buildWiring,
     ) {
     }
 

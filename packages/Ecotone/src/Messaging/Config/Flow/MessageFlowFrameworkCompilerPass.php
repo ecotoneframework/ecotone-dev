@@ -30,7 +30,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 
-final class MessageFlowBuildCompilerPass implements CompilerPass
+final class MessageFlowFrameworkCompilerPass implements CompilerPass
 {
     public function __construct(
         private Configuration $configuration,
@@ -41,11 +41,11 @@ final class MessageFlowBuildCompilerPass implements CompilerPass
 
     public function process(ContainerBuilder $builder): void
     {
-        $builder->register(MessageFlowBuildGraphBuilder::class, new Definition(MessageFlowBuildGraphBuilder::class, [
+        $builder->register(MessageFlowFrameworkGraphBuilder::class, new Definition(MessageFlowFrameworkGraphBuilder::class, [
             new Reference(MessageFlowGraphBuilder::class),
-            MessageFlowBuildWiringDiscovery::discover(configuration: $this->configuration, interfaceToCallRegistry: $this->interfaceToCallRegistry, declared: $this->declared)->getDefinition(),
+            MessageFlowFrameworkWiringDiscovery::discover(configuration: $this->configuration, interfaceToCallRegistry: $this->interfaceToCallRegistry, declared: $this->declared)->getDefinition(),
         ]));
         $ledger = MessageFlowLedgerDiscovery::discover($this->configuration, $this->interfaceToCallRegistry);
-        $builder->register(MessageFlowBuild::class, (new MessageFlowBuild($ledger['ledger'], MessageFlowChainReader::read(builder: $builder, configuration: $this->configuration, interfaceToCallRegistry: $this->interfaceToCallRegistry, handlerNames: $ledger['handlerNames'])))->getDefinition());
+        $builder->register(MessageFlowFrameworkLedger::class, (new MessageFlowFrameworkLedger($ledger['ledger'], MessageFlowChainReader::read(builder: $builder, configuration: $this->configuration, interfaceToCallRegistry: $this->interfaceToCallRegistry, handlerNames: $ledger['handlerNames'])))->getDefinition());
     }
 }

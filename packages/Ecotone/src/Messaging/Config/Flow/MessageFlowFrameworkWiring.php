@@ -25,7 +25,7 @@ namespace Ecotone\Messaging\Config\Flow;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 
-final class MessageFlowBuildWiring implements DefinedObject
+final class MessageFlowFrameworkWiring implements DefinedObject
 {
     /**
      * @param list<array{id: string, kind: string, label: string, attributes: array<string, mixed>}> $nodes

@@ -30,7 +30,7 @@ use PHPUnit\Framework\TestCase;
  * licence Apache-2.0
  * @internal
  */
-final class MessageFlowBuildTest extends TestCase
+final class MessageFlowFrameworkTest extends TestCase
 {
     public function test_a_gateway_ecotone_registers_names_the_module_that_registered_it(): void
     {
@@ -161,7 +161,7 @@ final class MessageFlowBuildTest extends TestCase
         self::assertSame($named[0]['target'], $named[0]['name']);
     }
 
-    public function test_the_build_is_left_out_of_the_dump_without_the_option(): void
+    public function test_the_framework_is_left_out_of_the_dump_without_the_option(): void
     {
         $ecotone = $this->orderingApplication();
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json']);
@@ -281,15 +281,15 @@ final class MessageFlowBuildTest extends TestCase
 
     public function test_every_handler_of_the_ledger_has_a_chain_and_no_chain_holds_a_generated_id(): void
     {
-        $build = json_decode($this->dumpOf($this->splittingApplication()), true)['framework'];
+        $framework = json_decode($this->dumpOf($this->splittingApplication()), true)['framework'];
 
-        $handlers = array_column(array_filter($build['ledger'], fn (array $entry): bool => $entry['kind'] === 'handler'), 'name');
+        $handlers = array_column(array_filter($framework['ledger'], fn (array $entry): bool => $entry['kind'] === 'handler'), 'name');
         sort($handlers);
-        $withChain = array_keys($build['chains']);
+        $withChain = array_keys($framework['chains']);
         sort($withChain);
         self::assertSame($handlers, $withChain);
-        self::assertDoesNotMatchRegularExpression('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{64}/', json_encode($build['chains']));
-        self::assertSame($build['chains'], json_decode($this->dumpOf($this->splittingApplication()), true)['framework']['chains']);
+        self::assertDoesNotMatchRegularExpression('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{64}/', json_encode($framework['chains']));
+        self::assertSame($framework['chains'], json_decode($this->dumpOf($this->splittingApplication()), true)['framework']['chains']);
     }
 
     public function test_no_layer_of_these_applications_is_left_unrecognised(): void

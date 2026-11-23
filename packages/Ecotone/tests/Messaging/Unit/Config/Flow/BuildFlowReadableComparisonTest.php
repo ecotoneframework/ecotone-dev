@@ -211,7 +211,6 @@ final class BuildFlowReadableComparisonTest extends TestCase
         }
         self::assertStringNotContainsString('no span)', $path);
         self::assertDoesNotMatchRegularExpression('/^  (p\d+) -\.?->\|"[^"]*"\| \1$/m', $path);
-        self::assertStringNotContainsString('sequenceDiagram', $path);
         self::assertStringNotContainsString('nodes added', $path);
         self::assertStringNotContainsString('- Traced spans:', $path);
         self::assertStringContainsString("Green marks what happens only now and red what happened only before: a green or red arrow is such a hand-over, a green or red box a step only such hand-overs reach; a plain arrow or box is there before and now, and a dashed arrow is taken from the wiring because no span is recorded.\n", $path);

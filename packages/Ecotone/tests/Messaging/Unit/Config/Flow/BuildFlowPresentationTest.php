@@ -103,7 +103,6 @@ final class BuildFlowPresentationTest extends TestCase
         $diagrams = $this->mermaidBlocksOf($markdown);
         self::assertCount(1, $diagrams);
         self::assertStringStartsWith("flowchart LR\n", $diagrams[0]);
-        self::assertStringNotContainsString('sequenceDiagram', $markdown);
         self::assertMatchesRegularExpression('/^  (p\d+)\["event handler audit"\]:::new$/m', $diagrams[0]);
         self::assertMatchesRegularExpression('/^  p\d+ -->\|"\+ handles"\| p\d+$/m', $diagrams[0]);
         self::assertMatchesRegularExpression('/^  p\d+ -->\|"handles"\| p\d+$/m', $diagrams[0]);

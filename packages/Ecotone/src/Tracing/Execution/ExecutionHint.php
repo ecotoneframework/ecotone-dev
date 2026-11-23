@@ -35,11 +35,6 @@ final class ExecutionHint
     public const RETRY = 'retry';
     public const GROUP = 'group';
     public const SERVICE = 'service';
-    public const KEYS = [
-        self::CHOSEN_BY, self::RETURNS, self::OUTCOME, self::FAILURE, self::FOUND, self::ROUTING_SLIP, self::KEPT, self::HEADERS_ADDED, self::HEADERS_REMOVED,
-        self::HEADERS_CHANGED, self::HEADERS_READ, self::PAYLOAD, self::SENT_BY, self::TAKEN_BY, self::STOPPED, self::COLLECTED, self::RUNS_IN, self::STARTED_IN, self::STARTS,
-        self::RANGE, self::IDENTIFIERS, self::PROPAGATING, self::RECEIVED_WITH, self::RETRY, self::GROUP, self::SERVICE,
-    ];
 
     private function __construct(public readonly string $key, public readonly string $value, public readonly bool $shownInLines)
     {

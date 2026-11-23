@@ -174,11 +174,6 @@ interface Configuration extends CompilerPass
     public function getRegisteredServiceDefinitions(): array;
 
     /**
-     * @return MethodInterceptorBuilder[]
-     */
-    public function getRegisteredBeforeSendInterceptors(): array;
-
-    /**
      * @return ConsoleCommandConfiguration[]
      */
     public function getRegisteredConsoleCommands(): array;

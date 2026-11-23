@@ -4212,13 +4212,18 @@ independent endpoints: the handler and the standalone splitter.
 **Now:** `#[Splitter]` next to `#[CommandHandler]`, `#[EventHandler]` or `#[InternalHandler]` splits the handler's
 returned elements to its `outputChannelName`. Only `gatherChannelName` may be set on the stacked splitter;
 `inputChannelName`, `endpointId`, `outputChannelName` and `requiredInterceptorNames` on it are refused at bootstrap.
-Stacking it on `#[QueryHandler]` is refused too, as are missing handler outputs and non-iterable return declarations.
+Stacking it on `#[QueryHandler]`, projection methods, header-changing methods (`#[ChangingHeaders]` or
+`changingHeaders: true`), aggregate or saga factories, or factory/action pairs sharing a route is refused too.
+Event-sourced actions whose returned events Ecotone records are refused; use `#[AggregateEvents]` to record events
+and return an independent iterable instead. Every handler attribute needs `outputChannelName` and an iterable
+return declaration. Gathering also requires an explicit `endpointId` on every handler attribute. Each refusal
+names the method and the ways out.
 
 **How to adapt:** Move the standalone `#[Splitter]` to its own method to preserve the two independent endpoints;
 that method may delegate to the original handler method. To adopt splitting the handler result instead, use bare
 `#[Splitter]` and configure the output on the handler attribute.
 
-## Split, work, gather (Enterprise)
+### Split, work, gather (Enterprise)
 
 **Before:** Split parts could be processed independently, but coordinating their results required application
 storage and completion logic.

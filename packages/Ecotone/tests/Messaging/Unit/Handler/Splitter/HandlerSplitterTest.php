@@ -770,7 +770,7 @@ final class HandlerSplitterTest extends TestCase
         );
     }
 
-    public function test_eventhandler_splitter_input_channel_names_its_parameter(): void
+    public function test_event_handler_splitter_input_channel_names_its_parameter(): void
     {
         $handler = new class () {
             #[EventHandler('split', outputChannelName: 'parts')]
@@ -788,7 +788,7 @@ final class HandlerSplitterTest extends TestCase
         );
     }
 
-    public function test_internalhandler_splitter_input_channel_names_its_parameter(): void
+    public function test_internal_handler_splitter_input_channel_names_its_parameter(): void
     {
         $handler = new class () {
             #[InternalHandler('split', outputChannelName: 'parts')]
@@ -1167,7 +1167,7 @@ final class HandlerSplitterTest extends TestCase
         self::assertCount(1, $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('summary.handler'));
     }
 
-    public function test_interceptors_run_once_around_a_split_handler(): void
+    public function test_global_interceptor_does_not_run_around_the_hidden_split(): void
     {
         $handler = new class () {
             public int $interceptions = 0;

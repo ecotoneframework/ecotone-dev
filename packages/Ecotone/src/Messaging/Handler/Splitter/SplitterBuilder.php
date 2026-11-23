@@ -47,15 +47,15 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
     private array $methodParameterConverterBuilders = [];
     private string $gatherChannelName = '';
     private bool $methodInterceptorsEnabled = true;
-    private bool $removeInheritedTypeId = false;
+    private bool $normalizeIterablePayload = false;
 
     private function __construct(private Reference|Definition|DefinedObject $reference, private InterfaceToCallReference $interfaceToCallReference)
     {
     }
 
-    public function withoutInheritedTypeId(): self
+    public function withNormalizedIterablePayload(): self
     {
-        $this->removeInheritedTypeId = true;
+        $this->normalizeIterablePayload = true;
         return $this;
     }
 
@@ -173,7 +173,7 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
             new Reference(ChannelResolver::class),
             new Reference(MessageBuilder::class),
             $interfaceToCall->toString(),
-            $this->removeInheritedTypeId,
+            $this->normalizeIterablePayload,
         ]);
     }
 

@@ -53,6 +53,7 @@ use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Scheduling\Duration;
+use Generator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -866,6 +867,55 @@ final class GatheringConformanceTest extends TestCase
         self::assertSame([], $handler->gathered);
         $ecotone->run('stacked_gather_summaries');
         self::assertSame([[1 => 20, 2 => 40]], $handler->gathered);
+    }
+
+    public function test_generator_result_of_a_gathering_split_handler_gathers_every_part(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[Asynchronous('generator_gather_workers')]
+            #[CommandHandler('generator.gather', endpointId: 'generator.gather.handler', outputChannelName: 'generator.parts')]
+            #[Splitter(gatherChannelName: 'generator.summary')]
+            public function split(): Generator
+            {
+                yield 'second' => 20;
+                yield 'first' => 10;
+            }
+
+            #[InternalHandler('generator.parts')]
+            public function work(int $part): int
+            {
+                return $part * 2;
+            }
+
+            #[Gathered]
+            #[Asynchronous('generator_gather_summaries')]
+            #[InternalHandler('generator.summary', endpointId: 'generator.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create('generator_gather_workers'),
+                DbalBackedMessageChannelBuilder::create('generator_gather_summaries'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $ecotone->sendCommandWithRouting('generator.gather');
+        self::assertSame([], $handler->gathered);
+        $ecotone->run('generator_gather_workers');
+        self::assertSame([], $handler->gathered);
+        $ecotone->run('generator_gather_summaries');
+        self::assertCount(1, $handler->gathered);
+        self::assertSame([1 => 40, 2 => 20], $handler->gathered[0]->results);
+        self::assertSame([20, 10], $handler->gathered[0]->originalPayload);
     }
 
     public function test_asynchronous_split_handler_and_its_parts_share_the_consumer_transaction(): void

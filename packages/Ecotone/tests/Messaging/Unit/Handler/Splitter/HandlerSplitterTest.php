@@ -677,6 +677,62 @@ final class HandlerSplitterTest extends TestCase
         );
     }
 
+    public function test_class_routed_command_handler_without_output_names_its_attribute(): void
+    {
+        $handler = new class () {
+            #[CommandHandler]
+            #[Splitter]
+            public function split(HandlerSplitCommand $command): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split has no outputChannelName on #[CommandHandler]. Set outputChannelName on every handler attribute, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class], containerOrAvailableServices: [$handler], enabledModules: []);
+    }
+
+    public function test_class_routed_command_handler_without_endpoint_id_names_its_attribute(): void
+    {
+        $handler = new class () {
+            #[CommandHandler(outputChannelName: 'parts')]
+            #[Splitter(gatherChannelName: 'summary')]
+            public function split(HandlerSplitCommand $command): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split uses gatherChannelName without an explicit endpointId on #[CommandHandler]. Set endpointId on every handler attribute, or remove gatherChannelName from #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class], containerOrAvailableServices: [$handler], enabledModules: []);
+    }
+
+    public function test_class_routed_event_handler_without_output_names_its_attribute(): void
+    {
+        $handler = new class () {
+            #[EventHandler]
+            #[Splitter]
+            public function split(HandlerSplitCommand $command): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split has no outputChannelName on #[EventHandler]. Set outputChannelName on every handler attribute, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class], containerOrAvailableServices: [$handler], enabledModules: []);
+    }
+
+    public function test_class_routed_event_handler_without_endpoint_id_names_its_attribute(): void
+    {
+        $handler = new class () {
+            #[EventHandler(outputChannelName: 'parts')]
+            #[Splitter(gatherChannelName: 'summary')]
+            public function split(HandlerSplitCommand $command): array
+            {
+                return [];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split uses gatherChannelName without an explicit endpointId on #[EventHandler]. Set endpointId on every handler attribute, or remove gatherChannelName from #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class], containerOrAvailableServices: [$handler], enabledModules: []);
+    }
+
     public function test_repeated_split_handler_names_the_attribute_without_output(): void
     {
         $handler = new class () {

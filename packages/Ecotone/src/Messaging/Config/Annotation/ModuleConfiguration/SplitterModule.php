@@ -129,7 +129,7 @@ final class SplitterModule extends NoExternalConfigurationModule
                 default => 'InternalHandler',
             };
             $route = $handler instanceof EventHandler ? $handler->listenTo : $handler->getInputChannelName();
-            $description = "#[{$attribute}('{$route}')]";
+            $description = $route === '' ? "#[{$attribute}]" : "#[{$attribute}('{$route}')]";
             if ($splitter->gatherChannelName !== '' && $handler->isEndpointIdGenerated()) {
                 throw ConfigurationException::create("Split handler {$name} uses gatherChannelName without an explicit endpointId on {$description}. Set endpointId on every handler attribute, or remove gatherChannelName from #[Splitter].");
             }

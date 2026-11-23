@@ -7,23 +7,23 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ChangingHeaders;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Splitter;
-use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\Projecting\Projection;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
-use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
 use Ecotone\Messaging\Handler\Splitter\DirectMessageSplitter;
+use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
 
 #[ModuleAnnotation]

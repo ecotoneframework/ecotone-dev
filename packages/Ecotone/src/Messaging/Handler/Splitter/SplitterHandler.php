@@ -24,8 +24,8 @@ class SplitterHandler implements MessageHandler
         private MessageProcessor $messageProcessor,
         private ChannelResolver  $channelResolver,
         private MessageBuilder   $messageBuilder,
-        private string           $name = '',
-        private bool             $removeInheritedTypeId = false,
+        private string           $name,
+        private bool             $removeInheritedTypeId,
     ) {
     }
 

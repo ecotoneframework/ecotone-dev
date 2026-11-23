@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Before;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\ChangingHeaders;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\Gathered;
@@ -620,6 +621,35 @@ final class HandlerSplitterTest extends TestCase
         };
         $this->expectExceptionMessage('Split handler ' . $aggregate::class . '::act shares a route with a factory, so its result cannot be split independently. Give the action its own routingKey or listenTo, move the split to a separate handler, or remove #[Splitter].');
         EcotoneLite::bootstrapFlowTesting(classesToResolve: [$aggregate::class], enabledModules: []);
+    }
+
+    public function test_changing_headers_split_handler_is_refused(): void
+    {
+        $handler = new class () {
+            #[InternalHandler('split', outputChannelName: 'parts', changingHeaders: true)]
+            #[Splitter]
+            public function split(): array
+            {
+                return ['tenant' => 'acme'];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split changes headers instead of returning output messages. Remove #[ChangingHeaders] or set changingHeaders: false, move the split to a separate handler, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class], containerOrAvailableServices: [$handler], enabledModules: [], licenceKey: self::ENTERPRISE_LICENCE);
+    }
+
+    public function test_changing_headers_attribute_with_splitter_is_refused(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', outputChannelName: 'parts')]
+            #[ChangingHeaders]
+            #[Splitter]
+            public function split(): array
+            {
+                return ['tenant' => 'acme'];
+            }
+        };
+        $this->expectExceptionMessage('Split handler ' . $handler::class . '::split changes headers instead of returning output messages. Remove #[ChangingHeaders] or set changingHeaders: false, move the split to a separate handler, or remove #[Splitter].');
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class], containerOrAvailableServices: [$handler], enabledModules: [], licenceKey: self::ENTERPRISE_LICENCE);
     }
 
     public function test_aggregate_factory_with_splitter_is_refused(): void

@@ -8,6 +8,7 @@ use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\ChangingHeaders;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
@@ -88,6 +89,11 @@ final class SplitterModule extends NoExternalConfigurationModule
 
         if ($splitter->getRequiredInterceptorNames() !== []) {
             throw ConfigurationException::create("Split handler {$name} sets requiredInterceptorNames on #[Splitter]. Move the names to the handler attribute requiredInterceptorNames so they run once around the handler, or move #[Splitter] to a separate method.");
+        }
+        foreach ($registration->getMethodAnnotations() as $handler) {
+            if ($registration->hasMethodAnnotation(ChangingHeaders::class) || ($handler instanceof InternalHandler && $handler->changingHeaders)) {
+                throw ConfigurationException::create("Split handler {$name} changes headers instead of returning output messages. Remove #[ChangingHeaders] or set changingHeaders: false, move the split to a separate handler, or remove #[Splitter].");
+            }
         }
         $interface = $registry->getFor($registration->getClassName(), $registration->getMethodName());
         if ($registration->hasClassAnnotation(Aggregate::class) && $interface->isFactoryMethod()) {

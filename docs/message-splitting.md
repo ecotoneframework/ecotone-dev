@@ -8,11 +8,11 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Splitter;
 
-#[CommandHandler('import.rows', outputChannelName: 'import.row')]
+#[CommandHandler('import.file', outputChannelName: 'import.row')]
 #[Splitter]
-public function import(array $rows): array
+public function import(ImportFile $command): array
 {
-    return $rows;
+    return $this->rows($command->path);
 }
 
 #[InternalHandler('import.row')]
@@ -21,7 +21,9 @@ public function processRow(array $row): void
 }
 ```
 
-An empty result sends no messages. Ordinary values inherit the handled message's metadata and correlation id;
+Arrays (including keyed arrays), `iterable`, `Generator` and `Traversable` results are split in iteration order;
+keys do not become message numbers. An empty result sends no messages. Ordinary values inherit the handled
+message's metadata and correlation id;
 each part gets its own message id and sequence number. Returned `Message` elements retain their own headers,
 as with a standalone splitter. A command caller receives no direct reply from a handler with an output channel.
 
@@ -37,7 +39,8 @@ and return an independent iterable value instead. `#[InternalHandler]` remains a
 
 Only `gatherChannelName` may be set on a stacked `#[Splitter]`. Its input, endpoint id, output and required
 interceptors belong to the handler attribute. Missing output channels, non-iterable declared return types,
-factory methods and `#[QueryHandler]` combinations are refused at bootstrap with instructions to fix them.
+factory/action pairs sharing a route, header-changing handlers, projection methods, factory methods and
+`#[QueryHandler]` combinations are refused at bootstrap with instructions to fix them.
 
 To [gather the parts](message-gathering.md), give the handler an explicit stable `endpointId` and set
 `#[Splitter(gatherChannelName: 'import.summary')]`. Splitting is open core; gathering requires Enterprise.

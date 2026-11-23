@@ -36,6 +36,7 @@ public function summarize(GatheredParts $parts): array
 
 These methods belong to your application handler. Route the original request to `import.split` through your
 existing handler, configure both asynchronous channels, and handle the final result on `import.results`.
+[Gather a handler's split output](#gather-a-handlers-split-output) shows the shorter form without a dedicated splitter method.
 The gathered handler's consumer must run even when all work happens synchronously or the split is empty.
 
 ```mermaid
@@ -70,17 +71,18 @@ A handler can open the group directly by stacking `#[Splitter]`. Give each handl
 
 ```php
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Splitter;
 
-#[CommandHandler('import.rows', endpointId: 'import.rows.handler', outputChannelName: 'import.work')]
+#[CommandHandler('import.file', endpointId: 'import.file.handler', outputChannelName: 'import.work')]
 #[Splitter(gatherChannelName: 'import.summary')]
-public function import(array $rows): array
+public function import(ImportFile $command): array
 {
-    return $rows;
+    return $this->rows($command->path);
 }
 ```
 
 The `work()` and `summarize()` methods above work unchanged. Group identity uses the incoming message id and
-`import.rows.handler.splitter`, so replaying the same input rejoins the same group. The original payload recorded
+`import.file.handler.splitter`, so replaying the same input rejoins the same group. The original payload recorded
 for gathering is the handler's result, which is the payload passed to the split. Empty output still invokes the
 asynchronous gathered handler with zero parts. A failed part follows the normal dead-letter and replay flow.
 

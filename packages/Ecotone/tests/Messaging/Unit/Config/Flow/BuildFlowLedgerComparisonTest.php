@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
+use Closure;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Splitter;
@@ -11,12 +12,15 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
+use Ecotone\Test\Flow\FlowScenario;
+use Ecotone\Test\Flow\FlowStage;
 use Ecotone\Test\LicenceTesting;
 use FilesystemIterator;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
+use Test\Ecotone\BuildFlow\FlowScenarioRecorder;
 use Test\Ecotone\BuildFlow\FlowSnapshot;
 
 /**
@@ -423,7 +427,7 @@ final class BuildFlowLedgerComparisonTest extends TestCase
 
     private function record(string $scenario, string $side, object $handlers): void
     {
-        $this->application([$handlers::class], [$handlers])->runConsoleCommand('ecotone:build-flow:record', ['scenario' => $scenario, 'location' => $this->location . '/' . $side]);
+        $this->recordAs($scenario, $side, [$handlers::class], [$handlers], [], fn () => null);
     }
 
     /**
@@ -467,5 +471,20 @@ final class BuildFlowLedgerComparisonTest extends TestCase
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+
+    /**
+     * @param list<class-string> $classes
+     * @param list<object> $services
+     * @param list<object> $extensionObjects
+     */
+    private function recordAs(string $scenario, string $side, array $classes, array $services, array $extensionObjects, Closure $run): void
+    {
+        $snapshot = FlowScenarioRecorder::snapshotOf(new FlowScenario(name: $scenario, classesToResolve: $classes, services: $services, extensionObjects: $extensionObjects, stages: [FlowStage::when($run)]));
+        $directory = $this->location . '/' . $side;
+        if (! is_dir($directory)) {
+            mkdir($directory, recursive: true);
+        }
+        file_put_contents($directory . '/' . $snapshot->fileName(), $snapshot->toJson());
     }
 }

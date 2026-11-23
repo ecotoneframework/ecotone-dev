@@ -252,13 +252,14 @@ message names none). The catalogue runs its distributed scenarios in one applica
 a message delivered again after a failure keeps the context
 it was sent with, so each delivery is a sub-flow of the same send. A consumer a handler runs stays inside that
 handler's process. The text prints flows in run order and each sub-flow as `sub-flow process N: …` under its sender,
-in the order the sender sent them; process numbers stay the run order. `compare` states a new, gone or re-attached
-sub-flow and shows each one right after its sender.
+in the order the sender sent them; process numbers stay the run order. `compare` lists the processes in run order,
+each sub-flow with the process that sent it (`sent by process N`); when only the processes changed, its Now sentence
+states a new, gone or re-attached sub-flow.
 
 The framework wiring (`ecotone:flow:dump --framework`, and the wiring and framework section of a snapshot) is read only at the
 framework tracing level, and needs no span recorder. `MessageFlowModule` adds the step that reads it before the
 recording step, so it is the wiring the application declared, never the recording's wrappers. At the application
-level, `--framework` and `ecotone:build-flow:record` are refused; `ecotone:flow:dump` without `--framework` is the
+level, `--framework` is refused; `ecotone:flow:dump` without `--framework` is the
 same at both levels. In the dump the part Ecotone registers itself is under the JSON key `framework`, its nodes and
 edges carry the attribute `framework: true`, and Mermaid draws them with `classDef framework`. A build-flow snapshot
 stores the same framework section under its stored key `build` (and `compare --presentation=json` under

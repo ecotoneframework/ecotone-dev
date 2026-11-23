@@ -17,7 +17,6 @@ use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
 
 /**
  * licence Apache-2.0
@@ -58,15 +57,6 @@ final class MessageFlowFrameworkTracingLevelTest extends TestCase
         self::assertStringContainsString('around interceptor Ecotone\\\\Tracing\\\\TracingInterceptor::traceHandlerEndpoint', $dump);
         self::assertStringNotContainsString('Ecotone\\\\Tracing\\\\Execution\\\\Recorded', $dump);
         self::assertStringNotContainsString('unrecognised layer', $dump);
-    }
-
-    public function test_recording_a_build_flow_snapshot_is_refused_at_the_application_tracing_level(): void
-    {
-        $ecotone = $this->application(TracingLevel::Application);
-
-        $this->expectExceptionMessage('The framework wiring Ecotone registers for this application was asked for, but it is read only at the framework tracing level. Switch it on with TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework) returned from a #[ServiceContext].');
-
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => sys_get_temp_dir() . '/ecotone-build-flow-refused']);
     }
 
     public function test_an_application_outside_flow_testing_runs_at_the_framework_level_without_a_span_recorder(): void
@@ -124,28 +114,13 @@ final class MessageFlowFrameworkTracingLevelTest extends TestCase
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json']);
     }
 
-    public function test_recording_a_build_flow_snapshot_without_an_enterprise_licence_is_refused(): void
-    {
-        $ordering = $this->ordering();
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$ordering::class, BuildFlowConsoleCommands::class],
-            [$ordering, new BuildFlowConsoleCommands()],
-            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
-            enabledModules: [],
-        );
-
-        $this->expectExceptionMessage('The framework wiring Ecotone registers for this application was asked for, but it is read only with an Ecotone Enterprise licence. Provide a licence key; see https://docs.ecotone.tech/enterprise for details.');
-
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => sys_get_temp_dir() . '/ecotone-build-flow-unlicensed']);
-    }
-
     private function application(TracingLevel $level): FlowTestSupport
     {
         $ordering = $this->ordering();
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$ordering::class, BuildFlowConsoleCommands::class],
-            [$ordering, new BuildFlowConsoleCommands()],
+            [$ordering::class],
+            [$ordering],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel($level)],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,

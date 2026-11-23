@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
+use Closure;
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
@@ -20,6 +21,7 @@ use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
 use Ecotone\Test\Flow\FlowScenario;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
+use Ecotone\Test\Flow\FlowStage;
 use Ecotone\Test\LicenceTesting;
 use FilesystemIterator;
 use PHPUnit\Framework\TestCase;
@@ -294,10 +296,8 @@ final class BuildFlowExecutionTest extends TestCase
             {
             }
         };
-        $ecotone = $this->application([$listener::class], [$listener]);
-        $ecotone->publishEventWithRouting("order.\xC3\x28", 'x');
 
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Hearing an order', 'location' => $this->location . '/after']);
+        $this->recordAs('Hearing an order', 'after', [$listener::class], [$listener], [], fn (FlowTestSupport $ecotone) => $ecotone->publishEventWithRouting("order.\xC3\x28", 'x'));
 
         self::assertStringContainsString('order.', (string) json_encode($this->storedSnapshot('after', 'hearing-an-order')['trace'], JSON_INVALID_UTF8_SUBSTITUTE));
     }
@@ -700,13 +700,12 @@ final class BuildFlowExecutionTest extends TestCase
 
     private function record(string $scenario, string $side, object $ordering, bool $consumed = true): void
     {
-        $ecotone = $this->application([$ordering::class], [$ordering]);
-        $ecotone->sendCommandWithRouting('order.place', []);
-        if ($consumed) {
-            $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
-        }
-
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => $scenario, 'location' => $this->location . '/' . $side]);
+        $this->recordAs($scenario, $side, [$ordering::class], [$ordering], [SimpleMessageChannelBuilder::createQueueChannel('notifications')], function (FlowTestSupport $ecotone) use ($consumed): void {
+            $ecotone->sendCommandWithRouting('order.place', []);
+            if ($consumed) {
+                $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+            }
+        });
     }
 
     /**
@@ -774,5 +773,20 @@ final class BuildFlowExecutionTest extends TestCase
         $snapshot = FlowScenarioRecorder::snapshotOf($scenario);
 
         return FlowSnapshots::filesOf([$snapshot->fileName() => $snapshot], FlowScenarioRecorder::snapshotOf(new FlowScenario(name: 'application without handlers', classesToResolve: [], services: [], extensionObjects: [], stages: [])));
+    }
+
+    /**
+     * @param list<class-string> $classes
+     * @param list<object> $services
+     * @param list<object> $extensionObjects
+     */
+    private function recordAs(string $scenario, string $side, array $classes, array $services, array $extensionObjects, Closure $run): void
+    {
+        $snapshot = FlowScenarioRecorder::snapshotOf(new FlowScenario(name: $scenario, classesToResolve: $classes, services: $services, extensionObjects: $extensionObjects, stages: [FlowStage::when($run)]));
+        $directory = $this->location . '/' . $side;
+        if (! is_dir($directory)) {
+            mkdir($directory, recursive: true);
+        }
+        file_put_contents($directory . '/' . $snapshot->fileName(), $snapshot->toJson());
     }
 }

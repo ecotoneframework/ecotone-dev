@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
+use Closure;
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -17,12 +18,15 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
+use Ecotone\Test\Flow\FlowScenario;
+use Ecotone\Test\Flow\FlowStage;
 use Ecotone\Test\LicenceTesting;
 use FilesystemIterator;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
+use Test\Ecotone\BuildFlow\FlowScenarioRecorder;
 
 /**
  * licence Apache-2.0
@@ -166,9 +170,7 @@ final class BuildFlowPresentationTest extends TestCase
             {
             }
         };
-        $ecotone = $this->application([$scheduled::class], [$scheduled]);
-        $ecotone->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(1));
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Polling', 'location' => $this->location . '/after']);
+        $this->recordAs('Polling', 'after', [$scheduled::class], [$scheduled], [SimpleMessageChannelBuilder::createQueueChannel('notifications')], fn (FlowTestSupport $ecotone) => $ecotone->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(1)));
 
         $markdown = $this->presentation('build');
 
@@ -386,9 +388,7 @@ final class BuildFlowPresentationTest extends TestCase
                 $eventBus->publishWithRouting($order['event'], []);
             }
         };
-        $ecotone = $this->application([$handlers::class], [$handlers]);
-        $ecotone->sendCommandWithRouting('order.place', ['event' => $event]);
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location . '/' . $side]);
+        $this->recordAs('Placing an order', $side, [$handlers::class], [$handlers], [SimpleMessageChannelBuilder::createQueueChannel('notifications')], fn (FlowTestSupport $ecotone) => $ecotone->sendCommandWithRouting('order.place', ['event' => $event]));
     }
 
     private function recordAnOrderThatGainsAnAudit(string $scenario): void
@@ -516,11 +516,10 @@ final class BuildFlowPresentationTest extends TestCase
 
     private function record(string $scenario, string $side, object $ordering): void
     {
-        $ecotone = $this->application([$ordering::class], [$ordering]);
-        $ecotone->sendCommandWithRouting('order.place', []);
-        $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
-
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => $scenario, 'location' => $this->location . '/' . $side]);
+        $this->recordAs($scenario, $side, [$ordering::class], [$ordering], [SimpleMessageChannelBuilder::createQueueChannel('notifications')], function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommandWithRouting('order.place', []);
+            $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        });
     }
 
     private function presentation(string $presentation, string $from = 'before', string $to = 'after'): string
@@ -564,5 +563,20 @@ final class BuildFlowPresentationTest extends TestCase
         $after = $read('after');
         $after['execution'] = $read('before')['execution'];
         file_put_contents($this->location . '/after/placing-an-order.json', json_encode($after, JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param list<class-string> $classes
+     * @param list<object> $services
+     * @param list<object> $extensionObjects
+     */
+    private function recordAs(string $scenario, string $side, array $classes, array $services, array $extensionObjects, Closure $run): void
+    {
+        $snapshot = FlowScenarioRecorder::snapshotOf(new FlowScenario(name: $scenario, classesToResolve: $classes, services: $services, extensionObjects: $extensionObjects, stages: [FlowStage::when($run)]));
+        $directory = $this->location . '/' . $side;
+        if (! is_dir($directory)) {
+            mkdir($directory, recursive: true);
+        }
+        file_put_contents($directory . '/' . $snapshot->fileName(), $snapshot->toJson());
     }
 }

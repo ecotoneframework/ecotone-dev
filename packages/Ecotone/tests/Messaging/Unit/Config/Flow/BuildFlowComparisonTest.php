@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
+use Closure;
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Before;
@@ -20,12 +21,15 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Lite\Test\MessagingTestSupport;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
+use Ecotone\Test\Flow\FlowScenario;
+use Ecotone\Test\Flow\FlowStage;
 use Ecotone\Test\LicenceTesting;
 use FilesystemIterator;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
+use Test\Ecotone\BuildFlow\FlowScenarioRecorder;
 
 /**
  * licence Apache-2.0
@@ -371,13 +375,12 @@ final class BuildFlowComparisonTest extends TestCase
 
     private function record(string $scenario, string $side, object $ordering, int $times = 1): void
     {
-        $ecotone = $this->application([$ordering::class], [$ordering]);
-        for ($sent = 0; $sent < $times; $sent++) {
-            $ecotone->sendCommandWithRouting('order.place', []);
-            $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
-        }
-
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => $scenario, 'location' => $this->location . '/' . $side]);
+        $this->recordAs($scenario, $side, [$ordering::class], [$ordering], [SimpleMessageChannelBuilder::createQueueChannel('notifications')], function (FlowTestSupport $ecotone) use ($times): void {
+            for ($sent = 0; $sent < $times; $sent++) {
+                $ecotone->sendCommandWithRouting('order.place', []);
+                $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+            }
+        });
     }
 
     /**
@@ -406,5 +409,20 @@ final class BuildFlowComparisonTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
             initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
+    }
+
+    /**
+     * @param list<class-string> $classes
+     * @param list<object> $services
+     * @param list<object> $extensionObjects
+     */
+    private function recordAs(string $scenario, string $side, array $classes, array $services, array $extensionObjects, Closure $run): void
+    {
+        $snapshot = FlowScenarioRecorder::snapshotOf(new FlowScenario(name: $scenario, classesToResolve: $classes, services: $services, extensionObjects: $extensionObjects, stages: [FlowStage::when($run)]));
+        $directory = $this->location . '/' . $side;
+        if (! is_dir($directory)) {
+            mkdir($directory, recursive: true);
+        }
+        file_put_contents($directory . '/' . $snapshot->fileName(), $snapshot->toJson());
     }
 }

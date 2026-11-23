@@ -17,15 +17,6 @@ final class FlowSnapshots
     {
     }
 
-    public function store(FlowSnapshot $snapshot): void
-    {
-        $this->createLocation("Flow snapshot of scenario `{$snapshot->scenario}`");
-        $file = $this->location . '/' . $snapshot->fileName();
-        if (@file_put_contents($file, $snapshot->toJson()) === false) {
-            throw InvalidArgumentException::create("Flow snapshot of scenario `{$snapshot->scenario}` could not be written to {$file}. Make the location {$this->location} writable for the user running this command, or pass another --location.");
-        }
-    }
-
     /**
      * @return list<string>
      */

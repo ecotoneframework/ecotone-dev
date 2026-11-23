@@ -4,25 +4,22 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
-use DateTimeImmutable;
+use Closure;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
-use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
-use Ecotone\Api\Tracing\InMemorySpanRecorder;
-use Ecotone\Api\Tracing\TracingConfiguration;
-use Ecotone\Api\Tracing\TracingLevel;
-use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\Flow\FlowScenario;
+use Ecotone\Test\Flow\FlowStage;
 use FilesystemIterator;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
+use Test\Ecotone\BuildFlow\FlowScenarioRecorder;
 
 /**
  * licence Apache-2.0
@@ -48,13 +45,9 @@ final class BuildFlowSnapshotTest extends TestCase
         rmdir($this->location);
     }
 
-    public function test_recorded_snapshot_lists_the_traced_steps_in_parent_child_order(): void
+    public function test_a_snapshot_lists_the_traced_steps_in_parent_child_order(): void
     {
-        $ecotone = $this->orderingApplication($this->orderingService());
-        $ecotone->sendCommandWithRouting('order.place', []);
-        $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
-
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location]);
+        $this->recordPlacingAnOrder($this->orderingService(), 'recorded', consumed: true);
 
         self::assertSame(
             [
@@ -70,13 +63,10 @@ final class BuildFlowSnapshotTest extends TestCase
         );
     }
 
-    public function test_recorded_snapshot_leaves_out_generated_ids_timings_and_durations(): void
+    public function test_a_snapshot_leaves_out_generated_ids_timings_and_durations(): void
     {
-        $ecotone = $this->orderingApplication($this->orderingService());
-        $ecotone->sendCommandWithRouting('order.place', []);
-
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location]);
-        $stored = (string) file_get_contents($this->location . '/placing-an-order.json');
+        $this->recordPlacingAnOrder($this->orderingService(), 'recorded', consumed: false);
+        $stored = (string) file_get_contents($this->location . '/recorded/placing-an-order.json');
 
         self::assertSame(['formatVersion', 'scenario', 'wiring', 'build', 'trace', 'execution'], array_keys($this->storedSnapshot('placing-an-order')));
         self::assertSame(3, $this->storedSnapshot('placing-an-order')['formatVersion']);
@@ -87,11 +77,9 @@ final class BuildFlowSnapshotTest extends TestCase
         self::assertStringNotContainsString(__FILE__, $stored);
     }
 
-    public function test_recorded_snapshot_holds_the_ledger_entry_and_the_chain_of_a_handler_of_the_application(): void
+    public function test_a_snapshot_holds_the_ledger_entry_and_the_chain_of_a_handler_of_the_application(): void
     {
-        $ecotone = $this->orderingApplication($this->orderingService());
-
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location]);
+        $this->recordPlacingAnOrder($this->orderingService(), 'recorded', sent: false);
         $build = $this->storedSnapshot('placing-an-order')['build'];
         $handler = array_values(array_filter($build['ledger'], fn (array $entry): bool => $entry['kind'] === 'handler' && $entry['name'] === 'placeOrder'));
         $chain = array_values(array_filter($build['chains'], fn (array $chain): bool => $chain['handler'] === 'placeOrder'));
@@ -105,13 +93,11 @@ final class BuildFlowSnapshotTest extends TestCase
         self::assertContains('handler class@anonymous#1::place(array $order, Ecotone\\Api\\Gateway\\EventBus $eventBus)', $chain[0]['layers']);
     }
 
-    public function test_recorded_snapshot_stores_one_ledger_entry_and_one_chain_per_line_sorted(): void
+    public function test_a_snapshot_stores_one_ledger_entry_and_one_chain_per_line_sorted(): void
     {
-        $ecotone = $this->orderingApplication($this->orderingService());
-
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location]);
+        $this->recordPlacingAnOrder($this->orderingService(), 'recorded', sent: false);
         $build = $this->storedSnapshot('placing-an-order')['build'];
-        $stored = (string) file_get_contents($this->location . '/placing-an-order.json');
+        $stored = (string) file_get_contents($this->location . '/recorded/placing-an-order.json');
 
         $entries = array_map(fn (array $entry): string => $entry['kind'] . ':' . $entry['name'], $build['ledger']);
         $sorted = $entries;
@@ -125,11 +111,9 @@ final class BuildFlowSnapshotTest extends TestCase
         self::assertSame(count($build['chains']), preg_match_all('/^            \{"handler":/m', $stored));
     }
 
-    public function test_recorded_snapshot_holds_the_framework_wiring_of_the_application(): void
+    public function test_a_snapshot_holds_the_framework_wiring_of_the_application(): void
     {
-        $ecotone = $this->orderingApplication($this->orderingService());
-
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location]);
+        $this->recordPlacingAnOrder($this->orderingService(), 'recorded', sent: false);
         $wiring = MessageFlowGraph::fromArray($this->storedSnapshot('placing-an-order')['wiring']);
 
         self::assertTrue($wiring->node('channel:placeOrder.target')->attributes['framework']);
@@ -139,39 +123,30 @@ final class BuildFlowSnapshotTest extends TestCase
 
     public function test_the_same_application_declared_elsewhere_is_recorded_as_the_same_bytes(): void
     {
-        $first = $this->orderingApplication($this->orderingService());
-        $second = $this->orderingApplication($this->orderingServiceDeclaredElsewhere());
-        foreach ([$first, $second] as $ecotone) {
-            $ecotone->sendCommandWithRouting('order.place', []);
-            $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
-        }
-
-        $first->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location . '/first']);
-        $second->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location . '/second']);
+        $this->recordPlacingAnOrder($this->orderingService(), 'first', consumed: true);
+        $this->recordPlacingAnOrder($this->orderingServiceDeclaredElsewhere(), 'second', consumed: true);
 
         self::assertSame(file_get_contents($this->location . '/first/placing-an-order.json'), file_get_contents($this->location . '/second/placing-an-order.json'));
     }
 
     public function test_snapshot_nodes_and_arrows_are_stored_sorted(): void
     {
-        $ecotone = $this->orderingApplication($this->orderingService());
-
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location]);
+        $this->recordPlacingAnOrder($this->orderingService(), 'recorded', sent: false);
         $nodeIds = array_column($this->storedSnapshot('placing-an-order')['wiring']['nodes'], 'id');
         $sortedNodeIds = $nodeIds;
         sort($sortedNodeIds, SORT_STRING);
 
         self::assertSame($sortedNodeIds, $nodeIds);
-        self::assertStringEndsWith("}\n", (string) file_get_contents($this->location . '/placing-an-order.json'));
+        self::assertStringEndsWith("}\n", (string) file_get_contents($this->location . '/recorded/placing-an-order.json'));
     }
 
     public function test_recording_a_scenario_whose_name_gives_no_file_name_is_refused_with_the_way_out(): void
     {
-        $ecotone = $this->orderingApplication($this->orderingService());
+        $ordering = $this->orderingService();
 
         $this->expectExceptionMessage('Scenario `???` cannot be recorded, because a snapshot is stored in a file named after the letters and digits of its scenario, and this name has none. Give the scenario a name with at least one letter or digit, for example `projection rebuilt asynchronously`.');
 
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => '???', 'location' => $this->location]);
+        $this->recordAs('???', 'recorded', [$ordering::class], [$ordering], [], fn () => null);
     }
 
     private function orderingService(): object
@@ -208,18 +183,16 @@ final class BuildFlowSnapshotTest extends TestCase
         };
     }
 
-    private function orderingApplication(object $ordering): FlowTestSupport
+    private function recordPlacingAnOrder(object $ordering, string $side, bool $sent = true, bool $consumed = false): void
     {
-        $recorder = new InMemorySpanRecorder();
-
-        return EcotoneLite::bootstrapFlowTesting(
-            [$ordering::class, BuildFlowConsoleCommands::class],
-            [$ordering, new BuildFlowConsoleCommands(), InMemorySpanRecorder::class => $recorder],
-            [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
-            enabledModules: [],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-            initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
-        );
+        $this->recordAs('Placing an order', $side, [$ordering::class], [$ordering], [SimpleMessageChannelBuilder::createQueueChannel('notifications')], function (FlowTestSupport $ecotone) use ($sent, $consumed): void {
+            if ($sent) {
+                $ecotone->sendCommandWithRouting('order.place', []);
+            }
+            if ($consumed) {
+                $ecotone->run('notifications', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+            }
+        });
     }
 
     /**
@@ -227,6 +200,21 @@ final class BuildFlowSnapshotTest extends TestCase
      */
     private function storedSnapshot(string $fileName): array
     {
-        return json_decode((string) file_get_contents($this->location . '/' . $fileName . '.json'), true, flags: JSON_THROW_ON_ERROR);
+        return json_decode((string) file_get_contents($this->location . '/recorded/' . $fileName . '.json'), true, flags: JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param list<class-string> $classes
+     * @param list<object> $services
+     * @param list<object> $extensionObjects
+     */
+    private function recordAs(string $scenario, string $side, array $classes, array $services, array $extensionObjects, Closure $run): void
+    {
+        $snapshot = FlowScenarioRecorder::snapshotOf(new FlowScenario(name: $scenario, classesToResolve: $classes, services: $services, extensionObjects: $extensionObjects, stages: [FlowStage::when($run)]));
+        $directory = $this->location . '/' . $side;
+        if (! is_dir($directory)) {
+            mkdir($directory, recursive: true);
+        }
+        file_put_contents($directory . '/' . $snapshot->fileName(), $snapshot->toJson());
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
+use Closure;
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\EventSourcing\Event;
@@ -17,12 +18,15 @@ use Ecotone\Api\Projecting\ProjectionBackfill;
 use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
+use Ecotone\Test\Flow\FlowScenario;
+use Ecotone\Test\Flow\FlowStage;
 use Ecotone\Test\LicenceTesting;
 use FilesystemIterator;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
+use Test\Ecotone\BuildFlow\FlowScenarioRecorder;
 
 /**
  * licence Apache-2.0
@@ -128,7 +132,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
 
         $trace = $this->comparison('json')['groups'][0]['trace'];
 
-        self::assertSame(['unchanged', 'unchanged', 'unchanged', 'unchanged', 'unchanged', 'unchanged', 'added', 'added', 'added'], array_column($trace, 'change'));
+        self::assertSame(['unchanged', 'unchanged', 'unchanged', 'unchanged', 'unchanged', 'added', 'added', 'added'], array_column($trace, 'change'));
     }
 
     public function test_the_change_is_summarised_as_what_happened_before_and_what_happens_now(): void
@@ -254,11 +258,11 @@ final class BuildFlowReadableComparisonTest extends TestCase
             {
             }
         };
-        $ecotone = $this->application([$projection::class], [$projection], [SimpleMessageChannelBuilder::createQueueChannel($operation)]);
-        $ecotone->withEventStream('orders_stream', [Event::createWithType('order.placed', ['orderId' => '1'])]);
-        $ecotone->runConsoleCommand('ecotone:projection:' . $operation, ['name' => 'orders']);
-        $ecotone->run($operation, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
-        $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => "projection {$operation} run", 'location' => $this->location . '/after']);
+        $this->recordAs("projection {$operation} run", 'after', [$projection::class], [$projection], [SimpleMessageChannelBuilder::createQueueChannel($operation)], function (FlowTestSupport $ecotone) use ($operation): void {
+            $ecotone->withEventStream('orders_stream', [Event::createWithType('order.placed', ['orderId' => '1'])]);
+            $ecotone->runConsoleCommand('ecotone:projection:' . $operation, ['name' => 'orders']);
+            $ecotone->run($operation, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        });
 
         $file = "projection-{$operation}-run.json";
         $now = json_decode((string) file_get_contents($this->location . '/after/' . $file), true, flags: JSON_THROW_ON_ERROR);
@@ -304,5 +308,20 @@ final class BuildFlowReadableComparisonTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
             initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
+    }
+
+    /**
+     * @param list<class-string> $classes
+     * @param list<object> $services
+     * @param list<object> $extensionObjects
+     */
+    private function recordAs(string $scenario, string $side, array $classes, array $services, array $extensionObjects, Closure $run): void
+    {
+        $snapshot = FlowScenarioRecorder::snapshotOf(new FlowScenario(name: $scenario, classesToResolve: $classes, services: $services, extensionObjects: $extensionObjects, stages: [FlowStage::when($run)]));
+        $directory = $this->location . '/' . $side;
+        if (! is_dir($directory)) {
+            mkdir($directory, recursive: true);
+        }
+        file_put_contents($directory . '/' . $snapshot->fileName(), $snapshot->toJson());
     }
 }

@@ -18,14 +18,9 @@ final class InMemoryExecutionRecordingReader implements ExecutionRecordingReader
 
     public function pop(): ExecutionRecording
     {
-        return RecordedExecution::of($this->popSpans())->toRecording();
-    }
-
-    public function popSpans(): array
-    {
         $spans = $this->spanRecorder->recordedSpans();
         $this->spanRecorder->clear();
 
-        return $spans;
+        return RecordedExecution::of($spans)->toRecording();
     }
 }

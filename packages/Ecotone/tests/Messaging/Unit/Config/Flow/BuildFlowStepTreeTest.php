@@ -4,18 +4,22 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
+use Closure;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Api\Tracing\TracingLevel;
+use Ecotone\Test\Flow\FlowScenario;
+use Ecotone\Test\Flow\FlowStage;
 use Ecotone\Test\LicenceTesting;
 use FilesystemIterator;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Test\Ecotone\BuildFlow\BuildFlowConsoleCommands;
+use Test\Ecotone\BuildFlow\FlowScenarioRecorder;
 
 /**
  * licence Apache-2.0
@@ -365,9 +369,7 @@ final class BuildFlowStepTreeTest extends TestCase
             }
         };
         foreach (['before' => $before, 'after' => $after] as $side => $execution) {
-            $ecotone = $this->application([$placing::class], [$placing]);
-            $ecotone->sendCommandWithRouting('order.place', []);
-            $ecotone->runConsoleCommand('ecotone:build-flow:record', ['scenario' => 'Placing an order', 'location' => $this->location . '/' . $side]);
+            $this->recordAs('Placing an order', $side, [$placing::class], [$placing], [SimpleMessageChannelBuilder::createQueueChannel('notifications')], fn (FlowTestSupport $ecotone) => $ecotone->sendCommandWithRouting('order.place', []));
             $file = $this->location . '/' . $side . '/placing-an-order.json';
             $snapshot = json_decode((string) file_get_contents($file), true, flags: JSON_THROW_ON_ERROR);
             $snapshot['execution'] = $execution;
@@ -395,5 +397,20 @@ final class BuildFlowStepTreeTest extends TestCase
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+
+    /**
+     * @param list<class-string> $classes
+     * @param list<object> $services
+     * @param list<object> $extensionObjects
+     */
+    private function recordAs(string $scenario, string $side, array $classes, array $services, array $extensionObjects, Closure $run): void
+    {
+        $snapshot = FlowScenarioRecorder::snapshotOf(new FlowScenario(name: $scenario, classesToResolve: $classes, services: $services, extensionObjects: $extensionObjects, stages: [FlowStage::when($run)]));
+        $directory = $this->location . '/' . $side;
+        if (! is_dir($directory)) {
+            mkdir($directory, recursive: true);
+        }
+        file_put_contents($directory . '/' . $snapshot->fileName(), $snapshot->toJson());
     }
 }

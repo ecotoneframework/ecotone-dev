@@ -42,7 +42,7 @@ final class DecisionModelFetchTest extends TestCase
         $handler = new TransferHandlerForFetchTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, AccountActivityForFetchTest::class, MoneyTransferredForFetchTest::class],
+            classesToResolve: [AccountActivityForFetchTest::class, MoneyTransferredForFetchTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -61,7 +61,7 @@ final class DecisionModelFetchTest extends TestCase
         $handler = new RedeemCouponHandlerForFetchTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, CustomerCouponUseForFetchTest::class, OrderPlacedForFetchTest::class],
+            classesToResolve: [CustomerCouponUseForFetchTest::class, OrderPlacedForFetchTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -116,7 +116,7 @@ final class DecisionModelFetchTest extends TestCase
         $handler = new CountingSeveralAccountsHandlerForFetchTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, AccountActivityForFetchTest::class, MoneyTransferredForFetchTest::class],
+            classesToResolve: [AccountActivityForFetchTest::class, MoneyTransferredForFetchTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -136,7 +136,7 @@ final class DecisionModelFetchTest extends TestCase
     private function bootstrapCountingHandler(CountingHandlerForFetchTest $handler)
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, AccountActivityForFetchTest::class, MoneyTransferredForFetchTest::class],
+            classesToResolve: [AccountActivityForFetchTest::class, MoneyTransferredForFetchTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],

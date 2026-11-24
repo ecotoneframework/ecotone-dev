@@ -68,7 +68,7 @@ final class StreamingChannelValidationTest extends TestCase
         $topic2 = 'topic2-' . Uuid::v7()->toRfc4122();
 
         EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [
                 $handler,
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),
@@ -103,7 +103,7 @@ final class StreamingChannelValidationTest extends TestCase
 
         // This should work fine - different group IDs
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [
                 $handler,
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),
@@ -135,7 +135,7 @@ final class StreamingChannelValidationTest extends TestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [
                 $handler,
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),
@@ -165,7 +165,7 @@ final class StreamingChannelValidationTest extends TestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [
                 $handler,
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),
@@ -190,7 +190,7 @@ final class StreamingChannelValidationTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [
                 $handler,
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),
@@ -223,7 +223,7 @@ final class StreamingChannelValidationTest extends TestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [
                 $handler,
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),

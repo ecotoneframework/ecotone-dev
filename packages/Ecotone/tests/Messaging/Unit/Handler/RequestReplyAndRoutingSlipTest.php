@@ -105,7 +105,7 @@ final class RequestReplyAndRoutingSlipTest extends TestCase
     private function bootstrap()
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [RequestReplyHandler::class],
+            [],
             [new RequestReplyHandler()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel(RequestReplyHandler::OUTPUT_CHANNEL),

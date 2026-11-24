@@ -93,7 +93,7 @@ final class InternalHandlerChangingHeadersTest extends TestCase
     {
         $handler = new DefaultBehaviorHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [DefaultBehaviorHandler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -109,7 +109,7 @@ final class InternalHandlerChangingHeadersTest extends TestCase
         $this->expectExceptionMessageMatches('/EnrichingHandlerA::enrich/');
 
         EcotoneLite::bootstrapFlowTesting(
-            [EnrichingHandlerA::class, CapturingHandlerB::class],
+            [],
             [new EnrichingHandlerA(), new CapturingHandlerB()],
             enabledModules: [],
         );

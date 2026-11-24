@@ -103,7 +103,7 @@ final class EventStreamMigrationMultiConnectionTest extends EventSourcingMessagi
     private function bootstrapWithSecondaryStream(): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [SecondaryOrder::class, SecondaryOrderConverter::class],
+            classesToResolve: [SecondaryOrder::class],
             containerOrAvailableServices: [
                 new SecondaryOrderConverter(),
                 DbalConnectionFactory::class => $this->connectionForTenantA(),

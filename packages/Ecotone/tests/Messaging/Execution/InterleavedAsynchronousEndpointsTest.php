@@ -70,7 +70,7 @@ final class InterleavedAsynchronousEndpointsTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class, $interceptors::class],
+            [],
             [$orders, $interceptors],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('orders'),

@@ -91,7 +91,6 @@ final class SymfonyMessengerPulseTest extends WebTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $pulseService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$pulse::class],
             containerOrAvailableServices: [$pulse],
             extensionObjects: [
                 ...$channels,

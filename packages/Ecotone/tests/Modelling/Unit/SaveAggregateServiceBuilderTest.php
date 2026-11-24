@@ -376,7 +376,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
     {
         $repository = new CustomEventSourcingRepository();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [EventSourcingAggregateWithInternalRecorder::class, Something::class, CustomEventSourcingRepository::class, SomethingWasCreated::class],
+            [EventSourcingAggregateWithInternalRecorder::class, Something::class, SomethingWasCreated::class],
             [CustomEventSourcingRepository::class => $repository],
             enabledModules: [],
             addInMemoryEventSourcedRepository: false,

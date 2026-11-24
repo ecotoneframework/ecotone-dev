@@ -45,7 +45,7 @@ final class DecisionModelStreamTest extends TestCase
         $handler = new StreamHandlerForStreamTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, CourseForStreamTest::class, CourseDefinedForStreamTest::class],
+            classesToResolve: [CourseForStreamTest::class, CourseDefinedForStreamTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],

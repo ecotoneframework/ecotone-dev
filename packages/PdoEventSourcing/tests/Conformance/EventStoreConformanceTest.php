@@ -740,7 +740,7 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
 
         if ($implementation === 'in-memory-without-event-sourcing-module') {
             $ecotone = EcotoneLite::bootstrapFlowTesting(
-                classesToResolve: [$converter::class, $secondStream::class],
+                classesToResolve: [$secondStream::class],
                 containerOrAvailableServices: [$converter],
             );
 
@@ -753,7 +753,7 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
         }
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$converter::class, $secondStream::class],
+            classesToResolve: [$secondStream::class],
             containerOrAvailableServices: [$converter, DbalConnectionFactory::class => self::getConnectionFactory()],
             extensionObjects: [match($implementation) {
                 'in-memory' => EventSourcingConfiguration::createInMemory(),'dbal' => EventSourcingConfiguration::createWithDefaults(),

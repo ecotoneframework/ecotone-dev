@@ -49,7 +49,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
     {
         $topicName = 'deduplication_topic_' . Uuid::uuid4()->toString();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [KafkaConsumerWithDeduplicationExample::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 new KafkaConsumerWithDeduplicationExample(),
@@ -113,7 +113,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
     {
         $topicName = 'default_deduplication_topic_' . Uuid::uuid4()->toString();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [KafkaConsumerWithDefaultDeduplicationExample::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 new KafkaConsumerWithDefaultDeduplicationExample(),
@@ -177,7 +177,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
         $topicName = 'deduplication_topic_' . Uuid::uuid4()->toString();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [KafkaConsumerWithDeduplicationExample::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 new KafkaConsumerWithDeduplicationExample(),

@@ -22,7 +22,7 @@ final class ImplicitChannelCreationTest extends TestCase
     {
         $handler = new ImplicitChannelHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ImplicitChannelHandler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -36,7 +36,7 @@ final class ImplicitChannelCreationTest extends TestCase
     {
         $handler = new ImplicitChannelHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ImplicitChannelHandler::class],
+            [],
             [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createPublishSubscribeChannel(ImplicitChannelHandler::CHANNEL)],
             enabledModules: [],
@@ -49,7 +49,7 @@ final class ImplicitChannelCreationTest extends TestCase
     {
         $handler = new ImplicitChannelHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ImplicitChannelHandler::class],
+            [],
             [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel(ImplicitChannelHandler::CHANNEL)],
             enabledModules: [],

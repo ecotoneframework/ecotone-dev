@@ -25,7 +25,7 @@ final class WorkflowTest extends TestCase
     public function test_workflow_with_joined_output_command_handler(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderProcessSaga::class, PaymentHandler::class],
+            [OrderProcessSaga::class],
             [
                 PaymentHandler::class => new PaymentHandler(),
             ],
@@ -48,7 +48,7 @@ final class WorkflowTest extends TestCase
     public function test_workflow_with_message_filtering_on_saga(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderProcessSaga::class, PaymentHandler::class],
+            [OrderProcessSaga::class],
             [
                 PaymentHandler::class => new PaymentHandler(),
             ],
@@ -66,7 +66,7 @@ final class WorkflowTest extends TestCase
     public function test_workflow_with_joined_asynchronous_output_command_handler(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderProcessSaga::class, AsynchronousPaymentHandler::class],
+            [OrderProcessSaga::class],
             [
                 AsynchronousPaymentHandler::class => new AsynchronousPaymentHandler(),
             ],

@@ -311,7 +311,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         }
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Person::class, MultipleInternalCommandsService::class],
+            [Person::class],
             [
                 new MultipleInternalCommandsService(),
                 'tenant_a_connection' => $this->connectionForTenantA(),

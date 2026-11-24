@@ -199,7 +199,7 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
     private function bootstrapEcotone(array $classesToResolve): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [...$classesToResolve, CouponIssuedConverterForTagTableSetupTest::class],
+            classesToResolve: [...$classesToResolve],
             containerOrAvailableServices: [self::getConnectionFactory(), new CouponIssuedConverterForTagTableSetupTest()],
             extensionObjects: [
                 DynamicConsistencyBoundaryConfiguration::createWithDefaults(),

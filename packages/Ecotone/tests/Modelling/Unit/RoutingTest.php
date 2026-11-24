@@ -80,7 +80,7 @@ class RoutingTest extends TestCase
     public function test_it_can_route_events_by_name_and_convert(mixed $event, bool $async, RoutingTestHandler $handler): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, GuestWasAddedToBook::class, GuestWasAddedToBookConverter::class],
+            classesToResolve: [GuestWasAddedToBook::class],
             containerOrAvailableServices: [$handler, new GuestWasAddedToBookConverter()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],

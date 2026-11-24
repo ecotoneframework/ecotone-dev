@@ -301,7 +301,7 @@ final class BuildFlowReadableComparisonTest extends TestCase
     private function application(array $classes, array $services, array $extensionObjects): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [...$classes, BuildFlowConsoleCommands::class],
+            [...$classes],
             [...$services, new BuildFlowConsoleCommands()],
             [...$extensionObjects, TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],

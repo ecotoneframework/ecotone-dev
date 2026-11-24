@@ -174,7 +174,6 @@ final class TracingTreeTest extends TracingTestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [
                 \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class,
-                UserNotifier::class,
             ],
             [
                 new UserNotifier(),

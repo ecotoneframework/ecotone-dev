@@ -46,7 +46,7 @@ final class LaravelConnectionWithoutDbalTest extends TestCase
         $this->expectExceptionMessage(self::refusalFor("LaravelConnectionReference::defaultConnection('mysql')"));
 
         EcotoneLite::bootstrapFlowTesting(
-            [$configuration::class],
+            [],
             [$configuration],
             enabledModules: [ModulePackageList::LARAVEL_PACKAGE],
         );

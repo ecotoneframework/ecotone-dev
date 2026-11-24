@@ -42,7 +42,7 @@ final class MessageFlowGatewayTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class, BusinessGatewayForFlow::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([BusinessGatewayForFlow::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $gateway = 'gateway:' . BusinessGatewayForFlow::class . '::ship';
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::CALLS, 'handler:' . $service::class . '::handle', $gateway));
@@ -70,7 +70,7 @@ final class MessageFlowGatewayTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class, BusinessGatewayForFlow::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([BusinessGatewayForFlow::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $gateway = 'gateway:' . BusinessGatewayForFlow::class . '::ship';
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::CALLS, 'handler:' . $service::class . '::handle', $gateway));
@@ -99,7 +99,7 @@ final class MessageFlowGatewayTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class, ExtendedBusinessGatewayForFlow::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([ExtendedBusinessGatewayForFlow::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $gateway = 'gateway:' . ExtendedBusinessGatewayForFlow::class . '::cancel';
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::CALLS, 'handler:' . $service::class . '::handle', $gateway));
@@ -128,7 +128,7 @@ final class MessageFlowGatewayTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class, BusinessGatewayForFlow::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([BusinessGatewayForFlow::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $gateway = 'gateway:' . BusinessGatewayForFlow::class . '::ship';
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::CALLS, 'handler:' . $service::class . '::handle', $gateway));

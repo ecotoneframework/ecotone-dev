@@ -96,7 +96,7 @@ final class ClosureExpressionResultConversionTest extends TestCase
     private function bootstrapWith(ConvertedClosureExpressionService $handler): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [ConvertedClosureExpressionService::class, TenantChannels::class],
+            [ConvertedClosureExpressionService::class],
             [$handler, new TenantChannels()],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,

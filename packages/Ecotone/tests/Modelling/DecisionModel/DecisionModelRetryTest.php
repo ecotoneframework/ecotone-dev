@@ -86,7 +86,7 @@ final class DecisionModelRetryTest extends TestCase
         $injector = new AlwaysConflictingWriteInjectorForRetryTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, CourseForRetryTest::class, CourseDefinedForRetryTest::class, StudentSubscribedForRetryTest::class, AlwaysConflictingWriteInjectorForRetryTest::class],
+            classesToResolve: [CourseForRetryTest::class, CourseDefinedForRetryTest::class, StudentSubscribedForRetryTest::class],
             containerOrAvailableServices: [$handler, $injector],
             extensionObjects: [
                 DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
@@ -138,11 +138,9 @@ final class DecisionModelRetryTest extends TestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
-                $handler::class,
                 CourseForRetryTest::class,
                 CourseDefinedForRetryTest::class,
                 StudentSubscribedForRetryTest::class,
-                CompetingWriteInjectorForRetryTest::class,
                 RetryCommandBusForRetryTest::class,
             ],
             containerOrAvailableServices: [$handler, $injector],
@@ -173,7 +171,7 @@ final class DecisionModelRetryTest extends TestCase
         }
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, CourseForRetryTest::class, CourseDefinedForRetryTest::class, StudentSubscribedForRetryTest::class, CompetingWriteInjectorForRetryTest::class],
+            classesToResolve: [CourseForRetryTest::class, CourseDefinedForRetryTest::class, StudentSubscribedForRetryTest::class],
             containerOrAvailableServices: [$handler, $injector],
             extensionObjects: $extensionObjects,
             enabledModules: [],

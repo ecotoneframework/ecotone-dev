@@ -54,7 +54,7 @@ final class CombinedChannelForwardingTest extends TestCase
 
         $uniqueId = Uuid::v7()->toRfc4122();
         EcotoneLite::bootstrapFlowTesting(
-            [$orderService::class],
+            [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), $orderService],
             extensionObjects: [
                 OutboxForwardingMessageChannel::create('orders','kafkaOutbox','orderProcessing'),

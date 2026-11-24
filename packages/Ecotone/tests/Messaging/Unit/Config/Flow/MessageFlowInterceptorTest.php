@@ -45,7 +45,7 @@ final class MessageFlowInterceptorTest extends TestCase
                 $commandBus->sendWithRouting('audit.record', $orderId);
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$orders::class, $auditing::class], [$orders, $auditing], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$orders, $auditing], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $interceptor = 'interceptor:' . $auditing::class . '::audit';
         self::assertSame(FlowNodeKind::INTERCEPTOR, $graph->node($interceptor)->kind);
@@ -76,7 +76,7 @@ final class MessageFlowInterceptorTest extends TestCase
                 return $invocation->proceed();
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class, $timing::class], [$service, $timing], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service, $timing], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $interceptor = 'interceptor:' . $timing::class . '::time';
         self::assertSame('around', $graph->node($interceptor)->attributes['position']);

@@ -22,7 +22,7 @@ final class FlowTestingTracerFromProvidedServicesTest extends TracingTestCase
         $orders = $this->orders();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
         );
@@ -36,7 +36,7 @@ final class FlowTestingTracerFromProvidedServicesTest extends TracingTestCase
         $exporter = new InMemoryExporter();
 
         EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders, TracerProviderInterface::class => self::prepareTracer($exporter)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )->sendCommandWithRouting('order.place', 'coffee');

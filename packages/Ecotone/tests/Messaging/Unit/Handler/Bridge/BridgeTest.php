@@ -24,7 +24,7 @@ final class BridgeTest extends TestCase
     public function test_intercepting_message_handler_should_happen_only_for_given_endpoint()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [BridgeExample::class],
+            [],
             [new BridgeExample()],
             enabledModules: [],
         );
@@ -39,7 +39,7 @@ final class BridgeTest extends TestCase
     {
         $asynchronousBridgeExample = new AsynchronousBridgeExample();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AsynchronousBridgeExample::class],
+            [],
             [$asynchronousBridgeExample],
             enabledModules: [],
         );

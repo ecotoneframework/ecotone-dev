@@ -64,7 +64,7 @@ final class HighThroughputPublishingCollectorMatrixTest extends TestCase
     private function bootstrapEcotone(OperationsLog $operationsLog, bool $collectorEnabled): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
+            [FakeTransactionModule::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
             extensionObjects: [
                 PollableChannelConfiguration::neverRetry('async_orders')->withCollector($collectorEnabled),

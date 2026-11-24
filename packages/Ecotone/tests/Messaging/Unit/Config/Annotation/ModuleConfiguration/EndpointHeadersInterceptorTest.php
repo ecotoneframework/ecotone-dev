@@ -31,9 +31,7 @@ class EndpointHeadersInterceptorTest extends TestCase
     public function test_adding_multiple_headers()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [
-                AddingMultipleHeaders::class,
-            ],
+            [],
             [
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
@@ -58,9 +56,7 @@ class EndpointHeadersInterceptorTest extends TestCase
     public function test_evaluating_with_expressions()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [
-                AddingMultipleHeaders::class,
-            ],
+            [],
             [
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
@@ -91,9 +87,7 @@ class EndpointHeadersInterceptorTest extends TestCase
     public function test_throwing_exception_when_wrong_type_passed_to_delivery_delay(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [
-                AddingMultipleHeaders::class,
-            ],
+            [],
             [
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
@@ -121,9 +115,7 @@ class EndpointHeadersInterceptorTest extends TestCase
     public function test_throwing_exception_when_wrong_type_passed_to_delivery_time_to_live(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [
-                AddingMultipleHeaders::class,
-            ],
+            [],
             [
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
@@ -151,9 +143,7 @@ class EndpointHeadersInterceptorTest extends TestCase
     public function test_delivery_delay_and_time_to_live_without_existing_headers_replace()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [
-                AddingMultipleHeaders::class,
-            ],
+            [],
             [
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
@@ -176,9 +166,7 @@ class EndpointHeadersInterceptorTest extends TestCase
     public function test_delivery_delay_and_time_to_live_add_headers_when_headers_are_missing()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [
-                AddingMultipleHeaders::class,
-            ],
+            [],
             [
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
@@ -198,9 +186,7 @@ class EndpointHeadersInterceptorTest extends TestCase
     public function test_delivery_delay_with_time_to_live_attribute()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [
-                AddingMultipleHeaders::class,
-            ],
+            [],
             [
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
@@ -222,9 +208,7 @@ class EndpointHeadersInterceptorTest extends TestCase
     public function test_time_to_live_with_delayed_attribute()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [
-                AddingMultipleHeaders::class,
-            ],
+            [],
             [
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
@@ -246,9 +230,7 @@ class EndpointHeadersInterceptorTest extends TestCase
     public function test_delayed_attribute_with_string_containing_utc_offset(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [
-                AddingMultipleHeaders::class,
-            ],
+            [],
             [
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
@@ -278,7 +260,7 @@ class EndpointHeadersInterceptorTest extends TestCase
     public function test_throwing_exception_when_string_without_utc_offset_passed_to_delivery_delay(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AddingMultipleHeaders::class],
+            [],
             [AddingMultipleHeaders::class => new AddingMultipleHeaders()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],

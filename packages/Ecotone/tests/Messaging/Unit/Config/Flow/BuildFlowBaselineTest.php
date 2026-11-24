@@ -253,7 +253,7 @@ final class BuildFlowBaselineTest extends TestCase
     private function tooling(): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [BuildFlowConsoleCommands::class],
+            [],
             [new BuildFlowConsoleCommands(), new InMemorySpanRecorder()],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,

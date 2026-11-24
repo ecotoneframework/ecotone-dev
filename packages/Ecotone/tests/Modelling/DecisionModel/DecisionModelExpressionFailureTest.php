@@ -103,7 +103,7 @@ final class DecisionModelExpressionFailureTest extends TestCase
         $handler = new ListForMultiTagHandlerForExpressionFailureTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, CouponUseForExpressionFailureTest::class, CouponRedeemedForExpressionFailureTest::class],
+            classesToResolve: [CouponUseForExpressionFailureTest::class, CouponRedeemedForExpressionFailureTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -143,7 +143,7 @@ final class DecisionModelExpressionFailureTest extends TestCase
         $handler = new AggregateBackedHandlerForExpressionFailureTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, WalletForExpressionFailureTest::class, WalletBalanceForExpressionFailureTest::class, WalletCreditedForExpressionFailureTest::class],
+            classesToResolve: [WalletForExpressionFailureTest::class, WalletBalanceForExpressionFailureTest::class, WalletCreditedForExpressionFailureTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],

@@ -86,7 +86,7 @@ final class KafkaTenantResolverTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$consumer::class],
+            [],
             [
                 $consumer,
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),

@@ -133,7 +133,7 @@ final class HeadersInLogContextTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$handler::class, ...array_map(fn (object $serviceContext): string => $serviceContext::class, $serviceContexts)],
+            [...array_map(fn (object $serviceContext): string => $serviceContext::class, $serviceContexts)],
             [$handler, 'logger' => $logger, ...$serviceContexts],
             extensionObjects: [...$extensionObjects, SimpleMessageChannelBuilder::createQueueChannel('orders_async')],
             enabledModules: [],

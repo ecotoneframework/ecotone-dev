@@ -719,7 +719,7 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
 
         if ($implementation === 'in-memory-without-event-sourcing-module') {
             return EcotoneLite::bootstrapFlowTesting(
-                classesToResolve: [StudentEnrolledForTaggedConformance::class, CourseCapacityChangedForTaggedConformance::class, $converter::class, $secondStream::class],
+                classesToResolve: [StudentEnrolledForTaggedConformance::class, CourseCapacityChangedForTaggedConformance::class, $secondStream::class],
                 containerOrAvailableServices: [$converter],
                 extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
                 licenceKey: LicenceTesting::VALID_LICENCE,
@@ -728,7 +728,7 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
         }
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [StudentEnrolledForTaggedConformance::class, CourseCapacityChangedForTaggedConformance::class, $converter::class, $secondStream::class],
+            classesToResolve: [StudentEnrolledForTaggedConformance::class, CourseCapacityChangedForTaggedConformance::class, $secondStream::class],
             containerOrAvailableServices: [$converter, DbalConnectionFactory::class => self::getConnectionFactory()],
             extensionObjects: [
                 DynamicConsistencyBoundaryConfiguration::createWithDefaults(),

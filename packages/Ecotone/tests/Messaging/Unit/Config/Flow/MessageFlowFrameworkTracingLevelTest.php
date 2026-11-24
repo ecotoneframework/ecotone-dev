@@ -63,7 +63,7 @@ final class MessageFlowFrameworkTracingLevelTest extends TestCase
     {
         $ordering = $this->ordering();
         $application = EcotoneLite::bootstrap(
-            [$ordering::class],
+            [],
             [$ordering],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
@@ -84,7 +84,7 @@ final class MessageFlowFrameworkTracingLevelTest extends TestCase
         };
         $ordering = $this->ordering();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$ordering::class],
+            [],
             [$ordering, 'spanExporter' => $exporter],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withSpanRecorder('spanExporter')->withLevel(TracingLevel::Framework)],
             enabledModules: [],
@@ -100,7 +100,7 @@ final class MessageFlowFrameworkTracingLevelTest extends TestCase
     {
         $ordering = $this->ordering();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$ordering::class],
+            [],
             [$ordering],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
@@ -119,7 +119,7 @@ final class MessageFlowFrameworkTracingLevelTest extends TestCase
         $ordering = $this->ordering();
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$ordering::class],
+            [],
             [$ordering],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel($level)],
             enabledModules: [],

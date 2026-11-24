@@ -172,7 +172,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $notificationService = new NotificationService();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
+            classesToResolve: [get_class($projection), TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
                 $notificationService,

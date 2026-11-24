@@ -22,7 +22,7 @@ final class HandlerAndChannelNamingValidationTest extends TestCase
         $this->expectException(ConfigurationException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [DuplicateEndpointIdHandlers::class],
+            [],
             [new DuplicateEndpointIdHandlers()],
             enabledModules: [],
         );
@@ -32,7 +32,7 @@ final class HandlerAndChannelNamingValidationTest extends TestCase
     {
         $handler = new GeneratedEndpointIdHandlers();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [GeneratedEndpointIdHandlers::class],
+            [],
             [$handler],
             enabledModules: [],
         );

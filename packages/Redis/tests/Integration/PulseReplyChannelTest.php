@@ -63,7 +63,6 @@ final class PulseReplyChannelTest extends ConnectionTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $pulseService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$pulse::class],
             containerOrAvailableServices: [...$services, $pulse],
             extensionObjects: [
                 RedisBackedMessageChannelBuilder::create('order_service', 'pulse_connection'),

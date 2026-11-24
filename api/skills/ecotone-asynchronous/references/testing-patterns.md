@@ -11,7 +11,6 @@ public function test_async_processing(): void
     $handler = new NotificationHandler();
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [NotificationHandler::class],
         containerOrAvailableServices: [$handler],
     );
 

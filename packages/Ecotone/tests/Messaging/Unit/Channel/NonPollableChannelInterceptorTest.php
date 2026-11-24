@@ -26,7 +26,7 @@ final class NonPollableChannelInterceptorTest extends TestCase
         $service = $this->directChannelService();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$service::class, DirectChannelPayloadForNonPollableChannel::class],
+            [DirectChannelPayloadForNonPollableChannel::class],
             [$service],
             extensionObjects: [SimpleMessageChannelBuilder::createDirectMessageChannel($service::DIRECT_CHANNEL)],
             enabledModules: [],
@@ -43,7 +43,7 @@ final class NonPollableChannelInterceptorTest extends TestCase
         $service = $this->directChannelService();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$service::class, DirectChannelPayloadForNonPollableChannel::class],
+            [DirectChannelPayloadForNonPollableChannel::class],
             [$service],
             extensionObjects: [SimpleMessageChannelBuilder::createDirectMessageChannel($service::DIRECT_CHANNEL)],
             enabledModules: [],

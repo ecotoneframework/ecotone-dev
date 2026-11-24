@@ -128,7 +128,6 @@ final class CollectingPulseTest extends TestCase
             $service->getGateway(GatheredGroups::class)->discard($batch['groupId']);
         }
         $pulseService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$pulse::class],
             containerOrAvailableServices: [$pulse],
             extensionObjects: [
                 ...$channels,

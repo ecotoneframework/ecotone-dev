@@ -22,7 +22,7 @@ final class InMemoryEventStoreRegistrationTest extends TestCase
     public function test_registering_in_memory_event_store_when_event_sourcing_configuration_is_in_memory(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [TestEventConverter::class],
+            [],
             [new TestEventConverter()],
             enabledModules: [],
             environment: 'test',

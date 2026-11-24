@@ -120,7 +120,6 @@ final class CollectingConcurrencyTest extends TestCase
         };
         $extensions = [SimpleMessageChannelBuilder::createQueueChannel('duplicate_collecting'), DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)];
         $first = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, $interleaving::class],
             containerOrAvailableServices: [$handler, $interleaving, DbalConnectionFactory::class => $connection],
             extensionObjects: $extensions,
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -128,7 +127,6 @@ final class CollectingConcurrencyTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
         $second = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: $extensions,
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -190,7 +188,6 @@ final class CollectingConcurrencyTest extends TestCase
         };
         $extensions = [SimpleMessageChannelBuilder::createQueueChannel('locked_collecting'), DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)];
         $waiting = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $connection],
             extensionObjects: $extensions,
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -198,7 +195,6 @@ final class CollectingConcurrencyTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
         $locking = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, $holder::class],
             containerOrAvailableServices: [$handler, $holder, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: $extensions,
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -262,7 +258,6 @@ final class CollectingConcurrencyTest extends TestCase
         };
         $extensions = [SimpleMessageChannelBuilder::createQueueChannel('exhausted_collecting'), DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 1)];
         $first = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, $interleaving::class],
             containerOrAvailableServices: [$handler, $interleaving, DbalConnectionFactory::class => $connection],
             extensionObjects: $extensions,
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -270,7 +265,6 @@ final class CollectingConcurrencyTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
         $second = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: $extensions,
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -351,7 +345,6 @@ final class CollectingConcurrencyTest extends TestCase
             }
         };
         $first = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, $interleaving::class],
             containerOrAvailableServices: [$handler, $interleaving, DbalConnectionFactory::class => $connection],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('cleanup_race'), DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -368,7 +361,6 @@ final class CollectingConcurrencyTest extends TestCase
         $discardId = $cleanup ? null : array_values(array_filter($first->getGateway(GatheredGroups::class)->listOpenGroups('collect.cleanup.race.handler'), static fn (array $batch): bool => $batch['groupKey'] === $key))[0]['groupId'];
         $first->advanceTimeBy(new Duration(days: 8));
         $second = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('cleanup_race'), DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -499,7 +491,6 @@ final class CollectingConcurrencyTest extends TestCase
             }
         };
         $first = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, $interleaving::class],
             containerOrAvailableServices: [$handler, $interleaving, DbalConnectionFactory::class => $connection],
             extensionObjects: [SimpleMessageChannelBuilder::createPublishSubscribeChannel('collect.release.race.shared'), SimpleMessageChannelBuilder::createQueueChannel('release_race'), DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -507,7 +498,6 @@ final class CollectingConcurrencyTest extends TestCase
             initialTime: new DateTimeImmutable($manualRelease ? '2026-01-01 12:00:00 UTC' : '2026-01-01 12:00:10 UTC'),
         );
         $second = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [SimpleMessageChannelBuilder::createPublishSubscribeChannel('collect.release.race.shared'), SimpleMessageChannelBuilder::createQueueChannel('release_race'), DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -642,7 +632,7 @@ final class CollectingConcurrencyTest extends TestCase
             }
         };
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, $deliveries::class, ...array_map(static fn (object $service): string => $service::class, $additionalServices)],
+            classesToResolve: [...array_map(static fn (object $service): string => $service::class, $additionalServices)],
             containerOrAvailableServices: [$handler, $deliveries, ...$additionalServices, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false), DbalBackedMessageChannelBuilder::create('collecting_concurrency'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter')],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],

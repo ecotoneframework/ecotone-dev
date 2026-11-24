@@ -189,7 +189,7 @@ final class MethodArgumentResolutionTest extends TestCase
     private function bootstrap()
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [MethodResolutionHandler::class],
+            [],
             [new MethodResolutionHandler()],
             enabledModules: [],
         );

@@ -23,7 +23,7 @@ final class ClosureInAttributeTest extends TestCase
     {
         $lockingInterceptor = new LockingInterceptor();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, LockingInterceptor::class],
+            [],
             [new OrderService(), $lockingInterceptor],
             enabledModules: [],
         );

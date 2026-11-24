@@ -28,7 +28,7 @@ final class LoggingModuleTest extends TestCase
     {
         $loggerExample = StubLogger::create();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ExampleFailureCommandHandler::class],
+            [],
             [new ExampleFailureCommandHandler(), 'logger' => $loggerExample],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -48,7 +48,7 @@ final class LoggingModuleTest extends TestCase
     {
         $loggerExample = StubLogger::create();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ExampleFailureCommandHandler::class],
+            [],
             [new ExampleFailureCommandHandler(), 'logger' => $loggerExample],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),

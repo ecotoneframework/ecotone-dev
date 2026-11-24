@@ -31,7 +31,7 @@ final class RoutingSlipTest extends TestCase
     public function test_using_routing_slip_on_factory_command_handler(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [User::class, AuditLog::class],
+            [User::class],
             [new AuditLog()],
             enabledModules: [],
         );
@@ -50,7 +50,7 @@ final class RoutingSlipTest extends TestCase
     public function test_routing_slip_is_not_propagated_to_next_gateway_invocation(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Merchant::class, MerchantSubscriber::class, AuditLog::class, User::class],
+            [Merchant::class, User::class],
             [new MerchantSubscriber(), new AuditLog()],
             enabledModules: [],
         );
@@ -75,7 +75,7 @@ final class RoutingSlipTest extends TestCase
     public function test_routing_slip_will_not_be_propagated_by_command_bus(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Merchant::class, MerchantSubscriber::class, AuditLog::class, User::class],
+            [Merchant::class, User::class],
             [new MerchantSubscriber(), new AuditLog()],
             enabledModules: [],
         );
@@ -93,7 +93,7 @@ final class RoutingSlipTest extends TestCase
     public function test_routing_slip_will_not_be_propagated_by_extended_command_bus(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Merchant::class, MerchantSubscriber::class, AuditLog::class, User::class, ExtendedCommandBus::class],
+            [Merchant::class, User::class, ExtendedCommandBus::class],
             [new MerchantSubscriber(), new AuditLog()],
             enabledModules: [],
         );
@@ -113,7 +113,7 @@ final class RoutingSlipTest extends TestCase
     public function test_routing_slip_will_not_be_propagated_by_query_bus(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Merchant::class, MerchantSubscriber::class, AuditLog::class, User::class],
+            [Merchant::class, User::class],
             [new MerchantSubscriber(), new AuditLog()],
             enabledModules: [],
         );
@@ -131,7 +131,7 @@ final class RoutingSlipTest extends TestCase
     public function test_routing_slip_will_not_be_propagated_by_business_interface(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [CreateMerchantService::class, Merchant::class, MerchantSubscriber::class, AuditLog::class, User::class],
+            [CreateMerchantService::class, Merchant::class, User::class],
             [new MerchantSubscriber(), new AuditLog()],
             enabledModules: [],
         );
@@ -151,7 +151,7 @@ final class RoutingSlipTest extends TestCase
     public function test_routing_slip_will_not_be_propagated_by_event_bus(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [MerchantSubscriber::class, AuditLog::class, User::class],
+            [User::class],
             [new MerchantSubscriber(), new AuditLog()],
             enabledModules: [],
         );
@@ -170,7 +170,7 @@ final class RoutingSlipTest extends TestCase
         $articleRepository = ArticleRepository::createEmpty();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Article::class, ArticleRepository::class, RepositoryBusinessInterface::class, Page::class, Author::class, AuditLog::class, ArticleService::class],
+            [Article::class, ArticleRepository::class, RepositoryBusinessInterface::class, Page::class, Author::class],
             [ArticleRepository::class => $articleRepository, new AuditLog(), new ArticleService()],
             enabledModules: [],
             addInMemoryStateStoredRepository: false,

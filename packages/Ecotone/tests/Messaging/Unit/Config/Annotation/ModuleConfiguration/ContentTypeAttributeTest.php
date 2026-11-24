@@ -37,7 +37,7 @@ final class ContentTypeAttributeTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [get_class($orderService), JsonConverter::class],
+            [get_class($orderService)],
             [$orderService, new JsonConverter()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -67,7 +67,7 @@ final class ContentTypeAttributeTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [get_class($orderService), JsonConverter::class],
+            [get_class($orderService)],
             [$orderService, new JsonConverter()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -99,7 +99,7 @@ final class ContentTypeAttributeTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [get_class($orderService), JsonConverter::class],
+            [get_class($orderService)],
             [$orderService, new JsonConverter()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],

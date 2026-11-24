@@ -25,7 +25,7 @@ final class HeaderPropagationTest extends EventSourcingMessagingTestCase
     public function test_will_provide_propagate_correlation_and_parent_id_header_for_aggregate()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [Order::class, OrderWasPlacedConverter::class],
+            [Order::class],
             [new OrderWasPlacedConverter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()],
         );
 
@@ -58,7 +58,7 @@ final class HeaderPropagationTest extends EventSourcingMessagingTestCase
     public function test_will_propagate_userland_correlation_and_parent_id_header_when_defined()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [Order::class, OrderWasPlacedConverter::class],
+            [Order::class],
             [new OrderWasPlacedConverter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()],
         );
 

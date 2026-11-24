@@ -35,7 +35,7 @@ final class TracingDisabledWithoutProviderTest extends TestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$users::class],
+            [],
             [$users],
             [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],

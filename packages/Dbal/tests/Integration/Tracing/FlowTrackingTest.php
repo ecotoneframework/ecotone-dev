@@ -471,7 +471,7 @@ final class FlowTrackingTest extends TestCase
         };
         $logger = StubLogger::create();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$this->users()::class, $subscriber::class],
+            [$this->users()::class],
             [$this->users(), $subscriber, 'logger' => $logger],
             [FlowTrackingConfiguration::createWithDefaults()],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -855,7 +855,7 @@ final class FlowTrackingTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$notifications::class, TracedNotificationGateway::class],
+            [TracedNotificationGateway::class],
             [$notifications],
             [FlowTrackingConfiguration::createWithDefaults(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -997,7 +997,7 @@ final class FlowTrackingTest extends TestCase
                 $this->tracingId = $currentTrace->tracingId();
             }
         };
-        $producer = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [$sharedChannel]);
+        $producer = EcotoneLite::bootstrapFlowTesting([], [$orders], [$sharedChannel]);
         $consumer = $this->bootstrap([$orders], [$sharedChannel]);
 
         $producer->sendCommandWithRouting('order.place', '1');
@@ -1036,7 +1036,7 @@ final class FlowTrackingTest extends TestCase
                 $currentTrace->tracingId();
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$users::class], [$users]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$users]);
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('No trace is recorded, so there is no current trace id. Enable tracing: register TracingConfiguration::createWithDefaults()->withSpanRecorder() or FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method, or install ecotone/open-telemetry with a TracerProviderInterface.');
@@ -1075,7 +1075,7 @@ final class FlowTrackingTest extends TestCase
     {
         $subscriber = $this->flowStepCompletedSubscriber();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$this->users()::class, $this->asynchronousNotifier()::class, $subscriber::class],
+            [$this->users()::class, $this->asynchronousNotifier()::class],
             [$this->users(), $this->asynchronousNotifier(), $subscriber],
             [FlowTrackingConfiguration::createWithDefaults()->withOnlyRequestedFlows(true), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -1091,7 +1091,7 @@ final class FlowTrackingTest extends TestCase
     {
         $subscriber = $this->flowStepCompletedSubscriber();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$this->users()::class, $this->asynchronousNotifier()::class, $subscriber::class],
+            [$this->users()::class, $this->asynchronousNotifier()::class],
             [$this->users(), $this->asynchronousNotifier(), $subscriber],
             [FlowTrackingConfiguration::createWithDefaults()->withOnlyRequestedFlows(true), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -1229,7 +1229,7 @@ final class FlowTrackingTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$users::class, TracedNotificationGateway::class],
+            [TracedNotificationGateway::class],
             [$users],
             [FlowTrackingConfiguration::createWithDefaults()],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -1337,7 +1337,7 @@ final class FlowTrackingTest extends TestCase
         $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded would never be called, because FlowTrackingConfiguration::withNotifications(false) turned notifications off. Remove that call, or remove the attribute.');
 
         EcotoneLite::bootstrapFlowTesting(
-            [$subscriber::class],
+            [],
             [$subscriber],
             [FlowTrackingConfiguration::createWithDefaults()->withNotifications(false)],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -1372,7 +1372,7 @@ final class FlowTrackingTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$this->users()::class, $subscriber::class],
+            [$this->users()::class],
             [$this->users(), $subscriber],
             [FlowTrackingConfiguration::createWithDefaults()->withTracingGateway(false)],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -1412,7 +1412,7 @@ final class FlowTrackingTest extends TestCase
         $this->expectExceptionMessage('FlowTrackingConfiguration and #[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded require an Ecotone Enterprise licence. Remove them to run without one.');
 
         EcotoneLite::bootstrapFlowTesting(
-            [$subscriber::class],
+            [],
             [$subscriber],
             [FlowTrackingConfiguration::createWithDefaults()],
         );
@@ -1431,7 +1431,7 @@ final class FlowTrackingTest extends TestCase
         $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded requires an Ecotone Enterprise licence. Remove it to run without one.');
 
         EcotoneLite::bootstrapFlowTesting(
-            [$subscriber::class],
+            [],
             [$subscriber],
         );
     }
@@ -1449,7 +1449,7 @@ final class FlowTrackingTest extends TestCase
         $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded needs flow tracking, which records the steps of every flow. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.');
 
         EcotoneLite::bootstrapFlowTesting(
-            [$subscriber::class],
+            [],
             [$subscriber],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

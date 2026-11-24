@@ -43,7 +43,7 @@ final class MessageFlowConsoleTest extends TestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         $ecotone->runConsoleCommand('ecotone:flow:dump', ['format' => 'json']);
 

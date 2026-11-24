@@ -99,7 +99,7 @@ final class MessageHeadersPropagationAcrossMessagesTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$orderService::class, $ticket::class],
+            [$ticket::class],
             [$orderService],
             enabledModules: [],
         );

@@ -70,7 +70,7 @@ final class TracingConfigurationTest extends TracingTestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$users::class],
+            [],
             [$users, ...self::recordingSpansInto($recorder)],
             [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
@@ -97,7 +97,7 @@ final class TracingConfigurationTest extends TracingTestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$users::class],
+            [],
             [$users, ...self::recordingSpansInto($recorder)],
             [self::tracingConfiguration(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
@@ -119,7 +119,7 @@ final class TracingConfigurationTest extends TracingTestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$users::class],
+            [],
             [$users, ...self::recordingSpansInto($recorder)],
             [self::tracingConfiguration()->withSpanAttributesFromHeaders('tenant')],
             initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
@@ -143,7 +143,7 @@ final class TracingConfigurationTest extends TracingTestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$users::class],
+            [],
             [$users, ...self::recordingSpansInto($recorder)],
             [self::tracingConfiguration()],
             initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),

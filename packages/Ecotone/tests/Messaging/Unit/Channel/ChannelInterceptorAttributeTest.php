@@ -129,7 +129,7 @@ final class ChannelInterceptorAttributeTest extends TestCase
         $this->expectExceptionMessageMatches('/UppercasingInterceptor::intercept/');
 
         EcotoneLite::bootstrapFlowTesting(
-            [UppercasingInterceptor::class, CapturingHandler::class],
+            [],
             [new UppercasingInterceptor(), new CapturingHandler()],
             enabledModules: [],
         );

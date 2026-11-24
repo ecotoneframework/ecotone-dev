@@ -56,7 +56,7 @@ final class EcotoneLiteConsoleTest extends TestCase
         self::assertSame(0, $this->runConsole($ecotone, 'list', '--format=json'));
 
         $commandsWithoutDescription = [];
-        foreach (json_decode($this->display, true, flags: JSON_THROW_ON_ERROR)['commands'] as $command) {
+        foreach (json_decode(json: $this->display, associative: true, flags: JSON_THROW_ON_ERROR)['commands'] as $command) {
             if ($command['description'] === '') {
                 $commandsWithoutDescription[] = $command['name'];
             }
@@ -200,8 +200,8 @@ final class EcotoneLiteConsoleTest extends TestCase
         };
         $capturedOutput::$captured = '';
         stream_filter_register('ecotone.console.captured', $capturedOutput::class);
-        $standardOutput = stream_filter_append(STDOUT, 'ecotone.console.captured', STREAM_FILTER_WRITE);
-        $errorOutput = stream_filter_append(STDERR, 'ecotone.console.captured', STREAM_FILTER_WRITE);
+        $standardOutput = stream_filter_append(stream: STDOUT, filter_name: 'ecotone.console.captured', mode: STREAM_FILTER_WRITE);
+        $errorOutput = stream_filter_append(stream: STDERR, filter_name: 'ecotone.console.captured', mode: STREAM_FILTER_WRITE);
         $scriptArguments = $_SERVER['argv'];
         $_SERVER['argv'] = ['ecotone.php', ...$arguments, '--no-ansi'];
 

@@ -1,6 +1,17 @@
-NOT PASSED: GL43, GL46
+PASSED
 
-# Guidelines review: EcotoneLite resolves the class of a passed service (round 2)
+# Guidelines review: EcotoneLite resolves the class of a passed service (round 3)
+
+Round 3 re-decides GL43 and GL46, missing in round 2, and the requirements touched by `b48d98a8c..HEAD`. That range
+is bbc95d50f `fix(lite): the missing handler message says to pass the instance without a key`: `MissingHandlerMessage`
+says "without a key" in both service branches; `UnregisteredHandlerMessageTest` asserts messages only, with no `src/`
+exception class, and gains a `#[Saga]` case with a new fixture `ShipmentTracking`; `ServicePassedToBootstrapTest`
+gets the new text; the earlier `upgrade-2.0.md` entry is updated; and one index line in
+`api/skills/ecotone-interceptors/SKILL.md` changes. Every changed file was read in full.
+
+The round-2 heading follows unchanged, except the lines bbc95d50f touches.
+
+# Round 2
 
 Round 1 reviewed `main...HEAD` at d5bffa12b and 19d745db2 and ended `NOT PASSED: GL1, GL15, GL43, GL50`. Round 2
 re-decides those four and every requirement the fix range `5218f2a38..HEAD` touches. The other requirements keep
@@ -43,31 +54,30 @@ Skills whose requirements apply: `framework-testing`, `framework-service-design`
 
 ## Decisions
 
-GL43 — missing — upgrade-2.0.md:4553-4560 — the earlier entry "A command or query sent to a handler that is not
-      registered in a flow test names the class to register" still quotes the message as `… Add
-      App\Shipping\ShippingSlotReservationHandler to the classesToResolve of EcotoneLite::bootstrapFlowTesting(), or
-      load its namespace …`. 39abb2456 changed that text: for a service handler, the message now says `Pass an
-      instance of … in the containerOrAvailableServices …`, so the upgrade note quotes a message a 2.0 user never sees.
-      Fix: update the quoted message in that entry, both the service text and the no-handler sentence ("says which
-      attribute to add"), and say that an aggregate or saga keeps the `classesToResolve` advice. The new auto-resolve
-      entry itself (`:4356-4366`) is covered: it has Before / Now / How to adapt — skill: framework-design-and-briefs 19
-GL46 — missing — api/skills/ecotone-testing/SKILL.md (rule 1) — rule 1 and its grader
-      `api/evals/ecotone-testing/ticket-lifecycle/graders/rule-1.md` were changed, but no eval run or score is
-      reported: neither commit message mentions one and the range has no result file — run
-      `bin/test-agent-skills ecotone-testing`, as rule A4 places it in the behaviour review session, and report the
-      scores — skill: framework-agent-tooling A4
+GL43 — covered — upgrade-2.0.md:4356-4366, the auto-resolve entry, has Before / Now / How to adapt. The earlier entry
+      (`:4553-4564`, "… names the class to register") now quotes the current message (`Pass an instance of …, without a
+      key, in the containerOrAvailableServices …`) and says an aggregate or saga handler is told to use
+      `classesToResolve` (bbc95d50f)
+GL46 — covered — the changed rule, `ecotone-testing` rule 1, has its updated grader
+      `api/evals/ecotone-testing/ticket-lifecycle/graders/rule-1.md`. Its eval cases were run: the behaviour report
+      (`docs/reviews/2026-11-24-lite-service-auto-resolve-review-list-1-behaviour.md:114-125`, BH13) records
+      `bin/test-agent-skills` for the 9 changed skills, with all 10 cases at or above 0.8 and ticket-lifecycle at 1.00.
+      bbc95d50f changes only one reference-index line of `ecotone-interceptors/SKILL.md`, not a rule; the behaviour
+      session re-runs that skill's cases for this round.
 
-GL1 — covered — ServicePassedToBootstrapTest.php no longer imports a `src/` class. `:62` asserts the user-facing text
-      with `expectExceptionMessage(...)`. (`UnregisteredHandlerMessageTest`'s pre-existing `DestinationResolutionException`
-      expectations are untouched code, and so are not counted; the new aggregate case repeats that existing pattern.)
-GL4 — covered — the new methods are snake_case and have no comments. The new named fixture `ShippingDepot` sits in
+GL1 — covered — ServicePassedToBootstrapTest.php:62 and every case of UnregisteredHandlerMessageTest assert only the
+      user-facing text with `expectExceptionMessage(...)`. No `src/` class is imported; bbc95d50f also removed the
+      pre-existing `DestinationResolutionException` expectations.
+GL4 — covered — the new methods are snake_case and have no comments. The new named fixtures `ShippingDepot` and
+      `ShipmentTracking` (bbc95d50f) sit in
       `tests/Lite/Fixtures/UnregisteredHandler/`, which only `UnregisteredHandlerMessageTest` uses. The behaviour under
       test forces a file: `UnregisteredHandlerFinder` (`UnregisteredHandlerFinder.php:44-75`) finds handlers by scanning
       PSR-4 directories, which an inline anonymous class cannot satisfy.
 GL12 — covered — MissingHandlerMessage.php:30 reflects on a class that is by definition not registered, so
       `InterfaceToCallRegistry` cannot answer for it. This runs on the same failure-only path where
       `UnregisteredHandlerFinder` already reflects.
-GL14 — covered — ShippingDepot.php: `declare(strict_types=1)` and `final class`; it carries `licence Apache-2.0`
+GL14 — covered — ShippingDepot.php and ShipmentTracking.php: `declare(strict_types=1)` and `final class`; both carry
+      `licence Apache-2.0`
 GL15 — covered — DynamicConsistencyBoundaryDisabledDbalTest.php:131 `in_array(..., $classesToResolve, strict: true)`.
       The other new call, `getAttributes(Aggregate::class, ReflectionAttribute::IS_INSTANCEOF)`, has two arguments.
 GL16 — covered — no comments or prose docblocks are added in MissingHandlerMessage.php or the tests
@@ -79,6 +89,10 @@ GL23 — covered — each branch of MissingHandlerMessage says what is wrong (no
         `UnregisteredHandlerMessageTest:27`
       - aggregate: `classesToResolve` or `namespaces`; asserted by
         `test_command_handled_by_an_aggregate_missing_from_the_bootstrap_names_the_class_to_resolve`
+      - saga: the same as the aggregate; asserted by
+        `test_command_handled_by_a_saga_missing_from_the_bootstrap_names_the_class_to_resolve`
+      - "without a key" in both service branches (bbc95d50f): asserted at UnregisteredHandlerMessageTest:25,
+        :90 and ServicePassedToBootstrapTest:62
       - no handler: the attribute and the instance, or `classesToResolve` for an aggregate, a saga or a container;
         asserted by `test_command_without_any_handler_says_what_to_add` and
         `ServicePassedToBootstrapTest::test_service_passed_under_another_name_is_only_a_dependency`
@@ -87,9 +101,9 @@ GL45 — covered — the changed rule sits in `ecotone-testing` rule 1, the publ
 GL44 — covered — the changed rule needs no deterministic check: repeating a passed class in `classesToResolve` is
       allowed and harmless (the grader says so), so there is nothing to refuse
 GL47 — covered — `prompt.md` of `ticket-lifecycle` is unchanged; the grader is a PASS/FAIL rubric and quotes no rule
-GL49 — covered — `Ecotone\Api\Attribute\Aggregate`, `Identifier`, `CommandHandler` and `Saga extends Aggregate` exist;
+GL49 — covered — `Ecotone\Api\Attribute\Aggregate`, `Saga` (extends `Aggregate`), `Identifier` and `CommandHandler` exist;
       the skill examples name only `EcotoneLite::bootstrapFlowTesting()` parameters that exist
-GL50 — covered — `feat(lite):`, `test(lite):`, `docs(reviews):`, `fix(lite):`, `docs(skills):`; every message names
+GL50 — covered — `feat(lite):`, `test(lite):`, `docs(reviews):`, `fix(lite):` ×2, `docs(skills):`; every message names
       the defect, its cause and the change
 GL51 — covered — MissingHandlerMessage.php:30 is a branch on the handler's class. It only picks the text of a refusal
       that is thrown (`CommandBusRouteSelector`/`QueryBusRouteSelector`) and never selects how a message is handled.

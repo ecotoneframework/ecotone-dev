@@ -2,8 +2,8 @@ PASSED
 
 Developer experience review of `git diff main...HEAD` on dgafka/ecotone-lite. First pass: d5bffa12b (the feature)
 and 19d745db2 (the codemod, sampled), which gave NOT PASSED: DX1. Re-review: the fix commits
-`git diff 5218f2a38..HEAD` (39abb2456, d3b7666f1). In that pass I decided DX1 again and checked every other
-requirement against the new commits.
+`git diff 5218f2a38..HEAD` (39abb2456, d3b7666f1), which made DX1 covered. Second re-review: `git diff
+b48d98a8c..HEAD` (bbc95d50f), which settles both earlier "Not on the list" notes and changes no status.
 
 ## The end user's code, most common case
 
@@ -33,13 +33,20 @@ DX1 — covered (re-review; was missing) — every place an end user learns the 
         aggregates and sagas and for a container passed in:
         packages/Ecotone/src/Modelling/Config/Routing/MissingHandlerMessage.php:27-34 and :43. The aggregate branch
         checks `Aggregate` with IS_INSTANCEOF, and `Saga`, `EventSourcingAggregate` and `EventSourcingSaga` all
-        extend `Aggregate`, so sagas get the classesToResolve advice too.
+        extend `Aggregate`, so sagas get the classesToResolve advice too. Since bbc95d50f both service branches
+        say "pass an instance ..., without a key," (:34, :43), so a user who passed the handler under a name is
+        told what to change.
       - proved by UnregisteredHandlerMessageTest::test_command_handled_by_an_aggregate_missing_from_the_bootstrap_names_the_class_to_resolve,
+        UnregisteredHandlerMessageTest::test_command_handled_by_a_saga_missing_from_the_bootstrap_names_the_class_to_resolve
+        (fixture ShipmentTracking, #[Saga]),
         the updated messages in UnregisteredHandlerMessageTest, and
         ServicePassedToBootstrapTest::test_service_passed_under_another_name_is_only_a_dependency, which now
         asserts the message
       - upgrade-2.0.md:4356-4366 gives the Before/Now/How to adapt entry, including the keyed opt-out and the
-        newly registered attributed services
+        newly registered attributed services. The earlier entry at :4555-4562 now quotes the current message and
+        says that aggregate and saga handlers are told to use `classesToResolve`.
+      - api/skills/ecotone-interceptors/SKILL.md:225 now describes its testing reference as passing instances in
+        `containerOrAvailableServices`
 DX2 — covered — the handler is switched on by the attributes it already carries and by being passed once, with no
       registry, base class or interface (packages/Ecotone/Api/Lite/EcotoneLite.php:178, :299-312;
       ServicePassedToBootstrapTest::test_handler_passed_as_a_service_is_registered_without_listing_its_class). The
@@ -62,14 +69,6 @@ DX10 — not-apply — the change adds no name
 
 ## Not on the list
 
-- The "No Command Handler is registered" message (MissingHandlerMessage.php:43) says "pass an instance of its
-  class in the containerOrAvailableServices". It is also the message a user gets after passing the instance
-  under a name (`['ticketDesk' => $desk]`, the case asserted in ServicePassedToBootstrapTest). That user did pass
-  an instance, so "pass an instance of its class **without a key**" would tell them what to change. The rule is
-  already stated in ecotone-testing rule 1 and upgrade-2.0.md, so this does not change the result.
-- api/skills/ecotone-interceptors/SKILL.md:225, the index line for its testing-patterns reference, still
-  describes it as "registering interceptors with `classesToResolve`". The reference itself now teaches the
-  instance form, so this is only a stale summary.
 - Known and left as is, per the coordinator: test helper wrappers (`$this->bootstrapFlowTesting`) and lists with
   comments or built from constants were not swept by the codemod, and positional `[]` placeholders stay. Neither
   is end-user surface.

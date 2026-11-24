@@ -1,8 +1,28 @@
-NOT PASSED: BH2, BH12
+PASSED
 
 Behaviour review of `git diff main...HEAD` on branch dgafka/ecotone-lite. Round 1 covered d5bffa12b and 19d745db2
 (reworded to e3d6b319d, same content). The re-review covers `git diff 5218f2a38..HEAD`: 39abb2456 (the missing-handler
-message names passing the instance) and d3b7666f1 (the skills pass a handler once).
+message names passing the instance) and d3b7666f1 (the skills pass a handler once). The second re-review covers
+`git diff b48d98a8c..HEAD`: bbc95d50f (the message says to pass the instance without a key).
+
+## Re-review 2 (b48d98a8c..HEAD)
+
+This round decides again the two requirements decided `missing` (BH2 saga, BH12), and the requirements bbc95d50f
+touches: BH2 for the reworded message, BH13 for the changed skill index line, BH22. Both are now covered, and
+nothing else changes status.
+
+Runs on this tree, in the container, one at a time:
+- `packages/Ecotone/tests/Lite`: OK (97 tests, 147 assertions). The new saga test is the extra test. The assertion
+  count is lower because the `expectException` lines are gone.
+- `bin/test-agent-skills ecotone-interceptors`: cross-cutting-interceptors 1.00 (threshold 0.8, 1 run), no failing
+  grader.
+
+Red-first for the "without a key" rewording: the coordinator says no red run was taken, because the tests and
+`MissingHandlerMessage` changed in one step. The diff shows it instead. The three assertions quote the new text,
+`pass an instance of <class>, without a key, in the containerOrAvailableServices`.
+`expectExceptionMessage` matches a substring, and the text at b48d98a8c (`MissingHandlerMessage.php:34`, `:43`)
+has `pass an instance of <class> in the containerOrAvailableServices`. That text does not contain the expected
+string, so all three fail against the old source.
 
 ## Re-review (5218f2a38..HEAD)
 
@@ -45,25 +65,23 @@ passed instance. The tests assert that by querying state the command wrote. The 
 
 ## Decisions
 
-BH2 (saga handler message) — missing — packages/Ecotone/src/Modelling/Config/Routing/MissingHandlerMessage.php:30
-      — the brief claims that aggregate and saga handlers keep `classesToResolve` in the message. Only the aggregate
-      case is tested: UnregisteredHandlerMessageTest::test_command_handled_by_an_aggregate_missing_from_the_bootstrap_names_the_class_to_resolve.
-      The saga case holds only because `Saga extends Aggregate` (`Api/Attribute/Saga.php:13`) and the check uses
-      `IS_INSTANCEOF`, so no test proves it. If a later change stopped `Saga` extending `Aggregate`, a developer
-      with an unregistered saga would be told to "pass an instance" of a class Ecotone builds itself. Add a
-      `#[Saga]` fixture next to ShippingDepot, and a test that asserts its message names `classesToResolve`. — skill:
-      framework-testing, framework-error-handling
-BH12 (UnregisteredHandlerMessageTest) — missing — packages/Ecotone/tests/Lite/Test/UnregisteredHandlerMessageTest.php:26,68,82
-      — the new aggregate test (`:60`) and the two tests whose expected message was reworded (`:18`, `:74`) assert
-      `expectException(DestinationResolutionException::class)`. That is `Ecotone\Messaging\Handler\DestinationResolutionException`
-      from `packages/Ecotone/src`, an internal class an application never imports. Drop the `expectException`
-      lines and keep the `expectExceptionMessage` assertions, as 39abb2456 already did in
-      ServicePassedToBootstrapTest. The import at `:8` and the same line in the untouched query test (`:54`) go
-      with it. — skill: framework-testing
-BH12 (correction of round 1) — round 1 called `DestinationResolutionException` the exception an application gets
-      and said ServicePassedToBootstrapTest used no `src/` class. That was wrong: the class lives in `src/`. 39abb2456
-      has since removed it from ServicePassedToBootstrapTest, so that file is now covered (see below).
-
+BH2 (saga handler message) — covered —
+      UnregisteredHandlerMessageTest::test_command_handled_by_a_saga_missing_from_the_bootstrap_names_the_class_to_resolve
+      with the `#[Saga]` fixture ShipmentTracking. It asserts the message names `classesToResolve` for the saga. It
+      was green on arrival, because the saga already reached the aggregate branch through `Saga extends Aggregate`.
+      So it guards that behaviour rather than proving a change: if the inheritance went away, it would fail.
+BH2 (message says "without a key") — covered —
+      UnregisteredHandlerMessageTest::test_command_handled_by_a_class_missing_from_the_bootstrap_names_the_class_to_register,
+      ::test_command_without_any_handler_says_what_to_add and
+      ServicePassedToBootstrapTest::test_service_passed_under_another_name_is_only_a_dependency. Red is shown by
+      the diff (see Re-review 2). This rewording also settles the round-2 note that a developer who passed the
+      handler under another name was told to do what they had already done.
+BH12 (UnregisteredHandlerMessageTest) — covered — bbc95d50f removed the `DestinationResolutionException` import and
+      every `expectException` line. All six tests, including the new saga test, assert only
+      `expectExceptionMessage`. The two fixtures, ShippingDepot and ShipmentTracking, use only `Ecotone\Api\Attribute`
+      classes. No test in the diff names a `src/` class, uses reflection or runs SQL.
+BH12 (correction of round 1) — round 1 called `DestinationResolutionException` the exception an application gets.
+      That was wrong: the class lives in `src/`. Both test files are now free of it.
 BH1 — covered — trace above: `EcotoneLite.php:178,299-312`. Both entry points pass through it. The outcome is
       asserted by ServicePassedToBootstrapTest::test_handler_passed_as_a_service_is_registered_without_listing_its_class
       (flow testing) and ::test_handler_passed_as_a_service_is_registered_outside_of_flow_testing (`bootstrap()`).
@@ -123,7 +141,9 @@ BH13 — covered — the case scores of `bin/test-agent-skills`, all at or above
       it, and used `advanceTimeBy()`. It failed only because it registered no in-memory channel in
       `extensionObjects:`. That is the part of rule 5 the diff does not touch. The one changed rule, ecotone-testing
       rule 1, has its grader `api/evals/ecotone-testing/ticket-lifecycle/graders/rule-1.md`, updated and passing.
-      The other changed skill files are reference examples and change no rule.
+      The other changed skill files are reference examples and change no rule. Re-review 2: bbc95d50f changes only
+      the references index line of `api/skills/ecotone-interceptors/SKILL.md:225`, which is no rule.
+      cross-cutting-interceptors re-ran at 1.00.
 BH14 — covered — the change sits before every feature: it only adds classes to the annotation finder, exactly as if
       they were listed in `classesToResolve`. It is proven combined with the features through the rewritten tests
       of 19d745db2, which now register their handlers only this way, and their suites ran OK on the final tree
@@ -163,8 +183,7 @@ BH22 — not-apply — no message flow or flow feature changes. The change alter
   reaches the passed instance).
 - The DataProtection FileTest errors reported by the implementer are in a file the diff does not touch. I did not
   re-run them.
-- Message wording (left for the developer experience review): a developer who passed the handler under another name
-  (`'ticketDesk' => $handler`) is told to "pass an instance of its class in the containerOrAvailableServices". They
-  already did. The message does not say the instance must be passed without a key or under its own class name.
+- Message wording (round 2): a developer who passed the handler under another name was told to "pass an instance",
+  which they had already done. Resolved by bbc95d50f, which says "without a key".
 - `bin/test-agent-skills` wrote its results to `api/evals/results/2026-11-24T13-15-47Z/`, which is gitignored
   (`.gitignore:30`), so it adds no tracked file.

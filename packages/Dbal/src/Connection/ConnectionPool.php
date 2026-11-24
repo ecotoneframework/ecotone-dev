@@ -18,7 +18,7 @@ use Throwable;
 final class ConnectionPool
 {
     public const DEFAULT_SIZE = 10;
-    private const SECONDS_WAITING_FOR_RETURNED_CONNECTION = 5.0;
+    public const DEFAULT_WAIT_SECONDS = 5.0;
 
     /** @var Connection[] */
     private array $idleConnections = [];
@@ -29,8 +29,15 @@ final class ConnectionPool
     /**
      * @param Closure(): Connection $connect
      */
-    public function __construct(private readonly Closure $connect, private readonly int $size, private readonly string $connectionName)
+    public function __construct(private readonly Closure $connect, private readonly int $size, private readonly string $connectionName, private readonly float $connectionPoolWaitSeconds)
     {
+        if ($connectionPoolWaitSeconds < 0) {
+            throw ConfigurationException::create(
+                "Connection pool wait is {$connectionPoolWaitSeconds} seconds, but a wait cannot be negative. "
+                . 'Pass 0 to fail at once when every connection is in use, a number of seconds to wait for one, or leave it out for the default of ' . self::DEFAULT_WAIT_SECONDS . ' seconds: '
+                . "`connection_pool_wait_seconds` of new Ecotone\\Api\\Dbal\\DbalConnectionFactory(['dsn' => \$dsn, 'connection_pool_wait_seconds' => " . self::DEFAULT_WAIT_SECONDS . ']), or `connectionPoolWaitSeconds:` of DbalConnection::createWithCopiesForConcurrentExecutions().'
+            );
+        }
         if ($size < 1) {
             throw ConfigurationException::create(
                 "Connection pool size is {$size}, but a pool needs at least one connection. "
@@ -143,17 +150,20 @@ final class ConnectionPool
         if ($channelClass === null) {
             throw ConnectionPoolExhausted::withAllConnectionsInUse(connectionName: $this->connectionName, connectionPoolSize: $this->size, waitedSeconds: null);
         }
+        if ($this->connectionPoolWaitSeconds <= 0.0) {
+            throw ConnectionPoolExhausted::withAllConnectionsInUse(connectionName: $this->connectionName, connectionPoolSize: $this->size, waitedSeconds: 0.0);
+        }
 
         $this->returnedToWaitingCoroutines ??= new $channelClass($this->size);
         $this->waitingCoroutines++;
         try {
-            $connection = $this->returnedToWaitingCoroutines->pop(self::SECONDS_WAITING_FOR_RETURNED_CONNECTION);
+            $connection = $this->returnedToWaitingCoroutines->pop($this->connectionPoolWaitSeconds);
         } finally {
             $this->waitingCoroutines--;
         }
 
         if (! $connection instanceof Connection) {
-            throw ConnectionPoolExhausted::withAllConnectionsInUse(connectionName: $this->connectionName, connectionPoolSize: $this->size, waitedSeconds: self::SECONDS_WAITING_FOR_RETURNED_CONNECTION);
+            throw ConnectionPoolExhausted::withAllConnectionsInUse(connectionName: $this->connectionName, connectionPoolSize: $this->size, waitedSeconds: $this->connectionPoolWaitSeconds);
         }
 
         if ($connection->isConnected()) {

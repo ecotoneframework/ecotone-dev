@@ -134,9 +134,14 @@ final class FlowSnapshot
 
     public function fileName(): string
     {
-        $name = trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($this->scenario)), '-');
+        return self::fileNameOf($this->scenario);
+    }
+
+    public static function fileNameOf(string $scenario): string
+    {
+        $name = trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($scenario)), '-');
         if ($name === '') {
-            throw InvalidArgumentException::create("Scenario `{$this->scenario}` cannot be recorded, because a snapshot is stored in a file named after the letters and digits of its scenario, and this name has none. Give the scenario a name with at least one letter or digit, for example `projection rebuilt asynchronously`.");
+            throw InvalidArgumentException::create("Scenario `{$scenario}` cannot be recorded, because a snapshot is stored in a file named after the letters and digits of its scenario, and this name has none. Give the scenario a name with at least one letter or digit, for example `projection rebuilt asynchronously`.");
         }
 
         return $name . '.json';

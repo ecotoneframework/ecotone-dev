@@ -6,6 +6,7 @@ namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -33,9 +34,9 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
 
         $ecotone->sendCommandWithRouting(routingKey: 'placeOrder', command: 'milk', metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de99']);
-        $ecotone->run(self::CHANNEL_NAME);
+        $ecotone->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $ecotone->sendCommandWithRouting(routingKey: 'placeOrder', command: 'milk', metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de99']);
-        $ecotone->run(self::CHANNEL_NAME);
+        $ecotone->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $result = $ecotone->sendQueryWithRouting(routingKey: 'order.getRegistered');
 
@@ -48,9 +49,9 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
 
         $ecotone->publishEvent(event: new OrderPlaced(order: 'milk'), metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de99']);
-        $ecotone->run(self::CHANNEL_NAME);
+        $ecotone->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $ecotone->publishEvent(event: new OrderPlaced(order: 'milk'), metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de99']);
-        $ecotone->run(self::CHANNEL_NAME);
+        $ecotone->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertEquals(2, $ecotone->sendQueryWithRouting('order.getCalled'));
     }
@@ -60,9 +61,9 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
 
         $ecotone->sendCommandWithRouting(routingKey: 'placeOrder', command: 'milk', metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de99']);
-        $ecotone->run(self::CHANNEL_NAME);
+        $ecotone->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $ecotone->sendCommandWithRouting(routingKey: 'placeOrder', command: 'cheese', metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de98']);
-        $ecotone->run(self::CHANNEL_NAME);
+        $ecotone->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $result = $ecotone->sendQueryWithRouting(routingKey: 'order.getRegistered');
 

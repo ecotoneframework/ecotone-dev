@@ -13,6 +13,7 @@ use Ecotone\Dbal\Tracing\FlowTrackingScope;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\Recoverability\ReplayChannels;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -21,11 +22,14 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 final class DeadLetterHandler
 {
+    private const LISTED_AT_ONCE = 100;
+
     public function __construct(
         private DeadLetterStore $deadLetterStore,
         private MessageBuilder $messageBuilder,
         private FlowTrackingScope $flowTracking,
         private ChannelResolver $channelResolver,
+        private ReplayChannels $replayChannels,
     ) {
     }
 
@@ -76,11 +80,24 @@ final class DeadLetterHandler
     {
         $this->assertTargetChannelExists($targetChannel);
 
-        while ($errorContexts = $this->deadLetterStore->list(100, 0)) {
+        foreach ($this->storedMessageIds() as $messageId) {
+            $this->replayMessage($messageId, $messagingEntrypoint, $targetChannel);
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function storedMessageIds(): array
+    {
+        $messageIds = [];
+        for ($offset = 0; $errorContexts = $this->deadLetterStore->list(self::LISTED_AT_ONCE, $offset); $offset += self::LISTED_AT_ONCE) {
             foreach ($errorContexts as $errorContext) {
-                $this->replayMessage($errorContext->getMessageId(), $messagingEntrypoint, $targetChannel);
+                $messageIds[] = $errorContext->getMessageId();
             }
         }
+
+        return $messageIds;
     }
 
     public function delete(string|array $messageId): void
@@ -144,7 +161,7 @@ final class DeadLetterHandler
             ->setHeader(ErrorContext::DLQ_MESSAGE_REPLIED, '1')
             ->setHeader(
                 MessagingEntrypointService::ENTRYPOINT,
-                $entrypoint
+                $this->replayChannels->of($entrypoint)
             )
             ->build();
 

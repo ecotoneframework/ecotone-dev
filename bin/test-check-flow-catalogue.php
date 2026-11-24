@@ -21,6 +21,14 @@ $cases = [
         ['one'], ['one'], false,
         'Demo\Flow\DemoFlowScenarios::all() lists `scenario one`, but Demo\Flow\DemoCatalogue::all() does not include',
     ],
+    'a coroutine message channel scenario not marked as needing a coroutine runtime' => [
+        ['coroutine'], ['coroutine'], true,
+        'DemoFlowScenarios::all() lists `scenario coroutine`, which registers a coroutine message channel but is not marked as needing a coroutine runtime',
+    ],
+    'a coroutine message channel scenario marked as needing a coroutine runtime passes' => [
+        ['coroutineMarked'], ['coroutineMarked'], true,
+        null,
+    ],
     'two scenarios with the same name' => [
         ['one', 'one'], ['one', 'one'], true,
         'the scenario name `scenario one` is used 2 times',
@@ -59,7 +67,9 @@ function demoCatalogue(array $methods, array $listed, bool $catalogued): string
     mkdir($directory);
     $bodies = '';
     foreach ($methods as $position => $method) {
-        $bodies .= "    public static function {$method}" . ($position > 0 && $method === $methods[0] ? 'Again' : '') . "(): FlowScenario\n    {\n        return new FlowScenario(name: 'scenario {$method}', classesToResolve: [], services: [], extensionObjects: [], stages: []);\n    }\n\n";
+        $extensionObjects = str_starts_with($method, 'coroutine') ? "\\Ecotone\\Api\\ExtensionObject\\CoroutineMessageChannelBuilder::create('async')" : '';
+        $marked = $method === 'coroutineMarked' ? '->needingACoroutineRuntime()' : '';
+        $bodies .= "    public static function {$method}" . ($position > 0 && $method === $methods[0] ? 'Again' : '') . "(): FlowScenario\n    {\n        return (new FlowScenario(name: 'scenario {$method}', classesToResolve: [], services: [], extensionObjects: [{$extensionObjects}], stages: [])){$marked};\n    }\n\n";
     }
     $all = implode(', ', array_map(fn (string $method, int $position): string => 'self::' . $method . ($position > 0 && $method === $listed[0] ? 'Again' : '') . '()', $listed, array_keys($listed)));
     file_put_contents($directory . '/DemoFlowScenarios.php', "<?php\n\nnamespace Demo\\Flow;\n\nuse Ecotone\\Test\\Flow\\FlowScenario;\n\nfinal class DemoFlowScenarios\n{\n    public static function all(): array\n    {\n        return [{$all}];\n    }\n\n{$bodies}}\n");

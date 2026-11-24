@@ -34,6 +34,7 @@ use Ecotone\Kafka\Configuration\KafkaModule;
 use Ecotone\Laravel\Config\LaravelConnectionModule;
 use Ecotone\Lite\Test\Configuration\EcotoneTestSupportModule;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorModule;
+use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannelModule;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\Config\DeliveryConfirmationModule;
 use Ecotone\Messaging\Channel\DynamicChannel\Config\DynamicMessageChannelModule;
 use Ecotone\Messaging\Channel\Manager\ChannelSetupModule;
@@ -125,6 +126,7 @@ class ModuleClassList
         RouterModule::class,
         ScheduledModule::class,
         CollectorModule::class,
+        CoroutineMessageChannelModule::class,
         TracingModule::class,
         DeliveryConfirmationModule::class,
         ChannelSetupModule::class,

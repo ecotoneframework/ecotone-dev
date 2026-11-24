@@ -27,6 +27,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
+use Ecotone\Messaging\Handler\Recoverability\DeadLetterChannels;
 use Ecotone\Messaging\Handler\Recoverability\DelayedRetryErrorHandler;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\Router\HeaderRouter;
@@ -176,6 +177,7 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
         $instantRetryConfiguration = ExtensionObjectResolver::resolveUnique(InstantRetryConfiguration::class, $extensionObjects, InstantRetryConfiguration::createWithDefaults());
         $instantRetriesPerDelivery = ($instantRetryConfiguration->isEnabledForAsynchronousEndpoints ?? InstantRetryDefaults::from($extensionObjects)->forAsynchronousEndpoints()) ? $instantRetryConfiguration->asynchronousRetryTimes : 0;
 
+        $messagingConfiguration->registerServiceDefinition(DeadLetterChannels::class, new Definition(DeadLetterChannels::class, [DeadLetterChannels::configuredBy($extensionObjects)]));
         $messagingConfiguration->registerServiceDefinition(RetryRunner::class, [new Reference(EcotoneClockInterface::class), new Reference(LoggingGateway::class)]);
 
         $hasAnyErrorHandlerConfiguration = false;

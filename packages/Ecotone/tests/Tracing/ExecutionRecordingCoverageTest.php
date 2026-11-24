@@ -366,7 +366,7 @@ final class ExecutionRecordingCoverageTest extends TracingTestCase
 
     private static function recordingOf(string $scenarioName): ExecutionRecording
     {
-        foreach (FlowScenarioCatalogue::all() as $scenario) {
+        foreach (FlowScenarioCatalogue::runningOnThisPhp() as $scenario) {
             if ($scenario->name !== $scenarioName) {
                 continue;
             }

@@ -68,6 +68,34 @@ final class SymfonyConnectionCopiesTest extends TestCase
         SymfonyConnectionReference::defaultConnection('default')->withConnectionPoolSize(0);
     }
 
+    public function test_negative_connection_pool_wait_is_refused(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Connection pool wait for `default` is -1 seconds, but a wait cannot be negative. Pass 0 to withConnectionPoolWaitSeconds() to fail at once when every connection is in use, a number of seconds to wait for one, or leave it out for the default of 5 seconds.');
+
+        SymfonyConnectionReference::defaultConnection('default')->withConnectionPoolWaitSeconds(-1);
+    }
+
+    public function test_connection_pool_wait_cannot_be_set_for_a_manager_registry_connection(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            'Connection pool wait cannot be set for `default`, because it is taken from a Doctrine ManagerRegistry: its EntityManager is bound to the one connection Symfony built, so there is no pool to wait on. '
+            . "Register the connection without the registry to have a connection per concurrent execution: SymfonyConnectionReference::defaultConnection('default')->withConnectionPoolWaitSeconds(10), or remove withConnectionPoolWaitSeconds()."
+        );
+
+        SymfonyConnectionReference::defaultManagerRegistry('default')->withConnectionPoolWaitSeconds(10);
+    }
+
+
+    public function test_create_for_connection_refuses_a_negative_pool_wait(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Connection pool wait for `default` is -1 seconds, but a wait cannot be negative. Pass 0 to withConnectionPoolWaitSeconds() to fail at once when every connection is in use, a number of seconds to wait for one, or leave it out for the default of 5 seconds.');
+
+        SymfonyConnectionReference::createForConnection('default', connectionPoolWaitSeconds: -1);
+    }
+
     private function bootstrapParcelsOn(SymfonyConnectionReference $connectionReference): FlowTestSupport
     {
         $connection = DriverManager::getConnection(

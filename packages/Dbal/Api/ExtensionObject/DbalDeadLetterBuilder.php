@@ -18,6 +18,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
+use Ecotone\Messaging\Handler\Recoverability\ReplayChannels;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -168,6 +169,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
                 Reference::to(MessageBuilder::class),
                 Reference::to(FlowTrackingScope::class),
                 Reference::to(ChannelResolver::class),
+                Reference::to(ReplayChannels::class),
             ]));
         }
 

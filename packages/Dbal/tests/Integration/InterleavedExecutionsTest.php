@@ -290,7 +290,8 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
             $this->assertSame(
                 'All 2 connections of the connection pool for `' . $this->connectionName() . '` are in use by this process and the executions running concurrently in it (coroutines or fibers), and none was returned. '
                 . "Raise the pool size where the connection is registered: new Ecotone\\Api\\Dbal\\DbalConnectionFactory(['dsn' => \$dsn, 'connection_pool_size' => 20]), or SymfonyConnectionReference::defaultConnection('default')->withConnectionPoolSize(20) for a Symfony connection; every worker process may then open that many connections, so keep workers times pool size below what the database accepts. "
-                . 'Or let fewer executions run at once: run a consumer on at most 2 coroutines (the `coroutines` option of ecotone:run, PollingMetadata::withCoroutines()), on a Swoole or OpenSwoole server lower `max_coroutine`, and with fibers limit how many your event loop runs at a time and release finished Fiber objects, because a fiber keeps its connection until it is destroyed. A coroutine consuming a channel keeps one connection for as long as it runs, so the pool has to cover the consumer coroutines of the process too.',
+                . 'Or let fewer executions run at once: run a consumer on at most 2 coroutines (the `coroutines` option of ecotone:run, PollingMetadata::withCoroutines()), lower CoroutineMessageChannelBuilder::withCoroutines() for channels consumed in the sending process, on a Swoole or OpenSwoole server lower `max_coroutine`, and with fibers limit how many your event loop runs at a time and release finished Fiber objects, because a fiber keeps its connection until it is destroyed. A coroutine consuming a channel keeps one connection for as long as it runs, so the pool has to cover the consumer coroutines of the process too. Size it for the requests running at once plus the limit of every coroutine message channel in this process. '
+                . "Or let a coroutine wait longer for a connection: new Ecotone\\Api\\Dbal\\DbalConnectionFactory(['dsn' => \$dsn, 'connection_pool_wait_seconds' => 10]), or SymfonyConnectionReference::defaultConnection('default')->withConnectionPoolWaitSeconds(10). A fiber cannot wait: it is refused at once.",
                 $exception->getMessage()
             );
         } finally {
@@ -306,6 +307,22 @@ final class InterleavedExecutionsTest extends DbalMessagingTestCase
         $this->expectExceptionMessage("Connection pool size is 0, but a pool needs at least one connection. Pass a positive `connection_pool_size`: new Ecotone\\Api\\Dbal\\DbalConnectionFactory(['dsn' => \$dsn, 'connection_pool_size' => 10]), or leave it out for the default of 10.");
 
         new DbalConnectionFactory(['dsn' => self::databaseDsn(), 'connection_pool_size' => 0]);
+    }
+
+    public function test_connection_pool_wait_that_is_not_a_number_is_refused(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("`connection_pool_wait_seconds` is '5s', but it is a number of seconds. Pass a number, 0 to fail at once when every connection is in use, or leave it out for the default of 5 seconds.");
+
+        new DbalConnectionFactory(['dsn' => self::databaseDsn(), 'connection_pool_wait_seconds' => '5s']);
+    }
+
+    public function test_negative_connection_pool_wait_is_refused(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("Connection pool wait is -1 seconds, but a wait cannot be negative. Pass 0 to fail at once when every connection is in use, a number of seconds to wait for one, or leave it out for the default of 5 seconds: `connection_pool_wait_seconds` of new Ecotone\\Api\\Dbal\\DbalConnectionFactory(['dsn' => \$dsn, 'connection_pool_wait_seconds' => 5]), or `connectionPoolWaitSeconds:` of DbalConnection::createWithCopiesForConcurrentExecutions().");
+
+        new DbalConnectionFactory(['dsn' => self::databaseDsn(), 'connection_pool_wait_seconds' => -1]);
     }
 
     private function bootstrapPersonRegistration(?object $connectionFactory = null): FlowTestSupport

@@ -28,7 +28,7 @@ final class AlreadyConnectedDbalConnectionFactory implements \Ecotone\Enqueue\Co
 
     }
 
-    public static function withCopiesForConcurrentExecutions(Connection $connection, int $connectionPoolSize): self
+    public static function withCopiesForConcurrentExecutions(Connection $connection, int $connectionPoolSize, float $connectionPoolWaitSeconds): self
     {
         $connectionFactory = new self($connection);
         $parameters = $connection->getParams();
@@ -36,6 +36,7 @@ final class AlreadyConnectedDbalConnectionFactory implements \Ecotone\Enqueue\Co
             connect: static fn (): Connection => DriverManager::getConnection($parameters, $connection->getConfiguration()),
             size: $connectionPoolSize,
             connectionName: sprintf('%s://%s/%s', $parameters['driver'] ?? $parameters['driverClass'] ?? 'unknown', $parameters['host'] ?? 'localhost', $parameters['dbname'] ?? $parameters['path'] ?? ''),
+            connectionPoolWaitSeconds: $connectionPoolWaitSeconds,
         );
 
         return $connectionFactory;

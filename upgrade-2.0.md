@@ -3102,6 +3102,8 @@ DSN (`new DbalConnectionFactory($dsn)`) is a pool: every concurrent execution ta
 when it ends, and one process opens at most `connection_pool_size` connections, 10 by default
 (`new DbalConnectionFactory(['dsn' => $dsn, 'connection_pool_size' => 20])`). A coroutine waits up to five seconds
 for a returned connection and then fails with `ConnectionPoolExhausted`; a fiber cannot wait and fails at once.
+The wait is `connection_pool_wait_seconds` of the same array, 5 by default and 0 to fail at once
+(`withConnectionPoolWaitSeconds()` on a `SymfonyConnectionReference`).
 A consumer running on a coroutine is one execution for as long as it consumes, so it keeps its connection: the pool
 has to be at least as large as the number of coroutines consuming in the process, plus the requests it handles at
 once. A process handling one message at a time uses one connection, as before.
@@ -3117,7 +3119,8 @@ with an exception, the others stop and the consumer throws it. A `#[Scheduled]` 
 and so is a consumer of a Kafka topic or a RabbitMQ stream, where a message finished out of turn would commit its
 position past one still being handled; both are refused when the application boots if the coroutines come from
 `PollingMetadata`. A pool smaller than the coroutines of a consumer leaves the extra coroutines failing with
-`ConnectionPoolExhausted` after five seconds, so set `connection_pool_size` to at least the coroutines.
+`ConnectionPoolExhausted` after the configured `connection_pool_wait_seconds` (five seconds by default), so set
+`connection_pool_size` to at least the coroutines.
 
 Every concurrent execution also has its own RabbitMQ connection, kept open when the execution ends and handed to the
 next one. Their number is not limited: a process holds as many as it has had executions running at once, so keep the

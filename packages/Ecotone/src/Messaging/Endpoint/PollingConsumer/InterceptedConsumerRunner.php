@@ -5,10 +5,12 @@ namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessagePoller;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\Interceptor\PcntlTerminationListener;
+use Ecotone\Messaging\Endpoint\PollingConsumer\MessagePoller\ReceivedMessage;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
@@ -56,6 +58,18 @@ class InterceptedConsumerRunner implements EndpointRunner
             streamsConsumed: $this->streamsConsumed,
             createConsumer: fn (): ConsumerLifecycle => $this->createConsumer($executionPollingMetadata),
         );
+    }
+
+    public function handleReceived(Message $message, PollingMetadata $pollingMetadata, AsyncHandlerAnnotationRegistry $handlerAnnotations): void
+    {
+        (new PollToGatewayTaskExecutor(
+            messagePoller: new ReceivedMessage($message),
+            gateway: $this->gateway,
+            messagingEntrypoint: $this->messagingEntrypoint,
+            asyncHandlerAnnotationRegistry: $handlerAnnotations,
+            asyncEndpointAnnotationContext: $this->asyncEndpointAnnotationContext,
+            messageBuilder: $this->messageBuilder,
+        ))->execute($pollingMetadata);
     }
 
     public function createConsumer(?ExecutionPollingMetadata $executionPollingMetadata): ConsumerLifecycle

@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -18,6 +19,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration;
 use Ecotone\Test\CoroutineTesting;
+use Ecotone\Test\LicenceTesting;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ContextStorage;
@@ -141,6 +143,40 @@ final class CoroutineTracingTest extends TracingTestCase
             $tracesOfHandledMessages
         );
         $this->assertSame(3, $ecotone->sendQueryWithRouting('order.mostShippedAtOnce'));
+    }
+
+
+    public function test_coroutine_message_channel_continues_each_senders_trace(): void
+    {
+        $exporter = new InMemoryExporter(new ArrayObject());
+        $handler = new class () {
+            #[Asynchronous('async')]
+            #[CommandHandler('handle', endpointId: 'coroutine.trace.endpoint')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler, TracerProviderInterface::class => self::prepareTracer($exporter)],
+            extensionObjects: [OpenTelemetryConfiguration::createWithDefaults(), CoroutineMessageChannelBuilder::create('async')],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        CoroutineTesting::runAtOnce(
+            static fn () => $ecotone->sendCommandWithRouting('handle', 'order', metadata: [MessageHeaders::TRACING_ID => self::ORDER_TRACE]),
+            static fn () => $ecotone->sendCommandWithRouting('handle', 'payment', metadata: [MessageHeaders::TRACING_ID => self::PAYMENT_TRACE]),
+        );
+
+        $handled = [];
+        foreach ($this->spanParentsPerTrace($exporter) as $trace => $spans) {
+            $handled[$trace] = array_values(array_filter($spans, static fn (string $span) => str_contains($span, '::handle')));
+        }
+        $this->assertSame([
+            self::ORDER_TRACE => ['process class@anonymous::handle <- receive async'],
+            self::PAYMENT_TRACE => ['process class@anonymous::handle <- receive async'],
+        ], $handled);
     }
 
     private function bootstrapOrders(InMemoryExporter $exporter): FlowTestSupport

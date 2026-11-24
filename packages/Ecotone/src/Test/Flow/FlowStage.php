@@ -51,7 +51,7 @@ final class FlowStage
 
     public function asStoredByFlowTracking(): self
     {
-        return new self(...[...get_object_vars($this), 'expectedSpans' => array_values(array_filter(array_map(fn (ExpectedSpan $span) => $span->asStoredByFlowTracking(), $this->expectedSpans)))]);
+        return new self(...[...get_object_vars($this), 'expectedSpans' => array_merge([], ...array_map(fn (ExpectedSpan $span) => $span->asStoredByFlowTracking(), $this->expectedSpans))]);
     }
 
     public function withNoOtherSpans(): self

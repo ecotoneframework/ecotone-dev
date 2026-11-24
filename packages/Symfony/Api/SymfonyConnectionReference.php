@@ -19,12 +19,14 @@ use Symfony\Component\Uid\Uuid;
 final class SymfonyConnectionReference extends ConnectionReference implements DefinedObject
 {
     public const DEFAULT_CONNECTION_POOL_SIZE = 10;
+    public const DEFAULT_CONNECTION_POOL_WAIT_SECONDS = 5.0;
 
     private function __construct(
         private string $referenceName,
         private ?string $managerRegistryReference,
         ?string $connectionName,
         public readonly int $connectionPoolSize = self::DEFAULT_CONNECTION_POOL_SIZE,
+        public readonly float $connectionPoolWaitSeconds = self::DEFAULT_CONNECTION_POOL_WAIT_SECONDS,
     ) {
         parent::__construct($referenceName, $connectionName);
     }
@@ -41,14 +43,14 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
         );
     }
 
-    public static function createForConnection(string $connectionName, ?string $referenceName = null, int $connectionPoolSize = self::DEFAULT_CONNECTION_POOL_SIZE): self
+    public static function createForConnection(string $connectionName, ?string $referenceName = null, int $connectionPoolSize = self::DEFAULT_CONNECTION_POOL_SIZE, float $connectionPoolWaitSeconds = self::DEFAULT_CONNECTION_POOL_WAIT_SECONDS): self
     {
-        return new self(
-            $referenceName ?? $connectionName . '.' . Uuid::v7()->toRfc4122(),
-            null,
-            $connectionName,
-            $connectionPoolSize,
-        );
+        return (new self(
+            referenceName: $referenceName ?? $connectionName . '.' . Uuid::v7()->toRfc4122(),
+            managerRegistryReference: null,
+            connectionName: $connectionName,
+            connectionPoolSize: $connectionPoolSize,
+        ))->withConnectionPoolWaitSeconds($connectionPoolWaitSeconds);
     }
 
     public function withConnectionPoolSize(int $connectionPoolSize): self
@@ -66,7 +68,25 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
             );
         }
 
-        return new self(referenceName: $this->referenceName, managerRegistryReference: null, connectionName: $this->connectionName, connectionPoolSize: $connectionPoolSize);
+        return new self(referenceName: $this->referenceName, managerRegistryReference: null, connectionName: $this->connectionName, connectionPoolSize: $connectionPoolSize, connectionPoolWaitSeconds: $this->connectionPoolWaitSeconds);
+    }
+
+    public function withConnectionPoolWaitSeconds(float $connectionPoolWaitSeconds): self
+    {
+        if ($this->isManagerRegistryBasedConnection()) {
+            throw ConfigurationException::create(
+                "Connection pool wait cannot be set for `{$this->connectionName}`, because it is taken from a Doctrine ManagerRegistry: its EntityManager is bound to the one connection Symfony built, so there is no pool to wait on. "
+                . "Register the connection without the registry to have a connection per concurrent execution: SymfonyConnectionReference::defaultConnection('{$this->connectionName}')->withConnectionPoolWaitSeconds({$connectionPoolWaitSeconds}), or remove withConnectionPoolWaitSeconds()."
+            );
+        }
+        if ($connectionPoolWaitSeconds < 0) {
+            throw ConfigurationException::create(
+                "Connection pool wait for `{$this->connectionName}` is {$connectionPoolWaitSeconds} seconds, but a wait cannot be negative. "
+                . 'Pass 0 to withConnectionPoolWaitSeconds() to fail at once when every connection is in use, a number of seconds to wait for one, or leave it out for the default of ' . self::DEFAULT_CONNECTION_POOL_WAIT_SECONDS . ' seconds.'
+            );
+        }
+
+        return new self(referenceName: $this->referenceName, managerRegistryReference: null, connectionName: $this->connectionName, connectionPoolSize: $this->connectionPoolSize, connectionPoolWaitSeconds: $connectionPoolWaitSeconds);
     }
 
     public static function defaultManagerRegistry(
@@ -138,6 +158,7 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
                 $this->connectionName,
                 $this->referenceName,
                 $this->connectionPoolSize,
+                $this->connectionPoolWaitSeconds,
             ],
             [
                 self::class,

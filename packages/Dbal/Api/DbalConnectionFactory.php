@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Ecotone\Dbal\Connection\ConnectionPool;
 use Ecotone\Dbal\Connection\DbalContext;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Exception;
 use Interop\Queue\Context;
 use LogicException;
@@ -35,6 +36,7 @@ class DbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
      *   'polling_interval' => '1000',  - How often query for new messages (milliseconds)
      *   'lazy' => true,                - Use lazy database connection (boolean)
      *   'connection_pool_size' => 10,  - How many connections one process opens at most, one per execution running concurrently (coroutine or fiber)
+     *   'connection_pool_wait_seconds' => 5,  - How long a coroutine waits for a connection when all are in use, 0 to fail at once
      * ]
      *
      * or
@@ -64,11 +66,20 @@ class DbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
             'polling_interval' => 1000,
             'lazy' => true,
             'connection_pool_size' => ConnectionPool::DEFAULT_SIZE,
+            'connection_pool_wait_seconds' => ConnectionPool::DEFAULT_WAIT_SECONDS,
         ], $config);
+        if (! is_numeric($this->config['connection_pool_wait_seconds'])) {
+            throw ConfigurationException::create(sprintf(
+                '`connection_pool_wait_seconds` is %s, but it is a number of seconds. Pass a number, 0 to fail at once when every connection is in use, or leave it out for the default of %s seconds.',
+                var_export($this->config['connection_pool_wait_seconds'], true),
+                ConnectionPool::DEFAULT_WAIT_SECONDS,
+            ));
+        }
         $this->connectionPool = new ConnectionPool(
             connect: $this->connect(...),
             size: (int) $this->config['connection_pool_size'],
             connectionName: sprintf('%s://%s/%s', $this->config['connection']['driver'] ?? 'unknown', $this->config['connection']['host'] ?? 'localhost', $this->config['connection']['dbname'] ?? $this->config['connection']['path'] ?? ''),
+            connectionPoolWaitSeconds: (float) $this->config['connection_pool_wait_seconds'],
         );
     }
 

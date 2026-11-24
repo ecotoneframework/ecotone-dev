@@ -95,6 +95,7 @@ final class SymfonyConnectionModule extends NoExternalConfigurationModule implem
                         [
                             Reference::to($referenceToConnection),
                             $connection->connectionPoolSize,
+                            $connection->connectionPoolWaitSeconds,
                         ],
                         [
                             DbalConnection::class,

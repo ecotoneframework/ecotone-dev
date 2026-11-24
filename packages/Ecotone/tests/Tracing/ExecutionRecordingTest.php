@@ -772,7 +772,7 @@ final class ExecutionRecordingTest extends TracingTestCase
      */
     private static function executionOf(string $scenarioName, bool $withEveryHint = false): array
     {
-        foreach (FlowScenarioCatalogue::all() as $scenario) {
+        foreach (FlowScenarioCatalogue::runningOnThisPhp() as $scenario) {
             if ($scenario->name !== $scenarioName) {
                 continue;
             }

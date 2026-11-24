@@ -528,6 +528,11 @@ final class FlowTestSupport
         return $this;
     }
 
+    public function console(): int
+    {
+        return $this->configuredMessagingSystem->console();
+    }
+
     public function getServiceFromContainer(string $serviceName): object
     {
         return $this->configuredMessagingSystem->getServiceFromContainer($serviceName);

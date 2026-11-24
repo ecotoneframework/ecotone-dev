@@ -50,6 +50,11 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
         return $this->configuredMessagingSystem->runConsoleCommand($commandName, $parameters);
     }
 
+    public function console(): int
+    {
+        return $this->configuredMessagingSystem->console();
+    }
+
     public function getCommandBus(): CommandBus
     {
         return $this->configuredMessagingSystem->getCommandBus();

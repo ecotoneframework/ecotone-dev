@@ -7,6 +7,7 @@ use function array_keys;
 use Ecotone\Api\Attribute\BusinessMethod;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Console\ConsoleWriter;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\DistributedBus;
@@ -22,7 +23,9 @@ use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Config\Container\GatewayProxyMethodReference;
 use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Config\Flow\MessageFlowGraphBuilder;
+use Ecotone\Messaging\Console\SymfonyConsoleApplication;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
+use Ecotone\Messaging\Gateway\ConsoleCommandRunner as ConsoleCommandGateway;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
@@ -36,9 +39,9 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
     /**
      * @param array<string, string> $pollingEndpoints a map of endpointId => consumer lifecycle runner reference id
      * @param GatewayProxyReference[] $gatewayList
-     * @param string[] $consoleCommandNames
+     * @param ConsoleCommandConfiguration[] $consoleCommands
      */
-    public function __construct(private ContainerInterface $container, private array $pollingEndpoints, private array $gatewayList, private array $consoleCommandNames)
+    public function __construct(private ContainerInterface $container, private array $pollingEndpoints, private array $gatewayList, private array $consoleCommands)
     {
     }
 
@@ -69,7 +72,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
             throw ConfigurationException::create(sprintf(
                 'Console command `%s` is not registered. Registered console commands: %s. Register one by marking a method with #[%s(\'%s\')], or run a registered command by its name.',
                 $commandName,
-                $this->consoleCommandNames === [] ? 'none' : '`' . implode('`, `', $this->consoleCommandNames) . '`',
+                $this->consoleCommands === [] ? 'none' : '`' . implode('`, `', array_map(fn (ConsoleCommandConfiguration $consoleCommand) => $consoleCommand->getName(), $this->consoleCommands)) . '`',
                 ConsoleCommand::class,
                 $commandName,
             ));
@@ -77,6 +80,15 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
         /** @var ConsoleCommandRunner $commandRunner */
         $commandRunner = $this->container->get($consoleCommandReference);
         return $commandRunner->run($parameters);
+    }
+
+    public function console(): int
+    {
+        return SymfonyConsoleApplication::create(
+            consoleCommands: $this->consoleCommands,
+            consoleCommandRunner: $this->container->get(ConsoleCommandGateway::class),
+            consoleWriter: $this->container->get(ConsoleWriter::class),
+        )->run();
     }
 
     public function getCommandBus(): CommandBus
@@ -138,7 +150,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
         $this->container = $messagingSystem->container;
         $this->pollingEndpoints = $messagingSystem->pollingEndpoints;
         $this->gatewayList = $messagingSystem->gatewayList;
-        $this->consoleCommandNames = $messagingSystem->consoleCommandNames;
+        $this->consoleCommands = $messagingSystem->consoleCommands;
     }
 
     public function getGatewayList(): array

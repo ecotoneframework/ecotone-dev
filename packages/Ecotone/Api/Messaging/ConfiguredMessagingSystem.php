@@ -39,6 +39,8 @@ interface ConfiguredMessagingSystem
 
     public function runConsoleCommand(string $commandName, array $parameters): mixed;
 
+    public function console(): int;
+
     public function getCommandBus(): CommandBus;
 
     public function getQueryBus(): QueryBus;

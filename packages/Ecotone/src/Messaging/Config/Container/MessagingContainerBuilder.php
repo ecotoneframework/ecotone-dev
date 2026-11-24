@@ -75,7 +75,7 @@ class MessagingContainerBuilder
         }
 
         $pollingMetadata = $this->getPollingConfigurationForPolledEndpoint($endpointId, $withContinuousPolling);
-        ConsumerCoroutines::refuseEndpointWhoseMessagesCannotBeHandledAtOnce($endpointId, $pollingMetadata->coroutines, $drainsAQueue, $streamsConsumed, $handlersHandlingOneMessageAtATime);
+        ConsumerCoroutines::refuseEndpointWhoseMessagesCannotBeHandledAtOnce(endpointId: $endpointId, coroutines: $pollingMetadata->coroutines, drainsAQueue: $drainsAQueue, streamsConsumed: $streamsConsumed, handlersHandlingOneMessageAtATime: $handlersHandlingOneMessageAtATime);
         $this->registerPollingMetadata($pollingMetadata);
         $this->register($runnerReference, $definition);
         $this->pollingEndpoints[$endpointId] = $endpointId;

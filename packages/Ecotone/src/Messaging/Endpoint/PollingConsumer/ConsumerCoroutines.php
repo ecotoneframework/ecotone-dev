@@ -67,7 +67,7 @@ final class ConsumerCoroutines
      */
     public static function consume(string $endpointId, int $coroutines, bool $drainsAQueue, array $streamsConsumed, array $handlersHandlingOneMessageAtATime, Closure $createConsumer): void
     {
-        self::refuseEndpointWhoseMessagesCannotBeHandledAtOnce($endpointId, $coroutines, $drainsAQueue, $streamsConsumed, $handlersHandlingOneMessageAtATime);
+        self::refuseEndpointWhoseMessagesCannotBeHandledAtOnce(endpointId: $endpointId, coroutines: $coroutines, drainsAQueue: $drainsAQueue, streamsConsumed: $streamsConsumed, handlersHandlingOneMessageAtATime: $handlersHandlingOneMessageAtATime);
 
         $runtime = self::coroutineRuntime();
         if ($runtime === null) {

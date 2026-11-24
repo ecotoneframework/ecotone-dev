@@ -25,7 +25,7 @@ final class DistributedBusTest extends TestCase
     public function test_distribute_command(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [ShoppingCenter::class],
+            [],
             [
                 new ShoppingCenter(),
             ],
@@ -43,7 +43,7 @@ final class DistributedBusTest extends TestCase
     public function test_distribute_event(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [ShoppingRecord::class],
+            [],
             [
                 new ShoppingRecord(),
             ],
@@ -61,7 +61,7 @@ final class DistributedBusTest extends TestCase
     public function test_not_calling_when_event_handler_not_distributed(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [ShoppingRecord::class],
+            [],
             [
                 new ShoppingRecord(),
             ],
@@ -79,7 +79,7 @@ final class DistributedBusTest extends TestCase
     public function test_throwing_exception_if_trying_to_handle_not_distributed_routing_key(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [ShoppingCenter::class],
+            [],
             [
                 new ShoppingCenter(),
             ],

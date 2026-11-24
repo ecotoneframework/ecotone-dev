@@ -22,7 +22,7 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $messageHandler = new TestMessageHandler();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [TestMessageHandler::class],
+            [],
             [$messageHandler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -46,7 +46,7 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $messageHandler = new TestMessageHandler();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [TestMessageHandler::class],
+            [],
             [$messageHandler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -73,7 +73,7 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $messageHandler = new TestMessageHandler();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [TestMessageHandler::class],
+            [],
             [$messageHandler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -99,7 +99,7 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $signalHandler = new SignalSendingMessageHandler();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [SignalSendingMessageHandler::class],
+            [],
             [$signalHandler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -125,7 +125,7 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $signalHandler = new SignalSendingMessageHandler();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [SignalSendingMessageHandler::class],
+            [],
             [$signalHandler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],

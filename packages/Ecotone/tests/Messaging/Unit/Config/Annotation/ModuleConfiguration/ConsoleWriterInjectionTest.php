@@ -29,7 +29,7 @@ final class ConsoleWriterInjectionTest extends TestCase
             }
         };
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -55,7 +55,7 @@ final class ConsoleWriterInjectionTest extends TestCase
             }
         };
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -79,7 +79,7 @@ final class ConsoleWriterInjectionTest extends TestCase
             }
         };
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -109,7 +109,7 @@ final class ConsoleWriterInjectionTest extends TestCase
             }
         };
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );

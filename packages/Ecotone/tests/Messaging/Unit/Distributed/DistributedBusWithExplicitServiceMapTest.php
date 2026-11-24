@@ -754,7 +754,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
 
         // Publisher service
         $publisherService = EcotoneLite::bootstrapFlowTesting(
-            [$publisher::class],
+            [],
             [$publisher, ConsumerPositionTracker::class => $positionTracker],
             extensionObjects: [
                 $publisherStreamingChannel,
@@ -771,7 +771,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
 
         // Consumer service 1
         $consumerService1 = EcotoneLite::bootstrapFlowTesting(
-            [$consumer1::class],
+            [],
             [$consumer1, ConsumerPositionTracker::class => $positionTracker],
             extensionObjects: [
                 $publisherStreamingChannel,
@@ -788,7 +788,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
 
         // Consumer service 2
         $consumerService2 = EcotoneLite::bootstrapFlowTesting(
-            [$consumer2::class],
+            [],
             [$consumer2, ConsumerPositionTracker::class => $positionTracker],
             extensionObjects: [
                 $publisherStreamingChannel,

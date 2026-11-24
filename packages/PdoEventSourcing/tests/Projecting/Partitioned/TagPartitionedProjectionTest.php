@@ -282,7 +282,7 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             }
         };
         $reader = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$projection::class, SeatReservedForTaggedProjection::class],
+            classesToResolve: [SeatReservedForTaggedProjection::class],
             containerOrAvailableServices: [$projection, DbalConnectionFactory::class => self::getConnectionFactory(isRegistry: $implementation === 'dbal-manager-registry')],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults(), EventSourcingConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
@@ -362,7 +362,6 @@ final class TagPartitionedProjectionTest extends ProjectingTestCase
             PulseConfiguration::createWithDefaults('ecotone_pulse'),
         ]);
         $pulseService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$pulse::class],
             containerOrAvailableServices: [$pulse],
             extensionObjects: [
                 ...$channels,

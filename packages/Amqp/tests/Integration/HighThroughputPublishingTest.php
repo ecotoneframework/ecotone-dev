@@ -198,7 +198,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
         $orderService = $this->createOrderService($channelName);
         $libConnectionFactory = new AmqpLibConnection(['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f']);
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [$orderService::class],
+            [],
             [
                 AmqpConnectionFactory::class => $libConnectionFactory,
                 AmqpLibConnection::class => $libConnectionFactory,
@@ -358,7 +358,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
     private function bootstrapEcotone(string $channelName, object $orderService, ?string $licenceKey): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [$orderService::class],
+            [],
             [...$this->getConnectionFactoryReferences(), $orderService],
             extensionObjects: [AmqpBackedMessageChannelBuilder::create('asyncOrdersChannel', queueName:$channelName)->withHighThroughputPublishing()],
             enabledModules: [ModulePackageList::AMQP_PACKAGE],

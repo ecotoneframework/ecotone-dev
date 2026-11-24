@@ -50,7 +50,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class, CommandBusWithCustomRetryCountAttribute::class],
+            [CommandBusWithCustomRetryCountAttribute::class],
             [
                 new RetriedCommandHandler(),
             ],
@@ -65,7 +65,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
     public function test_exceeding_retries_with_command_bus_using_attribute()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class, CommandBusWithCustomRetryCountAttribute::class],
+            [CommandBusWithCustomRetryCountAttribute::class],
             [
                 new RetriedCommandHandler(),
             ],
@@ -84,7 +84,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
     public function test_retrying_with_command_bus_using_attribute_for_specific_exceptions_which_is_not_thrown()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class, CommandBusWithInvalidArgumentExceptionsAttribute::class],
+            [CommandBusWithInvalidArgumentExceptionsAttribute::class],
             [
                 new RetriedCommandHandler(),
             ],
@@ -111,7 +111,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
     public function test_retrying_with_command_bus_using_attribute_for_specific_exceptions_which_is_thrown()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class, CommandBusWithRuntimeExceptionsAttribute::class],
+            [CommandBusWithRuntimeExceptionsAttribute::class],
             [
                 new RetriedCommandHandler(),
             ],
@@ -129,7 +129,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
     public function test_attribute_configuration_takes_precedence_over_global_configuration_with_success()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class, CommandBusWithCustomRetryCountAttribute::class],
+            [CommandBusWithCustomRetryCountAttribute::class],
             [
                 new RetriedCommandHandler(),
             ],
@@ -151,7 +151,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
     public function test_attribute_configuration_takes_precedence_over_global_configuration_with_failure()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class, CommandBusWithCustomRetryCountAttribute::class],
+            [CommandBusWithCustomRetryCountAttribute::class],
             [
                 new RetriedCommandHandler(),
             ],
@@ -175,7 +175,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
         $errorChannelHandler = new ErrorChannelHandler();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class, CommandBusWithErrorChannelAndInstantRetryAttribute::class, ErrorChannelHandler::class],
+            [CommandBusWithErrorChannelAndInstantRetryAttribute::class],
             [
                 new RetriedCommandHandler(),
                 $errorChannelHandler,
@@ -197,7 +197,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
         $errorChannelHandler = new ErrorChannelHandler();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class, CommandBusWithErrorChannelAndInstantRetryAttribute::class, ErrorChannelHandler::class],
+            [CommandBusWithErrorChannelAndInstantRetryAttribute::class],
             [
                 new RetriedCommandHandler(),
                 $errorChannelHandler,
@@ -221,7 +221,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
         $this->expectExceptionMessage('InstantRetry attribute can only be used on interfaces extending CommandBus');
 
         EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class, NonCommandBusWithInstantRetryAttribute::class],
+            [NonCommandBusWithInstantRetryAttribute::class],
             [
                 new RetriedCommandHandler(),
             ],

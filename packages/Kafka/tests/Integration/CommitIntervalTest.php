@@ -49,7 +49,7 @@ final class CommitIntervalTest extends TestCase
         $topicName = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [KafkaConsumerWithCommitInterval::class],
+            [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new KafkaConsumerWithCommitInterval()],
             extensionObjects: [
                 KafkaPublisherConfiguration::createWithDefaults($topicName),

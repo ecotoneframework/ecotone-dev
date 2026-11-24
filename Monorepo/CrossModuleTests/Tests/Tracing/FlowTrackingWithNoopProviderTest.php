@@ -71,7 +71,7 @@ final class FlowTrackingWithNoopProviderTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$users::class, $subscriber::class],
+            [],
             [$users, $subscriber, TracerProviderInterface::class => new NoopTracerProvider()],
             [FlowTrackingConfiguration::createWithDefaults(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             enabledModules: [ModulePackageList::TRACING_PACKAGE, ModulePackageList::DBAL_PACKAGE],

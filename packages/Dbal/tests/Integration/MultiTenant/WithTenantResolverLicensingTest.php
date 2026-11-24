@@ -62,7 +62,7 @@ final class WithTenantResolverLicensingTest extends TestCase
     private function bootstrap(object $service, ?string $licenceKey): void
     {
         EcotoneLite::bootstrapFlowTesting(
-            [$service::class],
+            [],
             [$service, 'tenant_a_connection' => new FakeConnectionFactory()],
             extensionObjects: [
                 MultiTenantConfiguration::createWithDefaultConnection('tenant', ['tenant_a' => 'tenant_a_connection'], 'tenant_a_connection', DbalConnectionFactory::class, ),

@@ -134,7 +134,7 @@ final class CoroutineExecutionsTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrap(
-            [$orders::class],
+            [],
             [$orders],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
@@ -232,7 +232,7 @@ final class CoroutineExecutionsTest extends TestCase
             }
         };
 
-        return EcotoneLite::bootstrapFlowTesting([$parcels::class], [$parcels]);
+        return EcotoneLite::bootstrapFlowTesting([], [$parcels]);
     }
 }
 

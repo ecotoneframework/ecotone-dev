@@ -53,7 +53,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertSame(['handler:order.first.handler', 'handler:order.second.handler'], array_map(fn ($node) => $node->id, $graph->nodesOfKind(FlowNodeKind::COMMAND_HANDLER)));
         self::assertEdges([
@@ -70,7 +70,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertTrue($graph->hasNode('handler:order.identity.handler'));
         self::assertSame($service::class, $graph->node('handler:order.identity.handler')->attributes['class']);
@@ -94,7 +94,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $handlerId = 'handler:order.place';
         $internalId = 'handler:order.notify';
@@ -125,7 +125,7 @@ final class MessageFlowGraphTest extends TestCase
                 return 'placed';
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertSame(FlowNodeKind::COMMAND, $graph->node('message:order.cancel')->kind);
         self::assertSame(FlowNodeKind::QUERY, $graph->node('message:order.status')->kind);
@@ -146,7 +146,7 @@ final class MessageFlowGraphTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            [$service::class],
+            [],
             [$service],
             [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
@@ -177,7 +177,7 @@ final class MessageFlowGraphTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            [$service::class],
+            [],
             [$service],
             [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
@@ -246,7 +246,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class, $subscriber::class], [$subscriber], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], [$subscriber], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $handlerId = 'handler:' . $aggregate::class . '::place';
         self::assertFalse($graph->node('aggregate:' . $aggregate::class)->attributes['eventSourced']);
@@ -283,7 +283,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $placeId = 'handler:order.place';
         self::assertEdges([
@@ -307,7 +307,7 @@ final class MessageFlowGraphTest extends TestCase
                 $eventBus->publish(new OrderPlacedForFlowGraph($command->orderId));
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $event = $graph->node('message:' . OrderPlacedForFlowGraph::class);
         self::assertSame(FlowNodeKind::EVENT, $event->kind);
@@ -332,7 +332,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class, OrderShippingForFlowGraph::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([OrderShippingForFlowGraph::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $gatewayId = 'gateway:' . OrderShippingForFlowGraph::class . '::ship';
         self::assertSame(FlowNodeKind::GATEWAY, $graph->node($gatewayId)->kind);
@@ -362,7 +362,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $routerId = 'handler:order.router';
         self::assertSame(FlowNodeKind::ROUTER, $graph->node($routerId)->kind);
@@ -381,7 +381,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$projection::class], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertSame(FlowNodeKind::PROJECTION, $graph->node('projection:orders_list')->kind);
         self::assertSame('projection:orders_list', $graph->node('handler:orders_list.placed')->attributes['owner']);
@@ -405,7 +405,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $busId = 'distributed:' . DistributedBus::class;
         self::assertSame(FlowNodeKind::DISTRIBUTED_BUS, $graph->node($busId)->kind);
@@ -433,7 +433,7 @@ final class MessageFlowGraphTest extends TestCase
                 $this->distributedBus->sendMessage('billing', 'billing.notifications', '{}');
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $busId = 'distributed:' . DistributedBus::class;
         $placeId = 'handler:order.place';
@@ -550,7 +550,7 @@ final class MessageFlowGraphTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            [$billing::class],
+            [],
             [$billing],
             [
                 SimpleMessageChannelBuilder::createQueueChannel('billing_events'),
@@ -580,7 +580,7 @@ final class MessageFlowGraphTest extends TestCase
                 return $command->orderId;
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertEquals($graph, MessageFlowGraph::fromArray($graph->toArray()));
         self::assertSame($graph->toArray(), json_decode($graph->toJson(), true));
@@ -612,7 +612,7 @@ final class MessageFlowGraphTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            [$aggregate::class, $subscriber::class],
+            [$aggregate::class],
             [$subscriber],
             [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
@@ -646,7 +646,7 @@ final class MessageFlowGraphTest extends TestCase
             }
         };
         $mermaid = EcotoneLite::bootstrapFlowTesting(
-            [$notifications::class, $invoicing::class],
+            [],
             [$notifications, $invoicing],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications')],
             enabledModules: [],
@@ -678,7 +678,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         $ecotone->runConsoleCommand('ecotone:flow:dump');
         self::assertStringContainsString('flowchart LR', $ecotone->getInMemoryConsoleWriter()->getWrittenContent());

@@ -36,7 +36,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, TracerProviderInterface::class => new NoopTracerProvider()],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
             initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
@@ -59,7 +59,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, TracerProviderInterface::class => new NoopTracerProvider()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
@@ -85,7 +85,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, TracerProviderInterface::class => new NoopTracerProvider()],
             extensionObjects: [OpenTelemetryConfiguration::createWithDefaults()->withForceFlushOnBusExecution(false)->withForceFlushOnAsynchronousMessageHandled(false)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
@@ -109,7 +109,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, TracerProviderInterface::class => self::prepareTracer($exporter)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
             initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),

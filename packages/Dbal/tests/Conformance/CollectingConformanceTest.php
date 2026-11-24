@@ -1082,7 +1082,6 @@ final class CollectingConformanceTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, 'collecting_tenant_connection' => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [
                 MultiTenantConfiguration::create('tenant', ['collecting_tenant' => 'collecting_tenant_connection']),
@@ -1664,7 +1663,6 @@ final class CollectingConformanceTest extends TestCase
     private function bootstrapWithoutTransaction(object $handler, DbalConnectionFactory $connectionFactory): FlowTestSupport
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $connectionFactory],
             extensionObjects: [
                 DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(false),
@@ -1684,7 +1682,6 @@ final class CollectingConformanceTest extends TestCase
     private function bootstrapSerialized(object $handler): FlowTestSupport
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [DbalBackedMessageChannelBuilder::create('batches')],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -1700,7 +1697,6 @@ final class CollectingConformanceTest extends TestCase
     private function bootstrapFailureWithDeadLetter(object $handler): FlowTestSupport
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter')],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],

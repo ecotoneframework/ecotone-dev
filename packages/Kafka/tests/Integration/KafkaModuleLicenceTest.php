@@ -54,7 +54,7 @@ final class KafkaModuleLicenceTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders],
             enabledModules: [ModulePackageList::KAFKA_PACKAGE],
         );
@@ -87,7 +87,7 @@ final class KafkaModuleLicenceTest extends TestCase
         $this->expectExceptionMessage('Kafka is used here (#[KafkaConsumer] `orders_consumer`)');
 
         EcotoneLite::bootstrapFlowTesting(
-            [$consumer::class],
+            [],
             [$consumer],
             enabledModules: [ModulePackageList::KAFKA_PACKAGE],
         );

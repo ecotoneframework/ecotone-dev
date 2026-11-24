@@ -186,7 +186,6 @@ final class PulseFlowVersionsTest extends TestCase
         $pulseService = $this->pulseService($pulse);
         $intruderReplies = $this->pulseReplies();
         $intruder = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$intruderReplies::class],
             containerOrAvailableServices: [$intruderReplies],
             extensionObjects: [
                 ...$this->channels,
@@ -241,7 +240,6 @@ final class PulseFlowVersionsTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$orders::class],
             containerOrAvailableServices: [$orders],
             extensionObjects: [
                 ...$this->channels,
@@ -259,7 +257,6 @@ final class PulseFlowVersionsTest extends TestCase
     private function pulseService(object $handlers): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handlers::class],
             containerOrAvailableServices: [$handlers],
             extensionObjects: [
                 ...$this->channels,

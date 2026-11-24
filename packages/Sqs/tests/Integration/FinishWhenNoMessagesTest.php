@@ -74,7 +74,7 @@ final class FinishWhenNoMessagesTest extends ConnectionTestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$consumer::class],
+            [],
             [$consumer, SqsConnectionFactory::class => $this->getConnectionFactory()],
             extensionObjects: [SqsBackedMessageChannelBuilder::create('async')->withReceiveTimeout(60_000)],
             enabledModules: [ModulePackageList::SQS_PACKAGE],

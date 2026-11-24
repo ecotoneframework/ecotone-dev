@@ -1762,7 +1762,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $commandHandler = new SomeTestCommandHandler();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [SomeTestCommandHandler::class],
+            [],
             [$commandHandler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
@@ -1779,7 +1779,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $eventHandler = new SomeTestEventHandler();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [SomeTestEventHandler::class],
+            [],
             [$eventHandler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],

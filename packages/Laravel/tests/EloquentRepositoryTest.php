@@ -533,7 +533,7 @@ class EloquentRepositoryTest extends TestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$ticket::class, $repository::class],
+            [$ticket::class],
             [$repository::class => $repository],
             extensionObjects: [new EloquentRepositoryBuilder()],
             enabledModules: [],

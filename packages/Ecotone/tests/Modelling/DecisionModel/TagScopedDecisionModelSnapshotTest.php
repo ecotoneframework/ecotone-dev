@@ -206,10 +206,8 @@ final class TagScopedDecisionModelSnapshotTest extends TestCase
 
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
-                WalletsForTagSnapshotTest::class,
                 SpentTodayForTagSnapshotTest::class,
                 WalletCreditedForTagSnapshotTest::class,
-                SpentTodayConverterForTagSnapshotTest::class,
                 ...$extraClasses,
             ],
             containerOrAvailableServices: [

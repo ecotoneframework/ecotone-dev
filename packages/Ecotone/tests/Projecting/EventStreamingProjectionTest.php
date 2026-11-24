@@ -62,7 +62,7 @@ class EventStreamingProjectionTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, UserCreated::class],
+            [UserCreated::class],
             [$projection, ConsumerPositionTracker::class => $positionTracker],
             extensionObjects: [SimpleMessageChannelBuilder::createStreamingChannel('streaming_channel', conversionMediaType:MediaType::createApplicationXPHP())],
             enabledModules: [],
@@ -116,7 +116,7 @@ class EventStreamingProjectionTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection, ConsumerPositionTracker::class => $positionTracker],
             extensionObjects: [SimpleMessageChannelBuilder::createStreamingChannel('streaming_channel', conversionMediaType:MediaType::createApplicationXPHP())],
             enabledModules: [],
@@ -176,7 +176,7 @@ class EventStreamingProjectionTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$projection::class, ProductRegistered::class, ProductPriceChanged::class],
+            classesToResolve: [ProductRegistered::class, ProductPriceChanged::class],
             containerOrAvailableServices: [$projection, ConsumerPositionTracker::class => $positionTracker],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType:MediaType::createApplicationXPHP()),
@@ -242,7 +242,7 @@ class EventStreamingProjectionTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$productListProjection::class, $productPriceProjection::class, ProductRegistered::class, ProductPriceChanged::class],
+            classesToResolve: [ProductRegistered::class, ProductPriceChanged::class],
             containerOrAvailableServices: [$productListProjection, $productPriceProjection, ConsumerPositionTracker::class => $positionTracker],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType:MediaType::createApplicationXPHP()),
@@ -314,7 +314,7 @@ class EventStreamingProjectionTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$eventDrivenProjection::class, $eventStreamingProjection::class, ProductRegistered::class],
+            classesToResolve: [ProductRegistered::class],
             containerOrAvailableServices: [$eventDrivenProjection, $eventStreamingProjection, ConsumerPositionTracker::class => $positionTracker],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType:MediaType::createApplicationXPHP()),

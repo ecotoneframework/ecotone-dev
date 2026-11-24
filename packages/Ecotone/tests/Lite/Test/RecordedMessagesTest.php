@@ -23,7 +23,7 @@ final class RecordedMessagesTest extends TestCase
     {
         $handler = $this->orderHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -42,7 +42,7 @@ final class RecordedMessagesTest extends TestCase
     {
         $handler = $this->orderHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -58,7 +58,7 @@ final class RecordedMessagesTest extends TestCase
     {
         $handler = $this->orderHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );

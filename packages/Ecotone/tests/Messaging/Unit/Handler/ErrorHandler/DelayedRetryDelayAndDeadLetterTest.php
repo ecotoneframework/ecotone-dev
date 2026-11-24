@@ -60,7 +60,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
     public function test_dead_letter_message_carries_full_exception_context_headers(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [DeadLetterRoutingHandler::class],
+            [],
             [new DeadLetterRoutingHandler()],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -92,7 +92,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
     public function test_throws_after_exhausting_retries_when_no_dead_letter_channel_is_configured(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [NoDeadLetterHandler::class],
+            [],
             [new NoDeadLetterHandler()],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -115,7 +115,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
     private function bootstrapWithGrowingDelay()
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [GrowingDelayHandler::class],
+            [],
             [new GrowingDelayHandler()],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),

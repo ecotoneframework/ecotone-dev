@@ -60,7 +60,6 @@ final class ApplicationConnectionLifetimeTest extends ConnectionTestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, RedisConnectionFactory::class => self::getConnection()],
             extensionObjects: [RedisBackedMessageChannelBuilder::create('orders')],
             enabledModules: [ModulePackageList::REDIS_PACKAGE],

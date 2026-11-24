@@ -42,7 +42,7 @@ final class ProjectionNameHeaderTest extends TestCase
     {
         $projection = $this->projectionRecordingItsName();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
         );
@@ -57,7 +57,7 @@ final class ProjectionNameHeaderTest extends TestCase
     {
         $projection = $this->projectionRecordingItsName();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,

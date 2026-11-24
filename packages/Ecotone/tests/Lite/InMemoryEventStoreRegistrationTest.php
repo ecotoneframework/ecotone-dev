@@ -50,7 +50,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $testEvent::class],
+            [$testEvent::class],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -117,7 +117,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $testEvent::class, $customStreamSource::class],
+            [$testEvent::class],
             [$projection, $customStreamSource],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,

@@ -47,7 +47,6 @@ final class CollectingTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             enabledModules: [],
         );
@@ -68,7 +67,6 @@ final class CollectingTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -90,7 +88,6 @@ final class CollectingTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -112,7 +109,6 @@ final class CollectingTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -135,7 +131,6 @@ final class CollectingTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -158,7 +153,6 @@ final class CollectingTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -233,7 +227,6 @@ final class CollectingTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -255,7 +248,6 @@ final class CollectingTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -279,7 +271,6 @@ final class CollectingTest extends TestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -311,7 +302,6 @@ final class CollectingTest extends TestCase
         $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') must receive Ecotone\\Api\\Messaging\\CollectedMessages as its first payload parameter. Change that parameter type to CollectedMessages, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -332,7 +322,6 @@ final class CollectingTest extends TestCase
         $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') has maxWait but asynchronous channel 'batches' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove maxWait from #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches', delayable: false)],
             enabledModules: [],
@@ -355,7 +344,6 @@ final class CollectingTest extends TestCase
         };
         $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxWait of 900001 milliseconds exceeds asynchronous channel 'batches' maximum delay of 900000 milliseconds. Reduce maxWait in #[Collected], use a channel with a longer maximum delay, or remove maxWait.");
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, SqsConnectionFactory::class => new SqsConnectionFactory(getenv('SQS_DSN'))],
             extensionObjects: [SqsBackedMessageChannelBuilder::create('batches')],
             enabledModules: [ModulePackageList::SQS_PACKAGE],
@@ -377,7 +365,6 @@ final class CollectingTest extends TestCase
         $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxSize is 0; maxSize must be at least 1. Set maxSize to a positive integer, omit maxSize and set maxWait, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -398,7 +385,6 @@ final class CollectingTest extends TestCase
         $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxWait is 0 milliseconds; maxWait must be greater than 0. Set a positive Duration, omit maxWait and set maxSize, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -419,7 +405,6 @@ final class CollectingTest extends TestCase
         $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') cannot infer its subscription because the first parameter is CollectedMessages. Set #[InternalHandler(inputChannelName: 'your.input.channel', endpointId: 'collect.handler')], or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -439,7 +424,6 @@ final class CollectingTest extends TestCase
         };
         $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') requires durable storage outside flow testing: batches must survive restarts and be shared between consumers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove #[Collected].");
         EcotoneLite::bootstrap(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -460,7 +444,6 @@ final class CollectingTest extends TestCase
         $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId '') has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set #[InternalHandler(inputChannelName: 'collect', endpointId: 'your.stable.id')], or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -481,7 +464,6 @@ final class CollectingTest extends TestCase
         $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId '') has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set #[CommandHandler(routingKey: 'collect', endpointId: 'your.stable.id')], or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -502,7 +484,6 @@ final class CollectingTest extends TestCase
         $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId '') has no explicit endpointId. Open batches are stored under endpointId, so it must stay stable across deploys. Set #[EventHandler(listenTo: 'collect.event', endpointId: 'your.stable.id')], or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -522,7 +503,6 @@ final class CollectingTest extends TestCase
         $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxSize is -1; maxSize must be at least 1. Set maxSize to a positive integer, omit maxSize and set maxWait, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -543,7 +523,6 @@ final class CollectingTest extends TestCase
         $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.handler') maxWait is -1 milliseconds; maxWait must be greater than 0. Set a positive Duration, omit maxWait and set maxSize, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],
@@ -574,7 +553,6 @@ final class CollectingTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             licenceKey: LicenceTesting::VALID_LICENCE,
             enabledModules: [],
@@ -601,7 +579,6 @@ final class CollectingTest extends TestCase
         };
         $this->expectExceptionMessage('Collected handler ' . $handler::class . "::collect (endpointId 'collect.command.handler') has 2 handler attributes. A collected method must have exactly one #[CommandHandler], #[EventHandler] or #[InternalHandler]. Keep one handler attribute, move the other handler to a separate method, or remove #[Collected].");
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             licenceKey: LicenceTesting::VALID_LICENCE,
             enabledModules: [],
@@ -646,7 +623,6 @@ final class CollectingTest extends TestCase
         };
         $this->expectExceptionMessage("Gather channel 'mixed.summary' and collected handler " . $handler::class . "::collect (endpointId 'collect.handler') require durable storage outside flow testing: groups and batches must survive restarts and be shared between consumers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove gatherChannelName from #[Splitter] and #[Collected] from the service handler.");
         EcotoneLite::bootstrap(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries'), SimpleMessageChannelBuilder::createQueueChannel('batches')],
             enabledModules: [],

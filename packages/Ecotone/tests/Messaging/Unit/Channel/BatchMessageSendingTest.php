@@ -49,7 +49,7 @@ final class BatchMessageSendingTest extends TestCase
     {
         $orderProcessor = $this->createOrderProcessor();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$orderProcessor::class],
+            [],
             [$orderProcessor],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
@@ -67,7 +67,7 @@ final class BatchMessageSendingTest extends TestCase
     {
         $orderProcessor = $this->createOrderProcessor();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$orderProcessor::class],
+            [],
             [$orderProcessor],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],

@@ -41,7 +41,7 @@ final class ServiceConfigurationFromServiceContextTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$serviceContext::class, $handler::class],
+            [],
             [$serviceContext, $handler],
             extensionObjects: [
                 InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -83,7 +83,7 @@ final class ServiceConfigurationFromServiceContextTest extends TestCase
         );
 
         EcotoneLite::bootstrapFlowTesting(
-            [$first::class, $second::class],
+            [],
             [$first, $second],
             enabledModules: [],
         );
@@ -107,7 +107,7 @@ final class ServiceConfigurationFromServiceContextTest extends TestCase
         );
 
         EcotoneLite::bootstrapFlowTesting(
-            [$serviceContext::class],
+            [],
             [$serviceContext],
             extensionObjects: [ServiceConfiguration::createWithDefaults()->withServiceName('from_lite')],
             enabledModules: [],

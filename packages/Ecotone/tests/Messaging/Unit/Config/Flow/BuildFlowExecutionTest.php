@@ -767,7 +767,7 @@ final class BuildFlowExecutionTest extends TestCase
     private function application(array $classes, array $services): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [...$classes, BuildFlowConsoleCommands::class],
+            [...$classes],
             [...$services, new BuildFlowConsoleCommands()],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],

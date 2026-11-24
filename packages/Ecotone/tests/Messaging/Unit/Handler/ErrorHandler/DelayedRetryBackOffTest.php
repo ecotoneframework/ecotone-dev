@@ -41,7 +41,7 @@ final class DelayedRetryBackOffTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$sender::class],
+            [],
             [$sender],
             extensionObjects: [
                 ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries(3), 'deadLetter'),
@@ -113,7 +113,7 @@ final class DelayedRetryBackOffTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$sender::class],
+            [],
             [$sender, 'logger' => $logger],
             extensionObjects: [
                 ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries(3), 'deadLetter'),
@@ -158,7 +158,7 @@ final class DelayedRetryBackOffTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$sender::class],
+            [],
             [$sender, 'logger' => $logger],
             extensionObjects: [
                 $deadLetter ? ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries($maxRetries), 'deadLetter') : ErrorHandlerConfiguration::create('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries($maxRetries)),

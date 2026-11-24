@@ -21,7 +21,7 @@ final class DirectAndPublishSubscribeChannelTest extends TestCase
     {
         $handler = new DirectChannelHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [DirectChannelHandler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -49,7 +49,7 @@ final class DirectAndPublishSubscribeChannelTest extends TestCase
     {
         $handler = new PublishSubscribeChannelHandlers();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [PublishSubscribeChannelHandlers::class],
+            [],
             [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createPublishSubscribeChannel(PublishSubscribeChannelHandlers::CHANNEL)],
             enabledModules: [],

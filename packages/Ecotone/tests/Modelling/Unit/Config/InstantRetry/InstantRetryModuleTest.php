@@ -26,7 +26,7 @@ final class InstantRetryModuleTest extends TestCase
     public function test_retrying_with_command_bus()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class],
+            [],
             [
                 new RetriedCommandHandler(),
             ],
@@ -48,7 +48,7 @@ final class InstantRetryModuleTest extends TestCase
     public function test_retrying_with_command_bus_and_ignoring_retries_on_nested_command_bus()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class],
+            [],
             [
                 new RetriedCommandHandler(),
             ],
@@ -70,7 +70,7 @@ final class InstantRetryModuleTest extends TestCase
     public function test_exceeding_retries_with_command_bus()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class],
+            [],
             [
                 new RetriedCommandHandler(),
             ],
@@ -89,7 +89,7 @@ final class InstantRetryModuleTest extends TestCase
     public function test_retrying_with_command_bus_for_concrete_exception()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class],
+            [],
             [
                 new RetriedCommandHandler(),
             ],
@@ -111,7 +111,7 @@ final class InstantRetryModuleTest extends TestCase
     public function test_retrying_with_command_bus_for_concrete_exception_when_different_thrown()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class],
+            [],
             [
                 new RetriedCommandHandler(),
             ],
@@ -140,7 +140,7 @@ final class InstantRetryModuleTest extends TestCase
     public function test_retrying_with_asynchronous_handler()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class],
+            [],
             [
                 new RetriedCommandHandler(),
             ],
@@ -163,7 +163,7 @@ final class InstantRetryModuleTest extends TestCase
     public function test_retrying_with_asynchronous_handler_and_ignoring_retries_on_nested_command_bus()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class],
+            [],
             [
                 new RetriedCommandHandler(),
             ],
@@ -186,7 +186,7 @@ final class InstantRetryModuleTest extends TestCase
     public function test_exceeding_retries_with_asynchronous_handler()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class],
+            [],
             [
                 new RetriedCommandHandler(),
             ],
@@ -207,7 +207,7 @@ final class InstantRetryModuleTest extends TestCase
     public function test_interceptors_after_instant_retry_are_triggered_with_each_retry_for_command_bus()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [InterceptorAfterRetryHandler::class],
+            [],
             [
                 new InterceptorAfterRetryHandler(),
             ],
@@ -239,7 +239,7 @@ final class InstantRetryModuleTest extends TestCase
     public function test_interceptors_after_instant_retry_are_triggered_with_each_retry_for_asynchronous_handlers()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [InterceptorAfterRetryHandler::class],
+            [],
             [
                 new InterceptorAfterRetryHandler(),
             ],
@@ -275,7 +275,7 @@ final class InstantRetryModuleTest extends TestCase
     public function test_without_a_database_transaction_neither_the_command_bus_nor_an_asynchronous_endpoint_is_retried_by_default()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class],
+            [],
             [
                 new RetriedCommandHandler(),
             ],
@@ -319,7 +319,7 @@ final class InstantRetryModuleTest extends TestCase
             }
         };
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),

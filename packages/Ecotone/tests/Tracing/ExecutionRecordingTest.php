@@ -69,7 +69,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class, $interceptors::class],
+            [],
             [$orders, $interceptors],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
@@ -120,7 +120,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class, $interceptors::class],
+            [],
             [$orders, $interceptors],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
@@ -173,7 +173,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class, $interceptors::class],
+            [],
             [$orders, $interceptors],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
@@ -214,7 +214,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
@@ -312,7 +312,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
@@ -399,7 +399,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class, $interceptors::class],
+            [],
             [$orders, $interceptors],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
@@ -429,7 +429,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
@@ -472,7 +472,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$summaries::class],
+            [],
             [$summaries],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -502,7 +502,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class, $interceptors::class],
+            [],
             [$orders, $interceptors],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
@@ -554,7 +554,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$endpoints::class],
+            [],
             [$endpoints],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],
@@ -656,7 +656,7 @@ final class ExecutionRecordingTest extends TracingTestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework), SimpleMessageChannelBuilder::createQueueChannel('orders'), SimpleMessageChannelBuilder::createQueueChannel('notifications')],
             enabledModules: [],
@@ -699,7 +699,7 @@ final class ExecutionRecordingTest extends TracingTestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],

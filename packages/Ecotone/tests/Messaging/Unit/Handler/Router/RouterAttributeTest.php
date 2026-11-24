@@ -58,7 +58,7 @@ final class RouterAttributeTest extends TestCase
     {
         $handler = new NotRequiredRouterHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [NotRequiredRouterHandler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -90,7 +90,7 @@ final class RouterAttributeTest extends TestCase
 
         try {
             EcotoneLite::bootstrapFlowTesting(
-                [$fixture::class],
+                [],
                 [$fixture],
                 enabledModules: [],
             );
@@ -119,7 +119,7 @@ final class RouterAttributeTest extends TestCase
 
         try {
             EcotoneLite::bootstrapFlowTesting(
-                [$fixture::class],
+                [],
                 [$fixture],
                 enabledModules: [],
             );
@@ -151,7 +151,7 @@ final class RouterAttributeTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$fixture::class],
+            [],
             [$fixture],
             extensionObjects: [SimpleMessageChannelBuilder::createPublishSubscribeChannel('shared.channel')],
             enabledModules: [],

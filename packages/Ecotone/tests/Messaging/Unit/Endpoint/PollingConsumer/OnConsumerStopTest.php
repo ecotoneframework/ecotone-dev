@@ -22,7 +22,7 @@ final class OnConsumerStopTest extends TestCase
     public function test_on_consumer_stop_is_triggered_when_async_endpoint_stops(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ConsumerStopHandler::class, AsyncCommandHandler::class],
+            [],
             [new ConsumerStopHandler(), new AsyncCommandHandler()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             enabledModules: [],

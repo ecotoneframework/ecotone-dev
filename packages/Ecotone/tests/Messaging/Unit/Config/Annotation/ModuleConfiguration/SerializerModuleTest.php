@@ -36,7 +36,7 @@ final class SerializerModuleTest extends AnnotationConfigurationTestCase
     public function test_converting_from_php()
     {
         $messagingSystem = EcotoneLite::bootstrapFlowTesting(
-            [ExampleSingleConverterService::class],
+            [],
             [new ExampleSingleConverterService()],
             enabledModules: [],
         );
@@ -52,7 +52,7 @@ final class SerializerModuleTest extends AnnotationConfigurationTestCase
     public function test_converting_to_php()
     {
         $messagingSystem = EcotoneLite::bootstrapFlowTesting(
-            [ExampleSingleConverterService::class],
+            [],
             [new ExampleSingleConverterService()],
             enabledModules: [],
         );

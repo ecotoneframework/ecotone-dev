@@ -31,7 +31,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     {
         $handler = new ReplyGatewayHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ReplyGateway::class, ReplyGatewayHandler::class],
+            [ReplyGateway::class],
             [$handler],
             enabledModules: [],
         );
@@ -45,7 +45,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     {
         $handler = new ReplyGatewayHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ReplyGateway::class, ReplyGatewayHandler::class],
+            [ReplyGateway::class],
             [$handler],
             enabledModules: [],
         );
@@ -57,7 +57,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     {
         $handler = new ReplyGatewayHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ReplyGateway::class, ReplyGatewayHandler::class],
+            [ReplyGateway::class],
             [$handler],
             enabledModules: [],
         );
@@ -98,7 +98,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     {
         $handler = new ReplyGatewayHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ReplyGateway::class, ReplyGatewayHandler::class],
+            [ReplyGateway::class],
             [$handler],
             enabledModules: [],
         );
@@ -113,7 +113,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     {
         $handler = new VoidReplyGatewayHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [NullableReplyGateway::class, VoidReplyGatewayHandler::class],
+            [NullableReplyGateway::class],
             [$handler],
             enabledModules: [],
         );
@@ -125,7 +125,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     {
         $handler = new VoidReplyGatewayHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ReplyGateway::class, VoidReplyGatewayHandler::class],
+            [ReplyGateway::class],
             [$handler],
             enabledModules: [],
         );
@@ -139,7 +139,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     {
         $handler = new ThrowingReplyGatewayHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ErrorChannelGateway::class, ThrowingReplyGatewayHandler::class],
+            [ErrorChannelGateway::class],
             [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel(ErrorChannelGateway::ERROR_CHANNEL)],
             enabledModules: [],
@@ -157,7 +157,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     {
         $handler = new ThrowingReplyGatewayHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ReplyGateway::class, ThrowingReplyGatewayHandler::class],
+            [ReplyGateway::class],
             [$handler],
             enabledModules: [],
         );
@@ -172,7 +172,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     {
         $handler = new ReplyGatewayHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [InterceptedGateway::class, ReplyGatewayHandler::class, GatewayCallRecorder::class],
+            [InterceptedGateway::class],
             [$handler, new GatewayCallRecorder()],
             enabledModules: [],
         );

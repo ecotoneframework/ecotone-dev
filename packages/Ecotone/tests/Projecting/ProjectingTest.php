@@ -78,7 +78,7 @@ class ProjectingTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -139,7 +139,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $streamSource::class],
+            [],
             [$projection, $streamSource],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -199,7 +199,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $streamSource::class],
+            [],
             [$projection, $streamSource],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -246,7 +246,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -276,7 +276,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -323,7 +323,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -366,7 +366,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -406,7 +406,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -446,7 +446,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -489,7 +489,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -531,7 +531,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -574,7 +574,7 @@ class ProjectingTest extends TestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $streamSource::class],
+            [],
             [$projection, $streamSource],
             enabledModules: [],
         );
@@ -592,7 +592,7 @@ class ProjectingTest extends TestCase
             }
         };
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -636,7 +636,7 @@ class ProjectingTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projectionA::class, $projectionB::class],
+            [],
             [$projectionA, $projectionB],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -677,7 +677,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -708,7 +708,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('backfill_async')],
             enabledModules: [],
@@ -735,7 +735,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -759,7 +759,7 @@ class ProjectingTest extends TestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$projection::class], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         foreach ([
             'trigger' => fn () => $ecotone->triggerProjection('unknown_projection'),
@@ -793,7 +793,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -878,7 +878,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $userlandPartitionProvider::class, $streamSource::class],
+            [],
             [$projection, $userlandPartitionProvider, $streamSource],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('backfill_async')],
             enabledModules: [],
@@ -941,7 +941,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $userlandPartitionProvider::class, $streamSource::class],
+            [],
             [$projection, $userlandPartitionProvider, $streamSource],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('backfill_async')],
             enabledModules: [],
@@ -980,7 +980,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $interceptor::class],
+            [],
             [$projection, $interceptor],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -1088,7 +1088,7 @@ class ProjectingTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $userlandStorage::class, $streamSource::class],
+            [],
             [$projection, $userlandStorage, $streamSource],
             enabledModules: [],
             addInMemoryStateStoredRepository: false,

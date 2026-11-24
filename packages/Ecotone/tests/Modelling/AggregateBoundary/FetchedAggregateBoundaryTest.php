@@ -156,7 +156,7 @@ final class FetchedAggregateBoundaryTest extends TestCase
     public function test_a_fetch_handler_behaves_as_today_when_dcb_is_disabled(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [CustomerOnCredit::class, CreditGranted::class, CreditSpent::class, QuoteService::class, CreditOrderPlaced::class],
+            classesToResolve: [CustomerOnCredit::class, CreditGranted::class, CreditSpent::class, CreditOrderPlaced::class],
             containerOrAvailableServices: [new QuoteService()],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -170,7 +170,7 @@ final class FetchedAggregateBoundaryTest extends TestCase
     {
         try {
             EcotoneLite::bootstrapFlowTesting(
-                classesToResolve: [SagaFetchingService::class, EscalationSaga::class, CouponRedemptions::class, CreditOrderPlaced::class, EscalateCase::class],
+                classesToResolve: [EscalationSaga::class, CouponRedemptions::class, CreditOrderPlaced::class, EscalateCase::class],
                 containerOrAvailableServices: [new SagaFetchingService()],
                 extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
                 enabledModules: [],
@@ -192,10 +192,12 @@ final class FetchedAggregateBoundaryTest extends TestCase
     {
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
-                CustomerOnCredit::class, CreditGranted::class, CreditSpent::class,
+                CustomerOnCredit::class,
+                CreditGranted::class,
+                CreditSpent::class,
                 Wallet::class,
-                CouponRedemptions::class, CreditOrderPlaced::class,
-                OrderOnCreditService::class, SettlementService::class, CreditReservationService::class, QuoteService::class,
+                CouponRedemptions::class,
+                CreditOrderPlaced::class,
             ],
             containerOrAvailableServices: [new OrderOnCreditService(), new SettlementService(), new CreditReservationService(), new QuoteService()],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],

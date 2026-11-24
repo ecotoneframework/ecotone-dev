@@ -105,7 +105,7 @@ final class LegacyEventStreamTest extends EventSourcingMessagingTestCase
     private function bootstrap(): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [LegacyOrder::class, LegacyOrderConverter::class],
+            classesToResolve: [LegacyOrder::class],
             containerOrAvailableServices: [
                 new LegacyOrderConverter(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(),

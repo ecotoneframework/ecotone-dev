@@ -190,7 +190,7 @@ final class TagPartitionedProjectionConfigurationTest extends TestCase
         $this->expectExceptionMessage("#[FromTaggedStream] on projection 'concert_seats' requires Ecotone Enterprise licence.");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$projection::class, SeatReservedForTagConfiguration::class],
+            classesToResolve: [SeatReservedForTagConfiguration::class],
             containerOrAvailableServices: [$projection],
             enabledModules: [],
         );
@@ -199,7 +199,7 @@ final class TagPartitionedProjectionConfigurationTest extends TestCase
     private function bootstrap(object $projection, ?DynamicConsistencyBoundaryConfiguration $dynamicConsistencyBoundary = null): void
     {
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$projection::class, SeatReservedForTagConfiguration::class],
+            classesToResolve: [SeatReservedForTagConfiguration::class],
             containerOrAvailableServices: [$projection],
             extensionObjects: [$dynamicConsistencyBoundary ?? DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],

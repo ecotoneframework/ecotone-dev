@@ -25,7 +25,7 @@ final class SplitterAttributeTest extends TestCase
     {
         $handler = new SplittingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [SplittingHandler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -54,7 +54,7 @@ final class SplitterAttributeTest extends TestCase
     {
         $handler = new SplittingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [SplittingHandler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -78,7 +78,7 @@ final class SplitterAttributeTest extends TestCase
         $this->expectException(\Ecotone\Messaging\Support\InvalidArgumentException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [WrongSplittingHandler::class],
+            [],
             [new WrongSplittingHandler()],
             enabledModules: [],
         );

@@ -26,7 +26,7 @@ final class EventSourcingWithoutDbalModuleTest extends EventSourcingMessagingTes
         $this->expectExceptionMessage("Event sourcing is configured to store events in the database, but the DBAL module is not enabled. The event stream, projection state and tag tables belong to the DBAL module: without it nothing can create them (ecotone:migration:database:setup and \$ecotone->setupDatabaseTables() are the DBAL module's), so every append and every projection would fail on a missing table. Enable it by adding ModulePackageList::DBAL_PACKAGE to the module packages - EcotoneLite::bootstrap(..., enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ...]), or 'dbal' in enabledModulePackageNames - the Symfony bundle option, the config/ecotone.php key in Laravel or the EcotoneConfig argument in Tempest. To keep the events in memory instead, register EventSourcingConfiguration::createInMemory().");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [Ticket::class, TicketEventConverter::class],
+            classesToResolve: [Ticket::class],
             containerOrAvailableServices: [new TicketEventConverter(), DbalConnectionFactory::class => self::getConnectionFactory()],
             enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE],
         );
@@ -35,7 +35,7 @@ final class EventSourcingWithoutDbalModuleTest extends EventSourcingMessagingTes
     public function test_an_in_memory_event_store_needs_no_dbal_module(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [Ticket::class, TicketEventConverter::class],
+            [Ticket::class],
             [new TicketEventConverter()],
             extensionObjects: [EventSourcingConfiguration::createInMemory()],
             enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE],

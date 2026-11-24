@@ -67,7 +67,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Gather channel 'summary' requires durable storage when bootstrapping without test configuration: in-memory groups cannot survive restarts or be shared between workers. Install ecotone/dbal and enable its module: add ModulePackageList::DBAL_PACKAGE to EcotoneLite::bootstrap(..., enabledModules: [...]), or 'dbal' to enabledModulePackageNames (the Symfony bundle option, config/ecotone.php key in Laravel, or EcotoneConfig argument in Tempest). Before the first message, run ecotone:migration:database:setup --initialize --feature=gathering, or generate SQL for your migrations with ecotone:migration:database:setup --sql --feature=gathering. Use EcotoneLite::bootstrapFlowTesting() for in-memory flow tests, or remove gatherChannelName from #[Splitter].");
 
         EcotoneLite::bootstrap(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -109,7 +108,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
@@ -170,7 +168,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [
                 CombinedMessageChannel::create('combined', ['holding', 'summaries']),
@@ -224,7 +221,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Gathered handler 'summary' has a timeout but asynchronous channel 'summaries' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove timeout from #[Gathered].");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries', delayable: false)],
             enabledModules: [],
@@ -259,7 +255,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Gathered handler 'summary' has a timeout but asynchronous channel 'summaries' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove timeout from #[Gathered].");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries', delayable: false), SimpleMessageChannelBuilder::createQueueChannel('holding')],
             enabledModules: [],
@@ -294,7 +289,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Gathered handler 'summary' has a timeout but asynchronous channel 'summaries' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove timeout from #[Gathered].");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [CombinedMessageChannel::create('combined', ['summaries', 'holding']), SimpleMessageChannelBuilder::createQueueChannel('summaries', delayable: false), SimpleMessageChannelBuilder::createQueueChannel('holding')],
             enabledModules: [],
@@ -329,7 +323,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Gathered handler 'summary' has a timeout but asynchronous channel 'summaries' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove timeout from #[Gathered].");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicMessageChannelBuilder::createRoundRobin('summaries', ['delayed']), SimpleMessageChannelBuilder::createQueueChannel('delayed')],
             enabledModules: [],
@@ -364,7 +357,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Gathered handler 'summary' has no explicit endpointId. Its groups are stored and listed under that endpointId, so it must stay stable across deploys. Set #[InternalHandler(inputChannelName: 'summary', endpointId: 'your.stable.id')], or remove #[Gathered] and the splitter's gatherChannelName.");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -398,7 +390,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Splitter 'parts' names gather channel 'summary' but has no explicit endpointId. Gathering needs a stable splitter identity across retries and restarts. Add endpointId: 'parts.split' to #[Splitter], or remove gatherChannelName.");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -432,7 +423,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Splitter gather channel 'summary' requires an Ecotone Enterprise licence. Provide your licence key as `licenceKey` in the Symfony, Laravel or Tempest Ecotone configuration, or as the `licenceKey:` argument of EcotoneLite, or start a trial at https://ecotone.tech/pricing. Alternatively, remove gatherChannelName from #[Splitter].");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -465,7 +455,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Splitter gather channel 'summary' must target a gathered handler. Define an #[InternalHandler] or #[CommandHandler] on 'summary' with #[Gathered] and #[Asynchronous], or remove gatherChannelName from #[Splitter].");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -500,7 +489,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Gathered handler 'summary' must receive Ecotone\\Api\\Messaging\\GatheredParts as its first payload parameter. Change that parameter type to GatheredParts, or remove #[Gathered] and the splitter's gatherChannelName.");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -534,7 +522,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Gathered handler 'summary' requires an asynchronous channel. Add #[Asynchronous('channelName')] to the handler, or remove #[Gathered] and the splitter's gatherChannelName.");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
@@ -556,7 +543,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Gathered handler 'summary' has no splitter pointing to it. Set gatherChannelName: 'summary' on a #[Splitter], or remove #[Gathered] from this handler.");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -602,7 +588,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Splitter 'inner.split.endpoint' has no gatherChannelName inside a gathered flow, so its sub-parts cannot be accounted for as one outer part. Set gatherChannelName on this #[Splitter], or send the sub-work through CommandBus::send() or EventBus::publish() to leave the gathered flow.");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -654,7 +639,6 @@ final class GatheringTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -712,7 +696,6 @@ final class GatheringTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -738,7 +721,6 @@ final class GatheringTest extends TestCase
         $this->expectExceptionMessage("Method 'summarize' is marked #[Gathered] but has no ordinary message handler attribute. Stack it on #[InternalHandler] or #[CommandHandler], or remove #[Gathered].");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             enabledModules: [],
             licenceKey: self::ENTERPRISE_LICENCE,
@@ -777,7 +759,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
@@ -838,7 +819,6 @@ final class GatheringTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -895,7 +875,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
@@ -948,7 +927,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -1008,7 +986,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -1068,7 +1045,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -1120,7 +1096,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -1173,7 +1148,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -1241,7 +1215,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries'), SimpleMessageChannelBuilder::createQueueChannel('workers')],
             enabledModules: [],
@@ -1298,7 +1271,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -1344,7 +1316,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -1396,7 +1367,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -1459,7 +1429,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],
@@ -1506,7 +1475,6 @@ final class GatheringTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [],

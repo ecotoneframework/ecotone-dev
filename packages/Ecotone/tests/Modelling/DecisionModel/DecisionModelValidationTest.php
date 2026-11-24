@@ -95,7 +95,7 @@ final class DecisionModelValidationTest extends TestCase
         $this->expectException(ConfigurationException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class],
+            classesToResolve: [ModelForValidationTest::class, TaggedEventForValidationTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -120,7 +120,7 @@ final class DecisionModelValidationTest extends TestCase
         $handler = new HandlerRequiringModelForNullTagValueForValidationTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class, CommandWithNullTagPropertyForValidationTest::class],
+            classesToResolve: [ModelForValidationTest::class, TaggedEventForValidationTest::class, CommandWithNullTagPropertyForValidationTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -147,7 +147,7 @@ final class DecisionModelValidationTest extends TestCase
         $handler = new HandlerForUnderscoreIdCommandForValidationTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, CountingModelForValidationTest::class, TaggedEventForValidationTest::class],
+            classesToResolve: [CountingModelForValidationTest::class, TaggedEventForValidationTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -168,7 +168,7 @@ final class DecisionModelValidationTest extends TestCase
         $this->expectExceptionMessage("name it 'course', 'courseId' or 'course_id'");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class],
+            classesToResolve: [ModelForValidationTest::class, TaggedEventForValidationTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -181,7 +181,7 @@ final class DecisionModelValidationTest extends TestCase
         $handler = new HandlerForSeveralCoursesCommandForValidationTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class],
+            classesToResolve: [ModelForValidationTest::class, TaggedEventForValidationTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -222,7 +222,7 @@ final class DecisionModelValidationTest extends TestCase
         $handler = new TenantItemCounterForValidationTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, TenantItemModelForValidationTest::class, TenantItemAddedForValidationTest::class],
+            classesToResolve: [TenantItemModelForValidationTest::class, TenantItemAddedForValidationTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant'])],
             enabledModules: [],
@@ -238,7 +238,7 @@ final class DecisionModelValidationTest extends TestCase
     {
         try {
             EcotoneLite::bootstrapFlowTesting(
-                classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class, CommandWithoutTagPropertyForValidationTest::class],
+                classesToResolve: [ModelForValidationTest::class, TaggedEventForValidationTest::class, CommandWithoutTagPropertyForValidationTest::class],
                 containerOrAvailableServices: [$handler],
                 extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
                 enabledModules: [],

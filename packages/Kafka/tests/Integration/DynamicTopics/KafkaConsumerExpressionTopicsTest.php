@@ -49,7 +49,7 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
         $topicName = 'dynamic_orders_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [DynamicTopicsKafkaConsumer::class],
+            [],
             [
                 new DynamicTopicsKafkaConsumer(),
                 'topicsProvider' => new TopicsProvider(),
@@ -80,7 +80,7 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
         $dynamicTopicName = 'dynamic_orders_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [MixedTopicsKafkaConsumer::class],
+            [],
             [
                 new MixedTopicsKafkaConsumer(),
                 'topicsProvider' => new TopicsProvider(),
@@ -117,7 +117,7 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
         $topicName = 'dynamic_orders_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ParameterTopicsKafkaConsumer::class],
+            [],
             [
                 new ParameterTopicsKafkaConsumer(),
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),

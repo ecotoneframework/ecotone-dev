@@ -46,7 +46,7 @@ final class MultiTenantDeadLetterTest extends DbalMessagingTestCase
         }
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$orderService::class],
+            [],
             [
                 $orderService,
                 'tenant_a_connection' => $this->connectionForTenantA(),

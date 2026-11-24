@@ -91,7 +91,6 @@ final class GatheringConformanceTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrap(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -147,7 +146,6 @@ final class GatheringConformanceTest extends TestCase
             SimpleMessageChannelBuilder::createQueueChannel('summaries', isAutoAcked: false),
         ];
         $bootstrap = static fn (): FlowTestSupport => EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [...$channels, DbalConfiguration::createWithDefaults()->withDeduplication(isDeduplicatedEnabled: false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -201,7 +199,6 @@ final class GatheringConformanceTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
@@ -216,7 +213,6 @@ final class GatheringConformanceTest extends TestCase
         $ecotone->sendCommandWithRouting('split', [10, 20]);
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
@@ -787,7 +783,6 @@ final class GatheringConformanceTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [
                 ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'),
@@ -1927,7 +1922,6 @@ final class GatheringConformanceTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries', isAutoAcked: false)],
             testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
@@ -1993,7 +1987,6 @@ final class GatheringConformanceTest extends TestCase
         $handler->connectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN'));
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $handler->connectionFactory],
             extensionObjects: [
                 DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(false),
@@ -2047,7 +2040,6 @@ final class GatheringConformanceTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [
                 DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(false),
@@ -2120,7 +2112,6 @@ final class GatheringConformanceTest extends TestCase
         $handler->connectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN'));
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $handler->connectionFactory],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),
@@ -2178,7 +2169,6 @@ final class GatheringConformanceTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [DbalBackedMessageChannelBuilder::create('transaction_summaries')],
             testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
@@ -2311,7 +2301,6 @@ final class GatheringConformanceTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, 'reporting' => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: [DbalConfiguration::createWithDefaults()->withDefaultConnectionReferenceNames(['reporting']), SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -3055,7 +3044,6 @@ final class GatheringConformanceTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory('sqlite:///:memory:')],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('summaries')],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -3802,7 +3790,7 @@ final class GatheringConformanceTest extends TestCase
             }
         };
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, $deliveries::class, ...array_map(static fn (object $service): string => $service::class, $additionalServices)],
+            classesToResolve: [...array_map(static fn (object $service): string => $service::class, $additionalServices)],
             containerOrAvailableServices: [$handler, $deliveries, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN')), ...$additionalServices],
             extensionObjects: [DbalBackedMessageChannelBuilder::create('gathering_concurrency'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -3843,7 +3831,7 @@ final class GatheringConformanceTest extends TestCase
             }
         };
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, ...array_map(static fn (object $service): string => $service::class, $additionalServices)],
+            classesToResolve: [...array_map(static fn (object $service): string => $service::class, $additionalServices)],
             containerOrAvailableServices: [$handler, ...$additionalServices, DbalConnectionFactory::class => $connectionFactory ?? new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             extensionObjects: $channels,
             enabledModules: [ModulePackageList::DBAL_PACKAGE],

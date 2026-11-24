@@ -52,7 +52,7 @@ final class MessageFlowLicenceTest extends TestCase
             }
         };
 
-        EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->sendCommandWithRouting('licence.check');
+        EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [])->sendCommandWithRouting('licence.check');
 
         self::assertTrue($service->handled);
     }
@@ -66,7 +66,7 @@ final class MessageFlowLicenceTest extends TestCase
             }
         };
 
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:licence.graph', 'handler:' . $service::class . '::handle'));
     }

@@ -58,7 +58,7 @@ final class ScheduledModuleTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$service::class, $counter::class],
+            [],
             [$service, $counter],
             enabledModules: [],
         );

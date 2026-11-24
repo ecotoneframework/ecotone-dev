@@ -87,7 +87,7 @@ $snapshotConverter = new #[MediaTypeConverter] class () implements Converter {
 };
 
 EcotoneLite::bootstrapFlowTesting(
-    classesToResolve: [TicketFoldedAcrossDeployments::class, TicketEventConverter::class, $snapshotConverter::class],
+    classesToResolve: [TicketFoldedAcrossDeployments::class],
     containerOrAvailableServices: [
         new TicketEventConverter(),
         $snapshotConverter,

@@ -75,7 +75,7 @@ final class TenantInLogContextTest extends DbalMessagingTestCase
         $logger = $this->recordingLogger();
         $handler = $this->orderHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, 'logger' => $logger],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('tenant_log_async')],
             enabledModules: [],

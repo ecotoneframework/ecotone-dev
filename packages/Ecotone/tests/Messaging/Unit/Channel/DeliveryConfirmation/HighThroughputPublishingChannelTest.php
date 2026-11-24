@@ -73,7 +73,7 @@ final class HighThroughputPublishingChannelTest extends TestCase
     private function bootstrapEcotone(OperationsLog $operationsLog): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
+            [FakeTransactionModule::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
             extensionObjects: [InMemoryHighThroughputPublishingChannelBuilder::create('async_orders')],
             enabledModules: [],

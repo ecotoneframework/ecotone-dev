@@ -54,7 +54,7 @@ final class ExpressionResultConversionTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], enabledModules: []);
 
         $ecotone->sendCommandWithRouting('invoice.issue', metadata: ['tenantId' => 'tenant-a']);
 
@@ -75,7 +75,7 @@ final class ExpressionResultConversionTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, 'tenantSettings' => $this->tenantSettings()],
             enabledModules: [],
         );
@@ -100,7 +100,7 @@ final class ExpressionResultConversionTest extends TestCase
         $tenantSettings = $this->tenantSettings();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, 'tenantSettings' => $tenantSettings],
             enabledModules: [],
         );
@@ -124,7 +124,7 @@ final class ExpressionResultConversionTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, 'tenantSettings' => $this->tenantSettings()],
             enabledModules: [],
         );
@@ -147,7 +147,7 @@ final class ExpressionResultConversionTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], enabledModules: []);
 
         $ecotone->sendCommandWithRouting('notification.send', metadata: ['preferences' => ['channel' => 'sms']]);
 
@@ -167,7 +167,7 @@ final class ExpressionResultConversionTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], enabledModules: []);
 
         $ecotone->sendCommandWithRouting('notification.send', ['channel' => 'sms']);
 
@@ -185,7 +185,7 @@ final class ExpressionResultConversionTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, 'tenantSettings' => $this->tenantSettings()],
             enabledModules: [],
         );
@@ -215,7 +215,7 @@ final class ExpressionResultConversionTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], enabledModules: []);
 
         try {
             $ecotone->sendCommandWithRouting('notification.send', metadata: ['preferences' => ['channel' => null]]);
@@ -241,7 +241,7 @@ final class ExpressionResultConversionTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], enabledModules: []);
 
         try {
             $ecotone->sendCommandWithRouting('notification.send', ['channel' => 'fax']);
@@ -274,7 +274,7 @@ final class ExpressionResultConversionTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, 'tenantSettings' => $this->tenantSettings()],
             enabledModules: [],
         );
@@ -303,7 +303,7 @@ final class ExpressionResultConversionTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, 'tenantSettings' => $this->tenantSettings()],
             enabledModules: [],
         );
@@ -324,7 +324,7 @@ final class ExpressionResultConversionTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], enabledModules: []);
 
         self::assertSame('Sms', $ecotone->sendQueryWithRouting('notification.channel', metadata: ['preferences' => ['channel' => 'sms']]));
     }
@@ -344,7 +344,7 @@ final class ExpressionResultConversionTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, 'tenantSettings' => $this->tenantSettings()],
             enabledModules: [],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('notifications')],
@@ -376,7 +376,7 @@ final class ExpressionResultConversionTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], enabledModules: []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], enabledModules: []);
 
         $ecotone->sendCommandWithRouting('notification.send', metadata: ['preferences' => ['channel' => 'sms']]);
 

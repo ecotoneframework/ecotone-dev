@@ -52,7 +52,6 @@ final class GatheringTimeoutTest extends TestCase
 
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, RedisConnectionFactory::class => new RedisConnectionFactory(getenv('REDIS_DSN'))],
             extensionObjects: [RedisBackedMessageChannelBuilder::create('summaries')],
             enabledModules: [ModulePackageList::REDIS_PACKAGE],

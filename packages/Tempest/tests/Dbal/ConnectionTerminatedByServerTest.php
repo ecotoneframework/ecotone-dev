@@ -413,7 +413,7 @@ final class ConnectionTerminatedByServerTest extends TestCase
     private function bootstrap(object $handler, TempestConnectionReference $connectionReference, array $extensionObjects = []): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             [
                 $connectionReference,

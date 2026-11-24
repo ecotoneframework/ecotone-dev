@@ -122,13 +122,13 @@ final class IntegerAggregateIdentifierTest extends EventSourcingMessagingTestCas
 
         if ($implementation === 'in-memory-without-event-sourcing-module') {
             return EcotoneLite::bootstrapFlowTesting(
-                classesToResolve: [CounterWithIntegerId::class, $converter::class],
+                classesToResolve: [CounterWithIntegerId::class],
                 containerOrAvailableServices: [$converter],
             );
         }
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [CounterWithIntegerId::class, $converter::class],
+            classesToResolve: [CounterWithIntegerId::class],
             containerOrAvailableServices: [$converter, DbalConnectionFactory::class => self::getConnectionFactory()],
             extensionObjects: [match($implementation) {
                 'in-memory' => EventSourcingConfiguration::createInMemory(),'dbal' => EventSourcingConfiguration::createWithDefaults(),

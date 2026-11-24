@@ -28,7 +28,7 @@ final class AsynchronousEndpointIdRequirementTest extends TestCase
         $this->expectExceptionMessageMatches('/GeneratedIdCommandHandler::handle::.*CommandHandler should have endpointId defined for handling asynchronously/');
 
         EcotoneLite::bootstrapFlowTesting(
-            [GeneratedIdCommandHandler::class],
+            [],
             [new GeneratedIdCommandHandler()],
             enabledModules: [],
         );
@@ -40,7 +40,7 @@ final class AsynchronousEndpointIdRequirementTest extends TestCase
         $this->expectExceptionMessageMatches('/GeneratedIdEventHandler::handle::.*EventHandler should have endpointId defined for handling asynchronously/');
 
         EcotoneLite::bootstrapFlowTesting(
-            [GeneratedIdEventHandler::class],
+            [],
             [new GeneratedIdEventHandler()],
             enabledModules: [],
         );
@@ -52,7 +52,7 @@ final class AsynchronousEndpointIdRequirementTest extends TestCase
         $this->expectExceptionMessageMatches('/GeneratedIdInternalHandlerMethodLevel::handle::.*InternalHandler should have endpointId defined for handling asynchronously/');
 
         EcotoneLite::bootstrapFlowTesting(
-            [GeneratedIdInternalHandlerMethodLevel::class],
+            [],
             [new GeneratedIdInternalHandlerMethodLevel()],
             enabledModules: [],
         );
@@ -64,7 +64,7 @@ final class AsynchronousEndpointIdRequirementTest extends TestCase
         $this->expectExceptionMessageMatches('/GeneratedIdInternalHandlerClassLevel::handle::.*InternalHandler should have endpointId defined for handling asynchronously/');
 
         EcotoneLite::bootstrapFlowTesting(
-            [GeneratedIdInternalHandlerClassLevel::class],
+            [],
             [new GeneratedIdInternalHandlerClassLevel()],
             enabledModules: [],
         );
@@ -73,7 +73,7 @@ final class AsynchronousEndpointIdRequirementTest extends TestCase
     public function test_query_handler_without_endpoint_id_is_exempt(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [GeneratedIdQueryHandler::class],
+            [],
             [new GeneratedIdQueryHandler()],
             enabledModules: [],
         );

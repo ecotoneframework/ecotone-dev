@@ -153,7 +153,7 @@ final class AsynchronousRunConcurrencyTest extends ProjectingTestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$projection::class, $converter::class, ConcurrentRunAccount::class, ...array_map(static fn (object $service): string => $service::class, $additionalServices)],
+            classesToResolve: [ConcurrentRunAccount::class, ...array_map(static fn (object $service): string => $service::class, $additionalServices)],
             containerOrAvailableServices: [$projection, $converter, self::getConnectionFactory(), ...$additionalServices],
             extensionObjects: [
                 DbalBackedMessageChannelBuilder::create('concurrent_rebuild'),

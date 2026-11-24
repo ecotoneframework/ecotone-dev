@@ -54,7 +54,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     {
         $successServiceActivator = new SuccessServiceActivator();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [SuccessServiceActivator::class],
+            [],
             [$successServiceActivator],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -113,7 +113,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     {
         $successServiceActivator = new SuccessServiceActivator();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [SuccessServiceActivator::class],
+            [],
             [$successServiceActivator],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -142,7 +142,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $successServiceActivator = new SuccessServiceActivator();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [SuccessServiceActivator::class],
+            [],
             [$successServiceActivator],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -169,7 +169,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $successServiceActivator = new SuccessServiceActivator();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [SuccessServiceActivator::class],
+            [],
             [$successServiceActivator],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -201,7 +201,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     {
         $successServiceActivator = new SuccessServiceActivator();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [SuccessServiceActivator::class, SimpleConsumptionDecider::class],
+            [],
             [$successServiceActivator, new SimpleConsumptionDecider(['channel_one' => false, 'channel_two' => true], 'async_channel')],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -233,7 +233,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         );
         $successServiceActivator = new SuccessServiceActivator();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [],
             [$dynamicChannelResolver, $successServiceActivator],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -265,7 +265,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         );
         $successServiceActivator = new SuccessServiceActivator();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [],
             [$dynamicChannelResolver, $successServiceActivator],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -304,7 +304,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     public function test_sending_using_header_strategy_with_mapping(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [DynamicChannelResolver::class],
             [new SuccessServiceActivator()],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -338,7 +338,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     public function test_sending_using_header_strategy_from_factory(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [DynamicChannelResolver::class],
             [new SuccessServiceActivator()],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -375,7 +375,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     public function test_sending_using_header_strategy_without_mapping(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [DynamicChannelResolver::class],
             [new SuccessServiceActivator()],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -409,7 +409,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     public function test_sending_using_header_strategy_throws_exception_when_header_is_missing(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [DynamicChannelResolver::class],
             [new SuccessServiceActivator()],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -427,7 +427,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     public function test_sending_using_header_strategy_with_default_channel(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [DynamicChannelResolver::class],
             [new SuccessServiceActivator()],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -451,7 +451,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     public function test_throwing_exception_if_trying_to_consume_from_internal_channel(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [DynamicChannelResolver::class],
             [new SuccessServiceActivator()],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -471,7 +471,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $this->expectException(ConfigurationException::class);
 
         EcotoneLite::bootstrap(
-            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [DynamicChannelResolver::class],
             [new SuccessServiceActivator()],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
@@ -487,7 +487,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [SuccessServiceActivator::class],
+            [],
             [new SuccessServiceActivator()],
             extensionObjects: [
                 PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),

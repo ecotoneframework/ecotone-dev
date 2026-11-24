@@ -125,7 +125,7 @@ final class InMemoryQueueRedeliveryTest extends TestCase
                 }
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders')], enabledModules: [], initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'));
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders')], enabledModules: [], initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'));
 
         $ecotone->sendCommandWithRouting('order.place', 'order-a');
         $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
@@ -157,7 +157,7 @@ final class InMemoryQueueRedeliveryTest extends TestCase
                 return ['stamp' => 'put on orders'];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$orders], [SimpleMessageChannelBuilder::createQueueChannel('orders')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         $ecotone->sendCommandWithRouting('order.place', 'order-a');
         $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
@@ -191,7 +191,7 @@ final class InMemoryQueueRedeliveryTest extends TestCase
     private function application(object $orders, bool $tracing): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders, InMemorySpanRecorder::class => new InMemorySpanRecorder()],
             [SimpleMessageChannelBuilder::createQueueChannel('orders'), ...($tracing ? [TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)] : [])],
             enabledModules: $tracing ? [ModulePackageList::TRACING_PACKAGE] : [],

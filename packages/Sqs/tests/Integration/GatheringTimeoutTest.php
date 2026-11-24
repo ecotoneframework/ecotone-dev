@@ -52,7 +52,6 @@ final class GatheringTimeoutTest extends TestCase
         $this->expectExceptionMessage("Gathered handler 'summary' timeout of 900001 milliseconds exceeds asynchronous channel 'summaries' maximum delay of 900000 milliseconds. Reduce timeout in #[Gathered], use a channel with a longer maximum delay, or remove timeout.");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, SqsConnectionFactory::class => new SqsConnectionFactory(getenv('SQS_DSN'))],
             extensionObjects: [SqsBackedMessageChannelBuilder::create('summaries')],
             enabledModules: [ModulePackageList::SQS_PACKAGE],
@@ -87,7 +86,6 @@ final class GatheringTimeoutTest extends TestCase
         $this->expectExceptionMessage("Gathered handler 'summary' has a timeout but asynchronous channel 'summaries.fifo' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove timeout from #[Gathered].");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, SqsConnectionFactory::class => new SqsConnectionFactory(getenv('SQS_DSN'))],
             extensionObjects: [SqsBackedMessageChannelBuilder::create('summaries.fifo')],
             enabledModules: [ModulePackageList::SQS_PACKAGE],
@@ -122,7 +120,6 @@ final class GatheringTimeoutTest extends TestCase
 
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, SqsConnectionFactory::class => new SqsConnectionFactory(getenv('SQS_DSN'))],
             extensionObjects: [SqsBackedMessageChannelBuilder::create('summaries')],
             enabledModules: [ModulePackageList::SQS_PACKAGE],

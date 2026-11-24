@@ -168,7 +168,7 @@ final class KafkaChannelAdapterTest extends TestCase
     public function bootstrapFlowTesting(): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [ExampleKafkaConsumer::class],
+            [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new ExampleKafkaConsumer(),
             ],
             extensionObjects: [
@@ -186,7 +186,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $endpointId = 'kafka_consumer_attribute';
         $topicName = 'test_topic_failure_' . Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [KafkaConsumerWithFailStrategyExample::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 new KafkaConsumerWithFailStrategyExample(),
@@ -218,7 +218,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $endpointId = 'kafka_consumer_attribute';
         $topicName = 'test_topic_retry_' . Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [KafkaConsumerWithInstantRetryExample::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 new KafkaConsumerWithInstantRetryExample(),
@@ -254,7 +254,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $endpointId = 'kafka_consumer_attribute';
         $topicName = 'test_topic_error_' . Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [KafkaConsumerWithInstantRetryAndErrorChannelExample::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 new KafkaConsumerWithInstantRetryAndErrorChannelExample(),
@@ -295,7 +295,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $consumerReferenceName = 'kafka_consumer_attribute';
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [KafkaConsumerFailingExample::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 new KafkaConsumerFailingExample(),
@@ -330,7 +330,7 @@ final class KafkaChannelAdapterTest extends TestCase
     {
         $topicName = Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ExampleKafkaConsumer::class, JsonEncodingConverter::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 new ExampleKafkaConsumer(),
@@ -369,7 +369,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $endpointId = 'kafka_consumer_delayed_retry';
         $topicName = 'test_topic_delayed_retry_' . Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [KafkaConsumerWithDelayedRetryExample::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 new KafkaConsumerWithDelayedRetryExample(),
@@ -419,7 +419,7 @@ final class KafkaChannelAdapterTest extends TestCase
     {
         $topicName = Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ExampleKafkaConsumer::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 new ExampleKafkaConsumer(),
@@ -454,7 +454,7 @@ final class KafkaChannelAdapterTest extends TestCase
     {
         $topicName = Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ExampleKafkaConsumer::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 new ExampleKafkaConsumer(),
@@ -505,7 +505,7 @@ final class KafkaChannelAdapterTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$consumer::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 $consumer,

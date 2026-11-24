@@ -26,7 +26,7 @@ final class PollingConsumerAckAndRetryTest extends TestCase
     {
         $handler = new AlwaysThrowingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [AlwaysThrowingHandler::class],
+            [],
             [$handler],
             extensionObjects: [
                 InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -53,7 +53,7 @@ final class PollingConsumerAckAndRetryTest extends TestCase
     {
         $handler = new NeverCalledHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [NeverCalledHandler::class],
+            [],
             [$handler],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createExceptionChannel(ExceptionalQueueChannel::createWithExceptionOnReceive(NeverCalledHandler::CHANNEL)),
@@ -82,7 +82,7 @@ final class PollingConsumerAckAndRetryTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createExceptionChannel(ExceptionalQueueChannel::createWithExceptionOnReceive('defaultConnectionRetry.channel', 3))],
             enabledModules: [],

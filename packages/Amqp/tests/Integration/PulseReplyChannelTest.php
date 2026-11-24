@@ -64,7 +64,6 @@ final class PulseReplyChannelTest extends AmqpMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $pulseService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$pulse::class],
             containerOrAvailableServices: [...$this->getConnectionFactoryReferences(), $pulse],
             extensionObjects: [
                 AmqpBackedMessageChannelBuilder::create('order_service', queueName: $requestQueue),
@@ -127,7 +126,6 @@ final class PulseReplyChannelTest extends AmqpMessagingTestCase
         }
 
         $pulseService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$pulse::class],
             containerOrAvailableServices: [...$this->getConnectionFactoryReferences(), $pulse],
             extensionObjects: [
                 AmqpBackedMessageChannelBuilder::create('order_service', queueName: $requestQueue),

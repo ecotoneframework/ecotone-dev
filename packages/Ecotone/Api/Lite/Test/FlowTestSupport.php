@@ -41,8 +41,6 @@ use InvalidArgumentException;
 
 use function sprintf;
 
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
 /**
@@ -530,9 +528,9 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function console(?InputInterface $input = null, ?OutputInterface $output = null): int
+    public function console(): int
     {
-        return $this->configuredMessagingSystem->console($input, $output);
+        return $this->configuredMessagingSystem->console();
     }
 
     public function getServiceFromContainer(string $serviceName): object

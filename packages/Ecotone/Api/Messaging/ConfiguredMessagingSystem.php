@@ -12,8 +12,6 @@ use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Messaging\Config\Container\GatewayProxyMethodReference;
 use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * @template T
@@ -41,7 +39,7 @@ interface ConfiguredMessagingSystem
 
     public function runConsoleCommand(string $commandName, array $parameters): mixed;
 
-    public function console(?InputInterface $input = null, ?OutputInterface $output = null): int;
+    public function console(): int;
 
     public function getCommandBus(): CommandBus;
 

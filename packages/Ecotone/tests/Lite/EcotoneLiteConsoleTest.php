@@ -14,10 +14,9 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use php_user_filter;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
-use Symfony\Component\Console\Input\ArrayInput;
-use Symfony\Component\Console\Output\BufferedOutput;
 
 /**
  * licence Apache-2.0
@@ -42,7 +41,7 @@ final class EcotoneLiteConsoleTest extends TestCase
             enabledModules: [],
         );
 
-        self::assertSame(0, $this->runConsole($ecotone, ['command' => 'list']));
+        self::assertSame(0, $this->runConsole($ecotone, 'list'));
         self::assertMatchesRegularExpression('/app:orders:ship\s+Ships the given order/', $this->display);
         self::assertMatchesRegularExpression('/ecotone:run\s+Runs an asynchronous message consumer by name/', $this->display);
         self::assertMatchesRegularExpression('/ecotone:list\s+Lists all registered asynchronous message consumers/', $this->display);
@@ -53,12 +52,11 @@ final class EcotoneLiteConsoleTest extends TestCase
         $application = new class () {
         };
         $ecotone = EcotoneLite::bootstrap(classesToResolve: [$application::class], enabledModules: []);
-        $output = new BufferedOutput();
 
-        self::assertSame(0, $ecotone->console(new ArrayInput(['command' => 'list', '--format' => 'json']), $output));
+        self::assertSame(0, $this->runConsole($ecotone, 'list', '--format=json'));
 
         $commandsWithoutDescription = [];
-        foreach (json_decode($output->fetch(), true, flags: JSON_THROW_ON_ERROR)['commands'] as $command) {
+        foreach (json_decode($this->display, true, flags: JSON_THROW_ON_ERROR)['commands'] as $command) {
             if ($command['description'] === '') {
                 $commandsWithoutDescription[] = $command['name'];
             }
@@ -85,38 +83,10 @@ final class EcotoneLiteConsoleTest extends TestCase
             enabledModules: [],
         );
 
-        self::assertSame(0, $this->runConsole($ecotone, ['command' => 'app:orders:ship', 'orderId' => '123', '--carrier' => 'courier', '--express' => null, '--tags' => ['fragile', 'gift']]));
-        self::assertSame(0, $this->runConsole($ecotone, ['command' => 'app:orders:ship', 'orderId' => '124']));
+        self::assertSame(0, $this->runConsole($ecotone, 'app:orders:ship', '123', '--carrier=courier', '--express', '--tags=fragile', '--tags=gift'));
+        self::assertSame(0, $this->runConsole($ecotone, 'app:orders:ship', '124'));
 
         self::assertSame([['123', 'courier', true, ['fragile', 'gift']], ['124', 'post', false, []]], $commands->shipped);
-    }
-
-    public function test_running_a_console_command_from_the_script_arguments(): void
-    {
-        $commands = new class () {
-            public array $shipped = [];
-
-            #[ConsoleCommand('app:orders:ship', 'Ships the given order')]
-            public function ship(string $orderId, #[ConsoleParameterOption] string $carrier = 'post'): void
-            {
-                $this->shipped[] = [$orderId, $carrier];
-            }
-        };
-        $ecotone = EcotoneLite::bootstrap(
-            classesToResolve: [$commands::class],
-            containerOrAvailableServices: [$commands],
-            enabledModules: [],
-        );
-        $scriptArguments = $_SERVER['argv'];
-        $_SERVER['argv'] = ['ecotone.php', 'app:orders:ship', '123', '--carrier=courier'];
-
-        try {
-            self::assertSame(0, $ecotone->console());
-        } finally {
-            $_SERVER['argv'] = $scriptArguments;
-        }
-
-        self::assertSame([['123', 'courier']], $commands->shipped);
     }
 
     public function test_running_an_asynchronous_consumer_from_the_console(): void
@@ -140,10 +110,10 @@ final class EcotoneLiteConsoleTest extends TestCase
         $ecotone->getCommandBus()->sendWithRouting('order.place', 'coffee');
 
         self::assertSame([], $handler->placed);
-        self::assertSame(0, $this->runConsole($ecotone, ['command' => 'ecotone:run', 'consumerName' => 'async', '--finishWhenNoMessages' => null]));
+        self::assertSame(0, $this->runConsole($ecotone, 'ecotone:run', 'async', '--finishWhenNoMessages'));
         self::assertSame(['coffee'], $handler->placed);
 
-        self::assertSame(0, $this->runConsole($ecotone, ['command' => 'ecotone:list']));
+        self::assertSame(0, $this->runConsole($ecotone, 'ecotone:list'));
         self::assertStringContainsString('async', $this->display);
     }
 
@@ -165,7 +135,7 @@ final class EcotoneLiteConsoleTest extends TestCase
             enabledModules: [],
         );
 
-        self::assertSame(0, $this->runConsole($ecotone, ['command' => 'app:orders:list']));
+        self::assertSame(0, $this->runConsole($ecotone, 'app:orders:list'));
         self::assertStringContainsString('Listing orders', $this->display);
         self::assertMatchesRegularExpression('/Order\s+\|\s+Status/', $this->display);
         self::assertMatchesRegularExpression('/coffee\s+\|\s+placed/', $this->display);
@@ -187,7 +157,7 @@ final class EcotoneLiteConsoleTest extends TestCase
             enabledModules: [],
         );
 
-        self::assertNotSame(0, $this->runConsole($ecotone, ['command' => 'app:orders:ship']));
+        self::assertNotSame(0, $this->runConsole($ecotone, 'app:orders:ship'));
         self::assertStringContainsString('Carrier is not available', $this->display);
     }
 
@@ -209,16 +179,39 @@ final class EcotoneLiteConsoleTest extends TestCase
             enabledModules: [],
         );
 
-        self::assertSame(0, $this->runConsole($ecotone, ['command' => 'app:orders:ship', 'orderId' => '123']));
+        self::assertSame(0, $this->runConsole($ecotone, 'app:orders:ship', '123'));
         self::assertSame(['123'], $commands->shipped);
     }
 
-    private function runConsole(ConfiguredMessagingSystem|FlowTestSupport $ecotone, array $input): int
+    private function runConsole(ConfiguredMessagingSystem|FlowTestSupport $ecotone, string ...$arguments): int
     {
-        $output = new BufferedOutput();
-        $exitCode = $ecotone->console(new ArrayInput($input), $output);
-        $this->display = $output->fetch();
+        $capturedOutput = new class () extends php_user_filter {
+            public static string $captured = '';
 
-        return $exitCode;
+            public function filter($in, $out, &$consumed, bool $closing): int
+            {
+                while ($bucket = stream_bucket_make_writeable($in)) {
+                    self::$captured .= $bucket->data;
+                    $consumed += $bucket->datalen;
+                }
+
+                return PSFS_FEED_ME;
+            }
+        };
+        $capturedOutput::$captured = '';
+        stream_filter_register('ecotone.console.captured', $capturedOutput::class);
+        $standardOutput = stream_filter_append(STDOUT, 'ecotone.console.captured', STREAM_FILTER_WRITE);
+        $errorOutput = stream_filter_append(STDERR, 'ecotone.console.captured', STREAM_FILTER_WRITE);
+        $scriptArguments = $_SERVER['argv'];
+        $_SERVER['argv'] = ['ecotone.php', ...$arguments, '--no-ansi'];
+
+        try {
+            return $ecotone->console();
+        } finally {
+            $_SERVER['argv'] = $scriptArguments;
+            stream_filter_remove($standardOutput);
+            stream_filter_remove($errorOutput);
+            $this->display = $capturedOutput::$captured;
+        }
     }
 }

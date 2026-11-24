@@ -30,8 +30,6 @@ use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
 use Psr\Container\ContainerInterface;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * licence Apache-2.0
@@ -84,13 +82,13 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
         return $commandRunner->run($parameters);
     }
 
-    public function console(?InputInterface $input = null, ?OutputInterface $output = null): int
+    public function console(): int
     {
         return SymfonyConsoleApplication::create(
             consoleCommands: $this->consoleCommands,
             consoleCommandRunner: $this->container->get(ConsoleCommandGateway::class),
             consoleWriter: $this->container->get(ConsoleWriter::class),
-        )->run($input, $output);
+        )->run();
     }
 
     public function getCommandBus(): CommandBus

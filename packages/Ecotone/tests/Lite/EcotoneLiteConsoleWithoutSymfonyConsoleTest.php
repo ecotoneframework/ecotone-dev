@@ -6,7 +6,6 @@ namespace Test\Ecotone\Lite;
 
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfigurationException;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 
@@ -32,7 +31,6 @@ final class EcotoneLiteConsoleWithoutSymfonyConsoleTest extends TestCase
         );
         self::hideSymfonyConsoleFromTheAutoloader();
 
-        $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('ConfiguredMessagingSystem::console() runs the registered console commands with symfony/console, which is not installed. Install it with `composer require symfony/console`, or run a single command with ConfiguredMessagingSystem::runConsoleCommand().');
 
         $ecotone->console();

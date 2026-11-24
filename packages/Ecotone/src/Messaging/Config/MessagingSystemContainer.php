@@ -87,9 +87,9 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
     public function console(?InputInterface $input = null, ?OutputInterface $output = null): int
     {
         return SymfonyConsoleApplication::create(
-            $this->consoleCommands,
-            $this->container->get(ConsoleCommandGateway::class),
-            $this->container->get(ConsoleWriter::class),
+            consoleCommands: $this->consoleCommands,
+            consoleCommandRunner: $this->container->get(ConsoleCommandGateway::class),
+            consoleWriter: $this->container->get(ConsoleWriter::class),
         )->run($input, $output);
     }
 

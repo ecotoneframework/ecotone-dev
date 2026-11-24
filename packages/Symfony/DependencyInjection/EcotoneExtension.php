@@ -5,11 +5,13 @@ namespace Ecotone\SymfonyBundle\DependencyInjection;
 use Ecotone\Api\Console\ConsoleWriter;
 use Ecotone\Api\Dbal\TransactionReconnectProtectionMiddleware;
 use Ecotone\Messaging\Config\BootstrapConfiguration;
+use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
 use Ecotone\Messaging\Config\FrameworkConfigurationKeys;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
+use Ecotone\Messaging\Console\SymfonyConsoleCommand;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
@@ -134,13 +136,11 @@ class EcotoneExtension extends Extension
         $container->setParameter('ecotone.external_references', $ecotoneContainer->getExternalReferenceIds());
 
         foreach ($ecotoneContainer->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
-            $definition = new Definition();
-            $definition->setClass(MessagingEntrypointCommand::class);
-            $definition->addArgument($oneTimeCommandConfiguration->getName());
-            $definition->addArgument(serialize($oneTimeCommandConfiguration->getParameters()));
-            $definition->addArgument(new Reference(ConsoleCommandRunner::class));
-            $definition->addArgument(new Reference(ConsoleWriter::class));
-            $definition->addArgument($oneTimeCommandConfiguration->getDescription());
+            $definition = new Definition(SymfonyConsoleCommand::class, [
+                '$consoleCommand' => (new Definition(ConsoleCommandConfiguration::class, [serialize($oneTimeCommandConfiguration)]))->setFactory('unserialize'),
+                '$consoleCommandRunner' => new Reference(ConsoleCommandRunner::class),
+                '$consoleWriter' => new Reference(ConsoleWriter::class),
+            ]);
             $definition->addTag('console.command', ['command' => $oneTimeCommandConfiguration->getName()]);
 
             $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);

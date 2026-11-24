@@ -72,9 +72,6 @@ final class EcotoneLiteConsoleTest extends TestCase
         $commands = new class () {
             public array $shipped = [];
 
-            /**
-             * @param string[] $tags
-             */
             #[ConsoleCommand('app:orders:ship', 'Ships the given order')]
             public function ship(string $orderId, #[ConsoleParameterOption] string $carrier = 'post', #[ConsoleParameterOption] bool $express = false, array $tags = []): void
             {
@@ -92,6 +89,34 @@ final class EcotoneLiteConsoleTest extends TestCase
         self::assertSame(0, $this->runConsole($ecotone, ['command' => 'app:orders:ship', 'orderId' => '124']));
 
         self::assertSame([['123', 'courier', true, ['fragile', 'gift']], ['124', 'post', false, []]], $commands->shipped);
+    }
+
+    public function test_running_a_console_command_from_the_script_arguments(): void
+    {
+        $commands = new class () {
+            public array $shipped = [];
+
+            #[ConsoleCommand('app:orders:ship', 'Ships the given order')]
+            public function ship(string $orderId, #[ConsoleParameterOption] string $carrier = 'post'): void
+            {
+                $this->shipped[] = [$orderId, $carrier];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrap(
+            classesToResolve: [$commands::class],
+            containerOrAvailableServices: [$commands],
+            enabledModules: [],
+        );
+        $scriptArguments = $_SERVER['argv'];
+        $_SERVER['argv'] = ['ecotone.php', 'app:orders:ship', '123', '--carrier=courier'];
+
+        try {
+            self::assertSame(0, $ecotone->console());
+        } finally {
+            $_SERVER['argv'] = $scriptArguments;
+        }
+
+        self::assertSame([['123', 'courier']], $commands->shipped);
     }
 
     public function test_running_an_asynchronous_consumer_from_the_console(): void

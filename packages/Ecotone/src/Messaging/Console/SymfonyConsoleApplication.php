@@ -26,7 +26,7 @@ final class SymfonyConsoleApplication
         $application = new Application('Ecotone');
         $application->setAutoExit(false);
         $application->addCommands(array_map(
-            fn (ConsoleCommandConfiguration $consoleCommand) => new SymfonyConsoleCommand($consoleCommand, $consoleCommandRunner, $consoleWriter),
+            fn (ConsoleCommandConfiguration $consoleCommand) => new SymfonyConsoleCommand(consoleCommand: $consoleCommand, consoleCommandRunner: $consoleCommandRunner, consoleWriter: $consoleWriter),
             $consoleCommands,
         ));
 

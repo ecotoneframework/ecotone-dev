@@ -30,14 +30,12 @@ final class SymfonyConsoleCommand extends Command
         foreach ($this->consoleCommand->getParameters() as $parameter) {
             if ($parameter->isOption()) {
                 $this->addOption(
-                    $parameter->getName(),
-                    null,
-                    $parameter->isArray() ? InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY : InputOption::VALUE_OPTIONAL,
-                    '',
-                    $parameter->getDefaultValue(),
+                    name: $parameter->getName(),
+                    mode: $parameter->isArray() ? InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY : InputOption::VALUE_OPTIONAL,
+                    default: $parameter->getDefaultValue(),
                 );
             } elseif ($parameter->hasDefaultValue()) {
-                $this->addArgument($parameter->getName(), InputArgument::OPTIONAL, '', $parameter->getDefaultValue());
+                $this->addArgument(name: $parameter->getName(), mode: InputArgument::OPTIONAL, default: $parameter->getDefaultValue());
             } else {
                 $this->addArgument($parameter->getName(), InputArgument::REQUIRED);
             }

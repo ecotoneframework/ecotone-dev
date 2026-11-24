@@ -7,7 +7,6 @@ namespace Test\Ecotone\Lite\Test;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\Handler\DestinationResolutionException;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -60,7 +59,7 @@ final class ServicePassedToBootstrapTest extends TestCase
             enabledModules: [],
         );
 
-        $this->expectException(DestinationResolutionException::class);
+        $this->expectExceptionMessage("Can't send command to ticket.open. No Command Handler is registered for it in this Ecotone Lite bootstrap. Add #[CommandHandler('ticket.open')] to a method and pass an instance of its class in the containerOrAvailableServices of EcotoneLite::bootstrapFlowTesting().");
 
         $ecotone->sendCommandWithRouting('ticket.open', 'printer is on fire');
     }

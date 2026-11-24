@@ -24,7 +24,7 @@ final class UnregisteredHandlerMessageTest extends TestCase
         );
 
         $this->expectException(DestinationResolutionException::class);
-        $this->expectExceptionMessage("Can't send command to Test\\Ecotone\\Lite\\Fixtures\\UnregisteredHandler\\Command\\ReserveShippingSlot. It is handled by Test\\Ecotone\\Lite\\Fixtures\\UnregisteredHandler\\ShippingSlotReservationHandler::reserve(), which is not registered in this Ecotone Lite bootstrap. Add Test\\Ecotone\\Lite\\Fixtures\\UnregisteredHandler\\ShippingSlotReservationHandler to the classesToResolve of EcotoneLite::bootstrapFlowTesting(), or load its namespace with EcotoneLite::bootstrapFlowTesting(..., namespaces: ['Test\\Ecotone\\Lite\\Fixtures\\UnregisteredHandler']).");
+        $this->expectExceptionMessage("Can't send command to Test\\Ecotone\\Lite\\Fixtures\\UnregisteredHandler\\Command\\ReserveShippingSlot. It is handled by Test\\Ecotone\\Lite\\Fixtures\\UnregisteredHandler\\ShippingSlotReservationHandler::reserve(), which is not registered in this Ecotone Lite bootstrap. Pass an instance of Test\\Ecotone\\Lite\\Fixtures\\UnregisteredHandler\\ShippingSlotReservationHandler in the containerOrAvailableServices of EcotoneLite::bootstrapFlowTesting(), add Test\\Ecotone\\Lite\\Fixtures\\UnregisteredHandler\\ShippingSlotReservationHandler to its classesToResolve when the service comes from a container passed there, or load its namespace with EcotoneLite::bootstrapFlowTesting(..., namespaces: ['Test\\Ecotone\\Lite\\Fixtures\\UnregisteredHandler']).");
 
         $ecotone->sendCommand(new ReserveShippingSlot('order-1'));
     }
@@ -57,6 +57,20 @@ final class UnregisteredHandlerMessageTest extends TestCase
         $ecotone->sendQueryWithRouting('shipping.getSlot', 'order-1');
     }
 
+    public function test_command_handled_by_an_aggregate_missing_from_the_bootstrap_names_the_class_to_resolve(): void
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [],
+            enabledModules: [],
+        );
+
+        $this->expectException(DestinationResolutionException::class);
+        $this->expectExceptionMessage("Can't send command to shipping.openDepot. It is handled by Test\\Ecotone\\Lite\\Fixtures\\UnregisteredHandler\\ShippingDepot::open(), which is not registered in this Ecotone Lite bootstrap. Add Test\\Ecotone\\Lite\\Fixtures\\UnregisteredHandler\\ShippingDepot to the classesToResolve of EcotoneLite::bootstrapFlowTesting(), or load its namespace with EcotoneLite::bootstrapFlowTesting(..., namespaces: ['Test\\Ecotone\\Lite\\Fixtures\\UnregisteredHandler']).");
+
+        $ecotone->sendCommandWithRouting('shipping.openDepot', 'depot-1');
+    }
+
     public function test_command_without_any_handler_says_what_to_add(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
@@ -66,7 +80,7 @@ final class UnregisteredHandlerMessageTest extends TestCase
         );
 
         $this->expectException(DestinationResolutionException::class);
-        $this->expectExceptionMessage("Can't send command to order.archive. No Command Handler is registered for it in this Ecotone Lite bootstrap. Add #[CommandHandler('order.archive')] to a method and add its class to the classesToResolve of EcotoneLite::bootstrapFlowTesting().");
+        $this->expectExceptionMessage("Can't send command to order.archive. No Command Handler is registered for it in this Ecotone Lite bootstrap. Add #[CommandHandler('order.archive')] to a method and pass an instance of its class in the containerOrAvailableServices of EcotoneLite::bootstrapFlowTesting(). When the method is on an aggregate or a saga, or the service comes from a container passed there, add its class to the classesToResolve instead.");
 
         $ecotone->sendCommandWithRouting('order.archive', 'order-1');
     }

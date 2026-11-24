@@ -4246,7 +4246,7 @@ your own migrations with `--sql --feature=gathering`). Bootstrap without test co
 without the DBAL module, including framework kernels running in a test environment;
 `EcotoneLite::bootstrapFlowTesting()` still supports in-memory gathering without DBAL.
 Run the gathered handler's consumer to process empty splits and release requests too. See
-[Message gathering](docs/message-gathering.md) for timeout, replay, nesting, retention and operations.
+[Split, Work, Gather](https://docs.ecotone.tech/modelling/business-workflows/split-work-gather) for timeout, replay, nesting, retention and operations.
 
 Groups are listed by the gathered handler's `endpointId`, which must be explicit and stable:
 `GatheredGroups::listOpenGroups(endpointId)` / `listClosedGroups(endpointId)` and
@@ -4277,7 +4277,7 @@ open batch per endpoint and key, and a message already recorded for an endpoint 
 throw `ConcurrencyException` and use the default retries, as for gathering.
 
 **How to adapt:** No application change is required unless enabling collecting. Follow
-[the guide](docs/message-collecting.md): use explicit subscriptions and stable endpoint ids, configure DBAL and an
+[the guide](https://docs.ecotone.tech/modelling/business-workflows/collect-messages-into-a-batch): use explicit subscriptions and stable endpoint ids, configure DBAL and an
 Enterprise licence, and run `ecotone:migration:database:setup --initialize --feature=gathering` before the first
 message.
 
@@ -4657,7 +4657,6 @@ rename test-support methods without aliases; the renamed methods are listed in e
   The fingerprint remains content-based: changing any registered class file or `composer.lock` still rebuilds the cache.
   The only visible effect is that the hashed sub-directory name under the Lite cache directory changes once, so the
   first 2.0 bootstrap rebuilds the container and the directory written by the previous version is left unused.
-  Method and measurements are in `docs/bootstrap-performance-2.0.md`.
   **How to adapt:** nothing. Optionally delete old `ecotone/<hash>` directories from the Lite cache directory once.
 
 ## 16. Planned 2.0 work still to be done (TODO)

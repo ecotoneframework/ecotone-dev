@@ -9,7 +9,7 @@ actioned yet — with each item's disposition, and the four places an audit's ow
 is in [known-deviations.md](../../framework-review-guidelines/references/known-deviations.md).
 
 Every `docs/superpowers/` path cited below — the design records, the audits and the research reports — lives on
-branch `dgafka/dcb-docs` and is deliberately untracked here, since `docs/superpowers/` is in `.gitignore`. The
+branch `dgafka/dcb-docs` and is deliberately untracked here, since `docs/` is in `.gitignore`. The
 paths resolve on that branch.
 
 Rule numbers are global across the framework skills: rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the

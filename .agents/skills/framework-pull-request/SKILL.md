@@ -64,8 +64,8 @@ Each session reviews against its section of the [review list](references/review-
 reading of what matters: it decides every requirement there as `not-apply` (the change has nothing the requirement
 speaks about), `covered` (with the evidence) or `missing` (with the file and line, what is missing, what to
 add and the skill to load to cover it), and it passes when no requirement is `missing`. The `missing` requirements come back to the implementing
-session: they are the work to cover before the re-review (rule P3a). Commit the four decided lists before fixing
-anything (`framework-design-and-briefs` rule D4). The developer-experience session may instead decide its whole
+session: they are the work to cover before the re-review (rule P3a). Save the four decided lists to files under `docs/reviews/` before fixing
+anything (`framework-design-and-briefs` rule D4); `docs/` is in `.gitignore`, so they are not committed. The developer-experience session may instead decide its whole
 section `not-apply` with `NO USER-FACING SURFACE`, which is a complete report. Run them in
 parallel, all four as sub-sessions in the worktree the change was made in: no reviewer gets or creates a worktree
 of its own (`git worktree add`), and none edits, switches, stashes or resets the tree, so every session reads the
@@ -79,7 +79,7 @@ pushed and the pull request is merged: rule P3a resumes them.
 - **Expected:** the agent runs four separate review sub-sessions (one per review skill) in the worktree of the
   change, none in a worktree of its own, each started from a fresh context or, for a later push, resumed, on its
   own, without asking; each decides every requirement of its section of the review list as `not-apply`, `covered`
-  or `missing`; the agent waits for all four reports and commits the decided lists before fixing or pushing, also
+  or `missing`; the agent waits for all four reports and saves the decided lists to files before fixing or pushing, also
   when the PR is already open or the user asks for it "now"; it does not review the change itself in place of
   them.
 - **Verified by:** `eval:open-pr`, `eval:update-open-pr`
@@ -97,7 +97,7 @@ rules it loaded and its own decided list, so it is given only the commits since 
 A resumed behaviour session runs the affected tests again on the new head, which the shared worktree is already at
 (and `bin/test-agent-skills` when the fix touched a skill). Repeat after each further fix, until all four sessions
 pass: no requirement of the review list is `missing`; only then push. A session that can no longer be resumed is
-replaced by a new one, which is given the whole range (`git diff main...HEAD`) and the committed decided lists. A later push to the same pull request
+replaced by a new one, which is given the whole range (`git diff main...HEAD`) and the saved decided lists. A later push to the same pull request
 resumes the same sub-sessions while they can still be resumed, and starts new ones otherwise; after a rebase or a
 merge from `main` the last verified commit no longer bounds the branch's own changes, so the resumed sessions are
 given the whole range (`git diff main...HEAD`) again.

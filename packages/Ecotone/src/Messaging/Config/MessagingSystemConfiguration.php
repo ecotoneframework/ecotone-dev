@@ -149,6 +149,8 @@ final class MessagingSystemConfiguration implements Configuration
     private ?Definition $conversionServiceDecoratorBuilder = null;
     private ?ModuleReferenceSearchService $moduleReferenceSearchService;
     private array $asynchronousEndpoints = [];
+    /** @var array<string, list<array{reason: string, wayToHandleMoreAtOnce: string}>> */
+    private array $handlersHandlingOneMessageAtATime = [];
     /**
      * @var array<string, bool>
      */
@@ -917,6 +919,13 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
+    public function registerHandlerHandlingOneMessageAtATime(string $consumerEndpointId, string $reason, string $wayToHandleMoreAtOnce): Configuration
+    {
+        $this->handlersHandlingOneMessageAtATime[$consumerEndpointId][] = ['reason' => $reason, 'wayToHandleMoreAtOnce' => $wayToHandleMoreAtOnce];
+
+        return $this;
+    }
+
     public function registerAsynchronousEndpoint(array|string $asynchronousChannelNames, string $targetEndpointId): Configuration
     {
         $this->asynchronousEndpoints[$targetEndpointId] = is_string($asynchronousChannelNames) ? [$asynchronousChannelNames] : $asynchronousChannelNames;
@@ -1216,6 +1225,7 @@ final class MessagingSystemConfiguration implements Configuration
                             $inputChannelBuilder->isStreamingChannel() => [$inputChannelBuilder->getMessageChannelName()],
                             default => [],
                         },
+                        $this->handlersHandlingOneMessageAtATime[$messageHandlerBuilder->getEndpointId()] ?? [],
                     );
                     break;
                 }

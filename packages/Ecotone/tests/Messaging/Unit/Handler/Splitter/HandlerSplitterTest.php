@@ -30,6 +30,7 @@ use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -1247,6 +1248,99 @@ final class HandlerSplitterTest extends TestCase
         self::assertTrue($graph->node('handler:split.handler')->attributes['splitting']);
         self::assertStringEndsWith(' (splitting)', $graph->node('handler:split.handler')->label);
         self::assertSame(['channel:parts'], array_map(static fn ($node): string => $node->id, $graph->nodesOfKind(FlowNodeKind::CHANNEL)));
+    }
+
+    public function test_flow_graph_leads_from_a_gathering_split_handler_to_its_gathered_handler(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', endpointId: 'split.handler', outputChannelName: 'parts')]
+            #[Splitter(gatherChannelName: 'summary')]
+            public function split(array $values): array
+            {
+                return $values;
+            }
+
+            #[InternalHandler('parts', endpointId: 'receive.handler')]
+            public function receive(int $value): int
+            {
+                return $value;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+        )->getMessageFlowGraph();
+        $gathering = $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:split.handler', 'channel:summary');
+        self::assertCount(1, $gathering);
+        self::assertSame(['via' => 'gatherChannelName'], $gathering[0]->attributes);
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:summary', 'handler:summary.handler'));
+        self::assertStringContainsString('|"gathers"|', $graph->toMermaid());
+    }
+
+    public function test_flow_graph_leads_from_a_gathering_standalone_splitter_to_its_gathered_handler(): void
+    {
+        $handler = new class () {
+            #[Splitter('split', endpointId: 'split.splitter', outputChannelName: 'parts', gatherChannelName: 'summary')]
+            public function split(array $values): array
+            {
+                return $values;
+            }
+
+            #[InternalHandler('parts', endpointId: 'receive.handler')]
+            public function receive(int $value): int
+            {
+                return $value;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('summary', endpointId: 'summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+        )->getMessageFlowGraph();
+        $gathering = $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:split.splitter', 'channel:summary');
+        self::assertCount(1, $gathering);
+        self::assertSame(['via' => 'gatherChannelName'], $gathering[0]->attributes);
+    }
+
+    public function test_flow_graph_of_a_split_handler_without_gathering_has_no_gathering_edge(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('split', endpointId: 'split.handler', outputChannelName: 'parts')]
+            #[Splitter]
+            public function split(array $values): array
+            {
+                return $values;
+            }
+
+            #[InternalHandler('parts', endpointId: 'receive.handler')]
+            public function receive(int $value): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler],
+            enabledModules: [],
+            licenceKey: self::ENTERPRISE_LICENCE,
+        )->getMessageFlowGraph();
+        self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:split.handler'));
     }
 
     public function test_stacked_splitter_required_interceptor_names_is_refused(): void

@@ -42,6 +42,7 @@ use Ecotone\Messaging\Handler\Gathering\GatheredHandlerEndpoints;
 use Ecotone\Messaging\Handler\Gathering\GatheringConsoleCommands;
 use Ecotone\Messaging\Handler\Gathering\GatheringPartCompletion;
 use Ecotone\Messaging\Handler\Gathering\GatheringTimeouts;
+use Ecotone\Messaging\Handler\Gathering\HandlersRecordingIntoOneGroup;
 use Ecotone\Messaging\Handler\Gathering\InMemoryGatheredGroupStore;
 use Ecotone\Messaging\Handler\Gathering\NullPartCompletion;
 use Ecotone\Messaging\Handler\Gathering\PartCompletion;
@@ -143,11 +144,38 @@ final class GatheringModule extends NoExternalConfigurationModule
         $this->validateWiring($interfaceToCallRegistry);
         $this->validateTimeouts($extensionObjects, $interfaceToCallRegistry);
         $this->refuseStaticallyUngatheredSplitters();
+        $this->registerConsumersHandlingOneMessageAtATime(configuration: $messagingConfiguration, extensionObjects: $extensionObjects, interfaceToCallRegistry: $interfaceToCallRegistry);
         $this->registerPartCompletion($messagingConfiguration);
         $this->registerStore(messagingConfiguration: $messagingConfiguration, extensionObjects: $extensionObjects, interfaceToCallRegistry: $interfaceToCallRegistry);
         $this->refuseUnregisteredProjectionRunChannels(messagingConfiguration: $messagingConfiguration, extensionObjects: $extensionObjects);
         $this->registerProjectionRunCompletions($messagingConfiguration);
         $this->registerPulse(configuration: $messagingConfiguration, extensionObjects: $extensionObjects, interfaceToCallRegistry: $interfaceToCallRegistry);
+    }
+
+    private function registerConsumersHandlingOneMessageAtATime(Configuration $configuration, array $extensionObjects, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    {
+        $channelsOfEndpoints = [];
+        foreach (ExtensionObjectResolver::resolve(AsynchronousModule::class, $extensionObjects) as $module) {
+            $channelsOfEndpoints = array_merge($channelsOfEndpoints, $module->resolveChannels($extensionObjects));
+        }
+        foreach (HandlersRecordingIntoOneGroup::LOST_WHEN_HANDLED_AT_ONCE as $attributeClass => [$attribute, $lostWhenHandledAtOnce, $handlersToKeepElsewhere]) {
+            foreach ($this->annotationFinder->findAnnotatedMethods($attributeClass) as $registration) {
+                foreach ($interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->getMethodAnnotations() as $handler) {
+                    if (! $handler instanceof InternalHandler && ! $handler instanceof CommandHandler && ! $handler instanceof EventHandler) {
+                        continue;
+                    }
+                    $channels = $channelsOfEndpoints[$handler->getEndpointId()] ?? [];
+                    if ($channels === []) {
+                        continue;
+                    }
+                    $configuration->registerHandlerHandlingOneMessageAtATime(
+                        consumerEndpointId: end($channels),
+                        reason: "it handles the messages of #[{$attribute}] handler `{$registration->getClassName()}::{$registration->getMethodName()}` (endpoint `{$handler->getEndpointId()}`): {$lostWhenHandledAtOnce}",
+                        wayToHandleMoreAtOnce: "{$handlersToKeepElsewhere} and consume that channel on coroutines.",
+                    );
+                }
+            }
+        }
     }
 
     private function assertLicence(Configuration $messagingConfiguration): void

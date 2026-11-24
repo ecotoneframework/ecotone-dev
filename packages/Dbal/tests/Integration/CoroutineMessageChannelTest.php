@@ -8,16 +8,19 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\ErrorChannel;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Dbal\Attribute\CurrentConnection;
 use Ecotone\Api\Dbal\Attribute\DbalTransaction;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
@@ -38,7 +41,11 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\CollectedMessages;
+use Ecotone\Api\Messaging\CollectedReleaseReason;
 use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Api\Messaging\GatheredParts;
+use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Test\CoroutineTesting;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -735,6 +742,234 @@ final class CoroutineMessageChannelTest extends TestCase
 
         $this->assertSame(['a'], $a->establishConnection()->fetchFirstColumn('SELECT tenant FROM coroutine_channel_tenant_orders'));
         $this->assertSame(['b'], $b->establishConnection()->fetchFirstColumn('SELECT tenant FROM coroutine_channel_tenant_orders'));
+    }
+
+    public function test_parts_of_a_split_command_handler_handled_on_the_channel_are_gathered_once_with_every_part(): void
+    {
+        $this->assert_split_parts_are_gathered('mysql');
+    }
+
+    #[RequiresPhpExtension('swoole')]
+    #[Group('swoole')]
+    public function test_parts_of_a_split_command_handler_handled_on_the_channel_are_gathered_once_with_every_part_on_postgresql(): void
+    {
+        $this->assert_split_parts_are_gathered('pgsql');
+    }
+
+    private function assert_split_parts_are_gathered(string $database): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+            public array $transactions = [];
+
+            #[CommandHandler('import', endpointId: 'coroutine.import.handler', outputChannelName: 'import.row')]
+            #[Splitter(gatherChannelName: 'import.summary')]
+            public function import(array $rows): array
+            {
+                return $rows;
+            }
+
+            #[Asynchronous('rows')]
+            #[InternalHandler('import.row', endpointId: 'coroutine.import.row.handler')]
+            public function row(int $row, #[CurrentConnection] Connection $connection): int
+            {
+                $this->transactions[$row] = [$connection->isTransactionActive(), spl_object_id($connection)];
+                $connection->fetchOne('SELECT 1');
+
+                return $row * 2;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('import.summary', endpointId: 'coroutine.import.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = [$parts->results, $parts->originalPayload, $parts->releaseReason];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf($database))],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('rows'), CoroutineMessageChannelBuilder::create('summaries'), DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $rows = range(1, 8);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('import', $rows));
+
+        $this->assertSame([[array_combine($rows, array_map(static fn (int $row): int => $row * 2, $rows)), $rows, GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR]], $handler->gathered);
+        ksort($handler->transactions);
+        $this->assertSame(array_fill(1, 8, true), array_map(static fn (array $transaction): bool => $transaction[0], $handler->transactions));
+        $this->assertGreaterThan(1, count(array_unique(array_column($handler->transactions, 1))));
+    }
+
+    public function test_an_asynchronous_split_command_handler_and_its_parts_share_the_channel_and_are_gathered_on_a_channel_of_one_coroutine(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[Asynchronous('imports')]
+            #[CommandHandler('import', endpointId: 'coroutine.shared.import.handler', outputChannelName: 'import.row')]
+            #[Splitter(gatherChannelName: 'import.summary')]
+            public function import(array $rows): array
+            {
+                return $rows;
+            }
+
+            #[Asynchronous('imports')]
+            #[InternalHandler('import.row', endpointId: 'coroutine.shared.import.row.handler')]
+            public function row(int $row, #[CurrentConnection] Connection $connection): int
+            {
+                $connection->fetchOne('SELECT 1');
+
+                return $row * 2;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('import.summary', endpointId: 'coroutine.shared.import.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts->results;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('imports'), CoroutineMessageChannelBuilder::create('summaries')->withCoroutines(1), DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        CoroutineTesting::runAtOnce(
+            static fn () => $ecotone->sendCommandWithRouting('import', range(1, 8)),
+            static fn () => $ecotone->sendCommandWithRouting('import', range(11, 18)),
+        );
+
+        $this->assertEqualsCanonicalizing([array_combine(range(1, 8), range(2, 16, 2)), array_combine(range(1, 8), range(22, 36, 2))], $handler->gathered);
+    }
+
+    public function test_messages_sent_at_once_are_collected_on_the_channel_into_one_batch(): void
+    {
+        $this->assert_messages_are_collected('mysql');
+    }
+
+    #[RequiresPhpExtension('swoole')]
+    #[Group('swoole')]
+    public function test_messages_sent_at_once_are_collected_on_the_channel_into_one_batch_on_postgresql(): void
+    {
+        $this->assert_messages_are_collected('pgsql');
+    }
+
+    private function assert_messages_are_collected(string $database): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 8, groupBy: "headers['import']")]
+            #[Asynchronous('search')]
+            #[CommandHandler('product.index', endpointId: 'coroutine.product.index.handler')]
+            public function index(CollectedMessages $changes, #[CurrentConnection] Connection $connection): void
+            {
+                $payloads = array_column($changes->messages, 'payload');
+                sort($payloads);
+                $this->batches[] = [$payloads, $changes->releaseReason, $connection->isTransactionActive()];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf($database))],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('search'), DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $import = bin2hex(random_bytes(16));
+
+        CoroutineTesting::runAtOnce(...array_map(static fn (int $product) => static fn () => $ecotone->sendCommandWithRouting('product.index', $product, metadata: ['import' => $import]), range(1, 8)));
+
+        $this->assertSame([[range(1, 8), CollectedReleaseReason::MAX_SIZE_REACHED, true]], $handler->batches);
+    }
+
+    public function test_a_group_whose_gathered_handler_failed_on_the_channel_is_gathered_again_with_every_part(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+            public int $attempts = 0;
+
+            #[CommandHandler('import', endpointId: 'coroutine.import.handler', outputChannelName: 'import.row')]
+            #[Splitter(gatherChannelName: 'import.summary')]
+            public function import(array $rows): array
+            {
+                return $rows;
+            }
+
+            #[Asynchronous('rows')]
+            #[InternalHandler('import.row', endpointId: 'coroutine.import.row.handler')]
+            public function row(int $row): int
+            {
+                return $row * 2;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('import.summary', endpointId: 'coroutine.import.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                if (++$this->attempts === 1) {
+                    throw new RuntimeException('summary failed');
+                }
+                $this->gathered[] = [$parts->results, $parts->releaseReason];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('rows'), CoroutineMessageChannelBuilder::create('summaries'), DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('import', range(1, 8)));
+
+        $this->assertSame(2, $handler->attempts);
+        $this->assertCount(1, $handler->gathered);
+        $this->assertEquals(array_combine(range(1, 8), range(2, 16, 2)), $handler->gathered[0][0]);
+        $this->assertSame(GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR, $handler->gathered[0][1]);
+    }
+
+    public function test_a_batch_whose_collected_handler_failed_on_the_channel_is_handled_again_with_every_message(): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+            public int $attempts = 0;
+
+            #[Collected(maxSize: 8, groupBy: "headers['import']")]
+            #[Asynchronous('search')]
+            #[CommandHandler('product.index', endpointId: 'coroutine.product.index.handler')]
+            public function index(CollectedMessages $changes): void
+            {
+                if (++$this->attempts === 1) {
+                    throw new RuntimeException('indexing failed');
+                }
+                $payloads = array_column($changes->messages, 'payload');
+                sort($payloads);
+                $this->batches[] = [$payloads, $changes->releaseReason];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('search'), DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $import = bin2hex(random_bytes(16));
+
+        CoroutineTesting::runAtOnce(...array_map(static fn (int $product) => static fn () => $ecotone->sendCommandWithRouting('product.index', $product, metadata: ['import' => $import]), range(1, 8)));
+
+        $this->assertSame(2, $handler->attempts);
+        $this->assertSame([[range(1, 8), CollectedReleaseReason::MAX_SIZE_REACHED]], $handler->batches);
     }
 
     private static function dsnOf(string $database): string

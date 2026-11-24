@@ -43,7 +43,7 @@ final class CoroutineMessageChannel extends QueueChannel implements ConsumedInTh
 
     private int $consumers = 0;
 
-    public function __construct(private string $name, private ContainerInterface $container, private int $coroutines, private EcotoneClockInterface $clock, private MessageBuilder $messageBuilder, private SleepInterface $sleep)
+    public function __construct(private string $name, private ContainerInterface $container, private CoroutineMessageChannelCoroutines $coroutines, private EcotoneClockInterface $clock, private MessageBuilder $messageBuilder, private SleepInterface $sleep)
     {
         parent::__construct($name);
     }
@@ -70,7 +70,7 @@ final class CoroutineMessageChannel extends QueueChannel implements ConsumedInTh
     private function enqueue(Message $message): void
     {
         parent::send($message);
-        if ($this->consumers >= $this->coroutines) {
+        if ($this->consumers >= $this->coroutines->of($this->name)) {
             return;
         }
         $this->consumers++;

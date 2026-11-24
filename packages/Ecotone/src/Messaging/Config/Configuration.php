@@ -93,6 +93,8 @@ interface Configuration extends CompilerPass
      */
     public function registerBatchForwardingSourceChannel(string $channelName): Configuration;
 
+    public function registerHandlerHandlingOneMessageAtATime(string $consumerEndpointId, string $reason, string $wayToHandleMoreAtOnce): Configuration;
+
     /**
      * @param MethodInterceptorBuilder $methodInterceptor
      * @return Configuration

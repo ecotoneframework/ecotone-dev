@@ -239,6 +239,63 @@ refused for this channel, and so is listing it with another channel in one `#[As
 handlers are not called for it: it has no consumer process. It never handles process signals either: they stay
 with the server that owns the worker.
 
+A `#[Splitter]` stacked on a handler sends each part to handlers on the channel, which work them at once. To gather
+their results, give the `#[Gathered]` handler a channel of its own, `CoroutineMessageChannelBuilder::create('summaries')`,
+and leave `withCoroutines()` out. The channel of a `#[Gathered]` handler handles one message at a time, also for any
+other handler on it, because parts finishing together would lose the group's optimistic write until the retries run
+out; bootstrap refuses `withCoroutines()` with more than one coroutine there. A `#[Collected]` handler follows the
+same rule: its own channel without `withCoroutines()`, and messages sent at once by several requests are recorded
+into one batch. On a channel consumed with `ecotone:run`, run the consumer of a `#[Gathered]` or `#[Collected]`
+handler without `--coroutines`: the consumer refuses the option, and `PollingMetadata::withCoroutines()`, above one.
+
+```php
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Gathered;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
+use Ecotone\Api\Messaging\GatheredParts;
+
+final class ImportRows
+{
+    #[CommandHandler('import', outputChannelName: 'import.row')]
+    #[Splitter(gatherChannelName: 'import.summary')]
+    public function import(array $rows): array
+    {
+        return $rows;
+    }
+
+    #[Asynchronous('rows')]
+    #[InternalHandler('import.row', endpointId: 'import.row.handler')]
+    public function row(int $row): int
+    {
+        return $row * 2;
+    }
+
+    #[Gathered]
+    #[Asynchronous('summaries')]
+    #[InternalHandler('import.summary', endpointId: 'import.summary.handler')]
+    public function summarize(GatheredParts $parts): void
+    {
+        $results = $parts->results;
+    }
+
+    #[ServiceContext]
+    public function channels(): array
+    {
+        return [
+            CoroutineMessageChannelBuilder::create('rows'),
+            CoroutineMessageChannelBuilder::create('summaries'),
+        ];
+    }
+}
+```
+
+Each element the splitting handler returns becomes one message for `import.row`; what each row handler returns is
+its result, and the gathered handler runs once with all of them in `GatheredParts::$results`.
+
 Size each worker's connection pool for simultaneous requests plus the limit of every coroutine message channel in
 that process, and any polling consumer coroutines. For 12 requests and this channel's limit of 4, use at least 16:
 
@@ -366,3 +423,8 @@ only the test environment. Bootstrap tests in `test` and register a queue channe
 A console command is a release boundary and its send still needs an active coroutine.
 - **Expected:** the answer says to run a sending console command inside a Swoole/OpenSwoole coroutine, explains that it releases messages only when the command returns successfully, and warns that a long-running command holds them until then.
 - **Verified by:** `eval:send-in-process`
+
+### 13. A gathered or collected handler gets a coroutine message channel of its own
+Its channel handles one message at a time; the handlers doing the work stay on another channel.
+- **Expected:** the answer registers one `CoroutineMessageChannelBuilder` for the handlers working the parts and a separate one for the `#[Gathered]` (or `#[Collected]`) handler, leaves `withCoroutines()` out of the latter or passes 1, and says that channel handles one message at a time while the parts still run at once.
+- **Verified by:** `eval:gather-in-process`

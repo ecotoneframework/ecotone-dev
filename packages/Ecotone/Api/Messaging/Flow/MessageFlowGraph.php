@@ -314,7 +314,7 @@ final class MessageFlowGraph implements DefinedObject
             FlowEdgeKind::ROUTES_TO => 'routes',
             FlowEdgeKind::DISTRIBUTES => 'distributed',
             FlowEdgeKind::INTERCEPTED_BY => 'intercepted by',
-            FlowEdgeKind::SENDS_TO => trim(($edge->isInferred() ? 'sends (' . ($edge->attributes['via'] ?? '') . ')' : '') . (isset($edge->attributes['targetService']) ? ' to ' . $edge->attributes['targetService'] : '')),
+            FlowEdgeKind::SENDS_TO => ($edge->attributes['via'] ?? '') === 'gatherChannelName' ? 'gathers' : trim(($edge->isInferred() ? 'sends (' . ($edge->attributes['via'] ?? '') . ')' : '') . (isset($edge->attributes['targetService']) ? ' to ' . $edge->attributes['targetService'] : '')),
             default => '',
         };
         $labelPart = $label === '' ? '' : '|"' . $this->mermaidText($label) . '"|';

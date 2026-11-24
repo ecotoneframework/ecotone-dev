@@ -31,6 +31,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Handler\Gathering\HandlersRecordingIntoOneGroup;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
@@ -78,6 +79,7 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
         $channelNames = array_map(static fn (CoroutineMessageChannelBuilder $channel) => $channel->messageChannelName, $channels);
         $handlers = $this->coroutineHandlers($channelNames, $extensionObjects);
         $this->refuseUnsupportedDeliveryAttributes($handlers, $interfaceToCallRegistry);
+        $this->registerCoroutinesOfChannels(configuration: $messagingConfiguration, handlers: $handlers, registry: $interfaceToCallRegistry, channels: $channels);
         $this->registerFailureLogging(configuration: $messagingConfiguration, registry: $interfaceToCallRegistry, channelNames: $channelNames, handlers: $handlers);
         $this->registerConsumers($messagingConfiguration, $channelNames);
         $this->registerReplay(configuration: $messagingConfiguration, registry: $interfaceToCallRegistry, channels: $channels);
@@ -190,6 +192,30 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
                 }
             }
         }
+    }
+
+    /**
+     * @param CoroutineMessageChannelBuilder[] $channels
+     */
+    private function registerCoroutinesOfChannels(Configuration $configuration, array $handlers, InterfaceToCallRegistry $registry, array $channels): void
+    {
+        $statedCoroutines = array_column(array: $channels, column_key: 'coroutines', index_key: 'messageChannelName');
+        $coroutines = array_map(static fn (?int $stated): int => $stated ?? CoroutineMessageChannelBuilder::DEFAULT_COROUTINES, $statedCoroutines);
+        foreach ($handlers as [$handler, $handlerChannels]) {
+            $channel = reset($handlerChannels);
+            $interface = $registry->getFor($handler->getClassName(), $handler->getMethodName());
+            foreach (HandlersRecordingIntoOneGroup::LOST_WHEN_HANDLED_AT_ONCE as $attributeClass => [$attribute, $reason, $otherHandlers, $kind]) {
+                if (! $interface->hasMethodAnnotation($attributeClass)) {
+                    continue;
+                }
+                if (($statedCoroutines[$channel] ?? 1) > 1) {
+                    $endpointId = $handler->getAnnotationForMethod()->getEndpointId();
+                    throw ConfigurationException::create("Coroutine message channel `{$channel}` is registered with withCoroutines({$statedCoroutines[$channel]}), which #[{$attribute}] handler `{$handler->getClassName()}::{$handler->getMethodName()}` (endpoint `{$endpointId}`) cannot be consumed with: {$reason} Leave withCoroutines() out of CoroutineMessageChannelBuilder::create('{$channel}'), the channel of a {$kind} handler then handles one message at a time, and {$otherHandlers}; or move the {$kind} handler to a channel consumed with ecotone:run without its coroutines option.");
+                }
+                $coroutines[$channel] = 1;
+            }
+        }
+        $configuration->registerServiceDefinition(CoroutineMessageChannelCoroutines::class, new Definition(CoroutineMessageChannelCoroutines::class, [$coroutines]));
     }
 
     private function registerRelease(Configuration $configuration, InterfaceToCallRegistry $registry): void

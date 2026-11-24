@@ -81,8 +81,8 @@ final class MessageFlowVersionsConsoleTest extends TestCase
                 return $invocation->proceed();
             }
         };
-        $before = EcotoneLite::bootstrapFlowTesting([$saga::class, $interceptor::class], [$interceptor], [SimpleMessageChannelBuilder::createQueueChannel('saga.events')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, environment: 'before')->getMessageFlowGraph();
-        $after = EcotoneLite::bootstrapFlowTesting([$saga::class, $interceptor::class], [$interceptor], [SimpleMessageChannelBuilder::createQueueChannel('saga.events')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, environment: 'after')->getMessageFlowGraph();
+        $before = EcotoneLite::bootstrapFlowTesting([$saga::class], [$interceptor], [SimpleMessageChannelBuilder::createQueueChannel('saga.events')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, environment: 'before')->getMessageFlowGraph();
+        $after = EcotoneLite::bootstrapFlowTesting([$saga::class], [$interceptor], [SimpleMessageChannelBuilder::createQueueChannel('saga.events')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, environment: 'after')->getMessageFlowGraph();
         $handler = 'handler:saga.stable';
 
         self::assertTrue($before->hasNode($handler));
@@ -151,8 +151,8 @@ final class MessageFlowVersionsConsoleTest extends TestCase
             {
             }
         };
-        $earlier = EcotoneLite::bootstrapFlowTesting([$before::class], [$before], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
-        $later = EcotoneLite::bootstrapFlowTesting([$after::class], [$after], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $earlier = EcotoneLite::bootstrapFlowTesting([], [$before], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $later = EcotoneLite::bootstrapFlowTesting([], [$after], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $comparison = $earlier->compareTo($later);
 
@@ -175,10 +175,10 @@ final class MessageFlowVersionsConsoleTest extends TestCase
             {
             }
         };
-        EcotoneLite::bootstrapFlowTesting([$before::class], [$before], extensionObjects: [FlowVersionsConfiguration::createWithLocation($this->location)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)
+        EcotoneLite::bootstrapFlowTesting([], [$before], extensionObjects: [FlowVersionsConfiguration::createWithLocation($this->location)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)
             ->runConsoleCommand('ecotone:flow:store', ['label' => '1.0.0']);
 
-        return EcotoneLite::bootstrapFlowTesting([$after::class], [$after], extensionObjects: [FlowVersionsConfiguration::createWithLocation($this->location)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        return EcotoneLite::bootstrapFlowTesting([], [$after], extensionObjects: [FlowVersionsConfiguration::createWithLocation($this->location)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
     public function test_a_stored_version_is_listed_with_its_label_and_the_time_it_was_stored(): void
@@ -198,7 +198,7 @@ final class MessageFlowVersionsConsoleTest extends TestCase
     {
         $placing = $this->placingService();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$placing::class],
+            [],
             [$placing],
             extensionObjects: [FlowVersionsConfiguration::createWithLocation($this->location . '/src/Infrastructure/../../flow-versions')],
             enabledModules: [],
@@ -494,7 +494,7 @@ final class MessageFlowVersionsConsoleTest extends TestCase
     {
         $placing = $this->placingService();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$placing::class],
+            [],
             [$placing],
             extensionObjects: [FlowVersionsConfiguration::createWithLocation($this->location)],
             enabledModules: [],

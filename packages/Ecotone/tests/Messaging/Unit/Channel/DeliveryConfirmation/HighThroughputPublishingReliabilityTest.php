@@ -67,7 +67,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
     {
         $operationsLog = new OperationsLog();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
+            [FakeTransactionModule::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
             extensionObjects: [
                 \Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration::createWithDefaults()->withErrorChannel('failure_channel'),
@@ -92,7 +92,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
     {
         $outboundAdapter = new InMemoryHighThroughputOutboundAdapter();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [InMemoryHighThroughputPublisherModule::class, InMemoryHighThroughputOutboundAdapter::class],
+            [InMemoryHighThroughputPublisherModule::class],
             [$outboundAdapter],
             enabledModules: [],
         );
@@ -217,7 +217,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
             }
         };
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$commandHandler::class, InMemoryHighThroughputPublisherModule::class, InMemoryHighThroughputOutboundAdapter::class, FakeTransactionModule::class],
+            [InMemoryHighThroughputPublisherModule::class, InMemoryHighThroughputOutboundAdapter::class, FakeTransactionModule::class],
             [$commandHandler, $outboundAdapter, OperationsLog::class => $operationsLog],
             enabledModules: [],
         );
@@ -240,7 +240,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
     {
         $outboundAdapter = new InMemoryHighThroughputOutboundAdapter();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [InMemoryHighThroughputPublisherModule::class, InMemoryHighThroughputOutboundAdapter::class],
+            [InMemoryHighThroughputPublisherModule::class],
             [$outboundAdapter],
             enabledModules: [],
         );

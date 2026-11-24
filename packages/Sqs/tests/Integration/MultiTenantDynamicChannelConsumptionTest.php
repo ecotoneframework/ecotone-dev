@@ -58,7 +58,7 @@ final class MultiTenantDynamicChannelConsumptionTest extends ConnectionTestCase
         $tenantBChannel = 'owner_creation_tenant_b_' . $suffix;
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, SqsConnectionFactory::class => $this->getConnectionFactory()],
             extensionObjects: [
                 SqsBackedMessageChannelBuilder::create($tenantAChannel),

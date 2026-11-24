@@ -198,8 +198,11 @@ final class FetchedAggregateGuardedCheckDbalTest extends EventSourcingMessagingT
 
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
-                ConcertForGuardedCheckTest::class, ConcertScheduledForGuardedCheckTest::class, ConcertRenamedForGuardedCheckTest::class,
-                SeatHoldsForGuardedCheckTest::class, SeatHeldForGuardedCheckTest::class, $converter::class, $seats::class,
+                ConcertForGuardedCheckTest::class,
+                ConcertScheduledForGuardedCheckTest::class,
+                ConcertRenamedForGuardedCheckTest::class,
+                SeatHoldsForGuardedCheckTest::class,
+                SeatHeldForGuardedCheckTest::class,
             ],
             containerOrAvailableServices: [$converter, $seats, DbalConnectionFactory::class => $connectionFactory],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],

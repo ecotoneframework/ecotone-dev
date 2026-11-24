@@ -259,7 +259,7 @@ final class AggregateBackedDecisionModelDbalTest extends EventSourcingMessagingT
                 $connectionFactory,
                 new EventsConverterForAggregateBackedDbalTest(),
                 new CompetingWalletSaveForAggregateBackedDbalTest(),
-                new PayoutsForAggregateBackedDbalTest(),
+                ...($withDynamicConsistencyBoundary ? [new PayoutsForAggregateBackedDbalTest()] : []),
                 new WalletMediaTypeConverterForAggregateBackedDbalTest(),
                 new WalletBalanceMediaTypeConverterForAggregateBackedDbalTest(),
             ],

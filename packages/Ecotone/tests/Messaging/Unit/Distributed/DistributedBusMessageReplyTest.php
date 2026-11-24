@@ -126,7 +126,6 @@ final class DistributedBusMessageReplyTest extends TestCase
             }
         };
         $userService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$users::class],
             containerOrAvailableServices: [$users, InMemorySpanRecorder::class => $recorder],
             extensionObjects: [
                 ...$channels,
@@ -411,7 +410,7 @@ final class DistributedBusMessageReplyTest extends TestCase
         $channels = $this->channels();
         $tickets = $this->ticketsReturningDescription();
         $ticketService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$tickets::class, ExternalTicketProducer::class],
+            classesToResolve: [ExternalTicketProducer::class],
             containerOrAvailableServices: [$tickets],
             extensionObjects: [
                 ...$channels,
@@ -464,7 +463,6 @@ final class DistributedBusMessageReplyTest extends TestCase
     private function service(string $serviceName, object $handlers, array $channels, DistributedServiceMap ...$serviceMaps): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handlers::class],
             containerOrAvailableServices: [$handlers],
             extensionObjects: [...$channels, ...$serviceMaps, ServiceConfiguration::createWithDefaults()->withServiceName($serviceName)],
             enabledModules: [],

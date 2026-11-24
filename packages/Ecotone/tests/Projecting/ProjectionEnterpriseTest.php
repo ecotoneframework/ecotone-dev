@@ -58,7 +58,7 @@ final class ProjectionEnterpriseTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
         );
@@ -82,7 +82,7 @@ final class ProjectionEnterpriseTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -104,7 +104,7 @@ final class ProjectionEnterpriseTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
         );
@@ -153,7 +153,7 @@ final class ProjectionEnterpriseTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
         );
@@ -174,7 +174,7 @@ final class ProjectionEnterpriseTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
         );
@@ -194,7 +194,7 @@ final class ProjectionEnterpriseTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
         );
@@ -212,7 +212,7 @@ final class ProjectionEnterpriseTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
         );
@@ -230,7 +230,7 @@ final class ProjectionEnterpriseTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
         );
@@ -248,7 +248,7 @@ final class ProjectionEnterpriseTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
         );
@@ -266,7 +266,7 @@ final class ProjectionEnterpriseTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
         );
@@ -284,7 +284,7 @@ final class ProjectionEnterpriseTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
         );
@@ -314,7 +314,7 @@ final class ProjectionEnterpriseTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $customStreamSource::class],
+            [],
             [$projection, $customStreamSource],
             enabledModules: [],
         );
@@ -366,7 +366,7 @@ final class ProjectionEnterpriseTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $customStateStorage::class],
+            [],
             [$projection, $customStateStorage],
             enabledModules: [],
         );
@@ -401,7 +401,7 @@ final class ProjectionEnterpriseTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $customPartitionProvider::class],
+            [],
             [$projection, $customPartitionProvider],
             enabledModules: [],
         );
@@ -420,7 +420,7 @@ final class ProjectionEnterpriseTest extends TestCase
         $this->expectExceptionMessageMatches('/^' . preg_quote($this->projectionNameRefusal($projection::class . '::handle', 'named_projection'), '/') . '$/');
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
         );
@@ -479,7 +479,7 @@ final class ProjectionEnterpriseTest extends TestCase
         foreach ($projections as $methodName => $projection) {
             try {
                 EcotoneLite::bootstrapFlowTesting(
-                    [$projection::class],
+                    [],
                     [$projection],
                     enabledModules: [],
                 );
@@ -510,7 +510,7 @@ final class ProjectionEnterpriseTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -540,7 +540,7 @@ final class ProjectionEnterpriseTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
         );

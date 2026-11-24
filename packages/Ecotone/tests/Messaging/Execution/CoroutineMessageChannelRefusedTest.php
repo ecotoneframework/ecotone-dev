@@ -79,7 +79,7 @@ final class CoroutineMessageChannelRefusedTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $flow = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')], environment: 'test');
+        $flow = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')], environment: 'test');
 
         $flow->sendCommandWithRouting('handle', 'payload');
         $this->assertSame([], $handler->handled);

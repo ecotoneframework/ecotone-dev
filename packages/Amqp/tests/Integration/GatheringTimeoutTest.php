@@ -53,7 +53,6 @@ final class GatheringTimeoutTest extends TestCase
 
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, AmqpExtConnectionFactory::class => new AmqpExtConnectionFactory(getenv('RABBIT_HOST'))],
             extensionObjects: [AmqpBackedMessageChannelBuilder::create('summaries')],
             enabledModules: [ModulePackageList::AMQP_PACKAGE],
@@ -90,7 +89,6 @@ final class GatheringTimeoutTest extends TestCase
 
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, AmqpExtConnectionFactory::class => new AmqpExtConnectionFactory(getenv('RABBIT_HOST')), 'custom.delay' => new RabbitMqDlxDelayStrategy()],
             extensionObjects: [AmqpBackedMessageChannelBuilder::create('summaries')->withDelayStrategy('custom.delay')],
             enabledModules: [ModulePackageList::AMQP_PACKAGE],

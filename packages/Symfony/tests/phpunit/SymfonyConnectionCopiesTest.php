@@ -136,7 +136,7 @@ final class SymfonyConnectionCopiesTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$parcels::class],
+            [],
             [$parcels, 'doctrine' => $doctrine],
             extensionObjects: [$connectionReference, DbalConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::SYMFONY_PACKAGE],

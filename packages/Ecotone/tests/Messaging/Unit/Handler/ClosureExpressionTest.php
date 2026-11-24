@@ -48,7 +48,7 @@ final class ClosureExpressionTest extends TestCase
     public function test_header_closure_expression_resolves_parameters_like_message_handler(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ClosureExpressionService::class, UpperCaseService::class],
+            [],
             [new ClosureExpressionService(), new UpperCaseService()],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -62,7 +62,7 @@ final class ClosureExpressionTest extends TestCase
     public function test_header_closure_expression_binds_header_value_to_closure_parameter_by_name(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ClosureExpressionService::class, UpperCaseService::class],
+            [],
             [new ClosureExpressionService(), new UpperCaseService()],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -76,7 +76,7 @@ final class ClosureExpressionTest extends TestCase
     public function test_payload_closure_expression_with_headers(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ClosureExpressionService::class, UpperCaseService::class],
+            [],
             [new ClosureExpressionService(), new UpperCaseService()],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -92,7 +92,7 @@ final class ClosureExpressionTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [ClosureExpressionService::class, UpperCaseService::class],
+            [],
             [new ClosureExpressionService(), new UpperCaseService()],
             enabledModules: [],
         );
@@ -101,7 +101,7 @@ final class ClosureExpressionTest extends TestCase
     public function test_delayed_endpoint_attribute_with_closure_expression(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [DelayedClosureService::class],
+            [],
             [new DelayedClosureService()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -121,7 +121,7 @@ final class ClosureExpressionTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [DelayedClosureService::class],
+            [],
             [new DelayedClosureService()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -133,7 +133,7 @@ final class ClosureExpressionTest extends TestCase
         $userRepository = new UserRepository([new User('user-1', 'John Doe')]);
         $orderService = new FetchClosureOrderService();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [User::class, FetchClosureOrderService::class, UserRepository::class],
+            [User::class],
             [
                 UserRepository::class => $userRepository,
                 FetchClosureOrderService::class => $orderService,

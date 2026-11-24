@@ -46,7 +46,7 @@ final class MessageFlowProjectionTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$projection::class], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertSame('polling.endpoint', $graph->node('projection:polling.view')->attributes['endpointId'] ?? null);
         foreach (['created', 'changed'] as $method) {
@@ -63,7 +63,6 @@ final class MessageFlowProjectionTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$projection::class],
             containerOrAvailableServices: [$projection],
             extensionObjects: [SimpleMessageChannelBuilder::createStreamingChannel('projection.stream')],
             enabledModules: [],
@@ -83,7 +82,6 @@ final class MessageFlowProjectionTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$projection::class],
             containerOrAvailableServices: [$projection],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('backfill'), SimpleMessageChannelBuilder::createQueueChannel('rebuild')],
             enabledModules: [],
@@ -104,7 +102,7 @@ final class MessageFlowProjectionTest extends TestCase
             {
             }
         };
-        $mermaid = EcotoneLite::bootstrapFlowTesting([$projection::class], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph()->toMermaid();
+        $mermaid = EcotoneLite::bootstrapFlowTesting([], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph()->toMermaid();
 
         self::assertSame(1, preg_match('/^    subgraph (n\d+) \["Projection: seat\.map"\]\n        n\d+.*::seatReleased"\]\n    end$/m', $mermaid, $match));
         self::assertDoesNotMatchRegularExpression('/^    \w+ \S+ ' . $match[1] . '$/m', $mermaid);
@@ -118,7 +116,7 @@ final class MessageFlowProjectionTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$projection::class, ProjectionAggregateForFlow::class], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([ProjectionAggregateForFlow::class], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertTrue($graph->hasNode('aggregate:' . ProjectionAggregateForFlow::class));
         self::assertSame('projection:aggregate.view', $graph->node('handler:' . $projection::class . '::created')->attributes['owner']);
@@ -149,7 +147,7 @@ final class MessageFlowProjectionTest extends TestCase
                 return [];
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$projection::class], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $handler = fn (string $method) => 'handler:' . $projection::class . '::' . $method;
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:' . ProjectionEventForFlow::class, $handler('seatHeld')));
@@ -176,7 +174,7 @@ final class MessageFlowProjectionTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$tagged::class, $aggregate::class, ProjectionAggregateForFlow::class, TaggedSeatHeldForFlow::class], [$tagged, $aggregate], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([ProjectionAggregateForFlow::class, TaggedSeatHeldForFlow::class], [$tagged, $aggregate], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertSame(['concert'], $graph->node('projection:tagged.view')->attributes['fromTags']);
         self::assertSame([ProjectionAggregateForFlow::class], $graph->node('projection:aggregate.source.view')->attributes['fromAggregateStreams']);

@@ -44,7 +44,7 @@ final class InMemoryStreamingChannelTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, ConsumerPositionTracker::class => $positionTracker],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
@@ -106,7 +106,7 @@ final class InMemoryStreamingChannelTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler1::class, $handler2::class],
+            [],
             [$handler1, $handler2, ConsumerPositionTracker::class => $positionTracker],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),

@@ -50,7 +50,7 @@ final class InterleavedExecutionsTest extends TestCase
                 return $this->tenantSeenByEventHandler;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$orders]);
 
         $suspended = new Fiber(fn () => $ecotone->sendCommandWithRouting('order.place', ['orderId' => 'suspended', 'suspend' => true], metadata: ['tenant' => 'tenant-of-suspended']));
         $suspended->start();
@@ -86,7 +86,7 @@ final class InterleavedExecutionsTest extends TestCase
                 return $this->tenantSeenByEventHandler;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$orders]);
 
         $ecotone->sendCommandWithRouting('order.placeFromFiber', ['orderId' => 'placed by fiber'], metadata: ['tenant' => 'tenant-of-handler']);
 
@@ -118,7 +118,7 @@ final class InterleavedExecutionsTest extends TestCase
                 return $this->tenantSeenByEventHandler;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$orders]);
 
         $first = new Fiber(fn () => $ecotone->sendCommandWithRouting('order.place', ['orderId' => 'first'], metadata: ['tenant' => 'tenant-of-first']));
         $second = new Fiber(fn () => $ecotone->sendCommandWithRouting('order.place', ['orderId' => 'second'], metadata: ['tenant' => 'tenant-of-second']));
@@ -164,7 +164,7 @@ final class InterleavedExecutionsTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('notifications')],
         );

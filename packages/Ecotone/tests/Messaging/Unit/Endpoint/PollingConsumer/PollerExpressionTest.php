@@ -22,7 +22,7 @@ final class PollerExpressionTest extends TestCase
         $pollerExample = new ExpressionPollerExample();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ExpressionPollerExample::class],
+            [],
             [
                 'timerService' => $timerService,
                 $pollerExample,
@@ -44,7 +44,7 @@ final class PollerExpressionTest extends TestCase
         $pollerExample = new ExpressionPollerExample();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ExpressionPollerExample::class],
+            [],
             [
                 'timerService' => $timerService,
                 $pollerExample,

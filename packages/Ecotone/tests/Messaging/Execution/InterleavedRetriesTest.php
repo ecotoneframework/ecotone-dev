@@ -49,7 +49,7 @@ final class InterleavedRetriesTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handlers::class],
+            [],
             [$handlers],
             extensionObjects: [InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 2)],
         );
@@ -93,7 +93,7 @@ final class InterleavedRetriesTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handlers::class],
+            [],
             [$handlers],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('orders'),

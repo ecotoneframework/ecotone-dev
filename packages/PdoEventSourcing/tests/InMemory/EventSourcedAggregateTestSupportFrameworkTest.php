@@ -156,7 +156,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
     public function test_providing_initial_state_in_form_of_events_with_event_store()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [Ticket::class, TicketEventConverter::class],
+            [Ticket::class],
             [new TicketEventConverter(), DbalConnectionFactory::class => EcotoneLiteEventSourcingTest::getConnectionFactory()],
         )->setupDatabaseTables();
 
@@ -179,7 +179,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
     public function test_registering_in_memory_event_sourcing_repository()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
+            [Ticket::class],
             [new TicketEventConverter(), new InProgressTicketList()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('asynchronous_projections')],
         );

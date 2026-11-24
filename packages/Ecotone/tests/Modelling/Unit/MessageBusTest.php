@@ -66,7 +66,7 @@ final class MessageBusTest extends TestCase
     public function test_command_event_command_flow()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [Merchant::class, User::class, MerchantSubscriber::class],
+            [Merchant::class, User::class],
             [
                 new MerchantSubscriber(),
             ],
@@ -85,7 +85,7 @@ final class MessageBusTest extends TestCase
     public function test_synchronous_event_handlers_should_be_handled_in_priority()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [SynchronousPriorityHandler::class],
+            [],
             [
                 new SynchronousPriorityHandler(),
             ],
@@ -103,7 +103,7 @@ final class MessageBusTest extends TestCase
     public function test_synchronous_event_handlers_should_be_handled_in_priority_with_inheritance()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [SynchronousPriorityHandlerWithInheritance::class],
+            [],
             [
                 new SynchronousPriorityHandlerWithInheritance(),
             ],
@@ -121,7 +121,7 @@ final class MessageBusTest extends TestCase
     public function test_aggregate_and_service_synchronous_event_handlers_should_be_handled_in_priority()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [AggregateSynchronousPriorityWithLowerPriorityHandler::class, SynchronousPriorityHandler::class],
+            [AggregateSynchronousPriorityWithLowerPriorityHandler::class],
             [
                 new SynchronousPriorityHandler(),
             ],
@@ -144,7 +144,7 @@ final class MessageBusTest extends TestCase
     public function test_when_aggregate_and_service_with_same_priority_aggregate_should_go_first()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [AggregateSynchronousPriorityWithHigherPriorityHandler::class, SynchronousPriorityHandler::class],
+            [AggregateSynchronousPriorityWithHigherPriorityHandler::class],
             [
                 new SynchronousPriorityHandler(),
             ],
@@ -167,7 +167,7 @@ final class MessageBusTest extends TestCase
     public function test_calling_command_handler_with_abstract_class()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [TestHandler::class, TestAbstractHandler::class],
+            [TestAbstractHandler::class],
             [
                 new TestHandler(),
             ],
@@ -183,7 +183,7 @@ final class MessageBusTest extends TestCase
     public function test_calling_asynchronous_command_handler_with_pass_through_message_channels()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OutboxWithMultipleChannels::class],
+            [],
             [
                 new OutboxWithMultipleChannels(),
             ],
@@ -212,7 +212,7 @@ final class MessageBusTest extends TestCase
     public function test_calling_asynchronous_command_handler_with_combined_message_channel()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OutboxWithMultipleChannels::class],
+            [],
             [
                 new OutboxWithMultipleChannels(),
             ],
@@ -293,9 +293,6 @@ final class MessageBusTest extends TestCase
     public function test_it_does_use_endpoint_ids_as_routing_slips_to_ensure_it_kept_static(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [
-                GuestNotifier::class,
-            ],
             containerOrAvailableServices: [new GuestNotifier()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
@@ -326,7 +323,7 @@ final class MessageBusTest extends TestCase
     public function test_sending_to_command_channel_directly_with_type_id_and_serialized_payload(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [Merchant::class, MerchantConversion::class],
+            [Merchant::class],
             [new MerchantConversion()],
             enabledModules: [],
         );
@@ -351,7 +348,6 @@ final class MessageBusTest extends TestCase
     public function test_it_can_route_by_interface(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [EmailNotifier::class, ],
             containerOrAvailableServices: [$emailNotifier = new EmailNotifier()],
             enabledModules: [],
         );
@@ -368,7 +364,7 @@ final class MessageBusTest extends TestCase
     {
         $service = new OrderEventService();
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderEventService::class],
+            [],
             [$service],
             enabledModules: [],
         );
@@ -388,7 +384,7 @@ final class MessageBusTest extends TestCase
         $this->expectExceptionMessage('should be placed on public method');
 
         EcotoneLite::bootstrapFlowTesting(
-            [OrderEventServiceWithPrivateHandler::class],
+            [],
             [new OrderEventServiceWithPrivateHandler()],
             enabledModules: [],
         );
@@ -401,7 +397,7 @@ final class MessageBusTest extends TestCase
         $this->expectExceptionMessage('should be placed on public method');
 
         EcotoneLite::bootstrapFlowTesting(
-            [ServiceWithPrivateCommandHandler::class],
+            [],
             [new ServiceWithPrivateCommandHandler()],
             enabledModules: [],
         );
@@ -414,7 +410,7 @@ final class MessageBusTest extends TestCase
         $this->expectExceptionMessage('should be placed on public method');
 
         EcotoneLite::bootstrapFlowTesting(
-            [ServiceWithPrivateQueryHandler::class],
+            [],
             [new ServiceWithPrivateQueryHandler()],
             enabledModules: [],
         );
@@ -424,7 +420,7 @@ final class MessageBusTest extends TestCase
     {
         $handler = new EventHandlerForUnionType();
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [EventHandlerForUnionType::class],
+            [],
             [$handler],
             enabledModules: [],
         );

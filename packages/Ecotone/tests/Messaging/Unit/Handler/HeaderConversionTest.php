@@ -30,7 +30,7 @@ final class HeaderConversionTest extends TestCase
     {
         $convertedHeaderEndpoint = new ConvertedHeaderEndpoint();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ConvertedHeaderEndpoint::class, JsonConverter::class],
+            [],
             [$convertedHeaderEndpoint, new JsonConverter()],
             extensionObjects: [$serviceConfiguration, SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -53,7 +53,7 @@ final class HeaderConversionTest extends TestCase
     {
         $convertedHeaderEndpoint = new ConvertedHeaderEndpoint();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ConvertedHeaderEndpoint::class, JsonConverter::class],
+            [],
             [$convertedHeaderEndpoint, new JsonConverter()],
             extensionObjects: [$serviceConfiguration, SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -76,7 +76,7 @@ final class HeaderConversionTest extends TestCase
     {
         $convertedHeaderEndpoint = new ConvertedHeaderEndpoint();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ConvertedHeaderEndpoint::class, JsonConverter::class],
+            [],
             [$convertedHeaderEndpoint, new JsonConverter()],
             extensionObjects: [$serviceConfiguration, SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -108,7 +108,7 @@ final class HeaderConversionTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );

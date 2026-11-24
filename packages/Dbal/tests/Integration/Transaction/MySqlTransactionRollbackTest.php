@@ -95,7 +95,6 @@ final class MySqlTransactionRollbackTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$orderService::class],
             containerOrAvailableServices: [$orderService, DbalConnectionFactory::class => $this->createConnectionFactory()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             environment: 'prod',

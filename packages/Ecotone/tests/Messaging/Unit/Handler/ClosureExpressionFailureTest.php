@@ -39,7 +39,7 @@ final class ClosureExpressionFailureTest extends TestCase
     public function test_closure_expression_throwing_names_attribute_parameter_handler_and_reports_a_closure(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [FailingClosureExpressionService::class],
+            [],
             [new FailingClosureExpressionService()],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,

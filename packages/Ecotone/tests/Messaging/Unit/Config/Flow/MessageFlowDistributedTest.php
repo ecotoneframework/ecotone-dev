@@ -36,7 +36,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $bus->publish(new LocalEventForDistribution());
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $handler = 'handler:' . $service::class . '::receive';
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::DISTRIBUTES, 'distributed:partner.bus', 'message:remote.receive'));
@@ -53,7 +53,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $bus->sendCommand($payload['service'], $payload['route'], '{}');
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::send', 'distributed:' . DistributedBus::class));
         self::assertSame(['inferred' => true, 'via' => 'sendCommand'], $edges[0]->attributes);
@@ -75,7 +75,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $bus->sendMessage('ticketing', $payload['route'], '{}', replyRoutingKey: 'tickets.result');
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
         $graph = $ecotone->getMessageFlowGraph();
 
         $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $this->handlerId($graph, $service, $method), 'distributed:' . DistributedBus::class), 'attributes');
@@ -101,7 +101,7 @@ final class MessageFlowDistributedTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $bus = 'distributed:' . DistributedBus::class;
         self::assertSame(
@@ -133,7 +133,7 @@ final class MessageFlowDistributedTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $repliesOf = fn (string $handler) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::' . $handler, 'distributed:' . DistributedBus::class), 'attributes');
         self::assertSame([['via' => 'replyRoutingKey']], $repliesOf('hold'));
@@ -184,7 +184,7 @@ final class MessageFlowDistributedTest extends TestCase
                 return ['outcome' => 'held'];
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertSame(
             [['via' => 'replyRoutingKey'], ['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => null]],
@@ -233,7 +233,7 @@ final class MessageFlowDistributedTest extends TestCase
                 );
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $bus = 'distributed:' . DistributedBus::class;
         $handler = fn (string $method) => $this->handlerId($graph, $service, $method);
@@ -326,7 +326,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $distributedBus->sendMessage('ticketing', $routingKey, '{}', replyRoutingKey: $replyRoutingKey);
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $endpointIds = [
             'holdRequestedSeat' => 'hold_requested_seat',
@@ -385,7 +385,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $distributedBus->sendMessage('ticketing', $routingKey, '{}');
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         foreach (['concatenated', 'readFromThePayload', 'reassignedInTheHelper', 'loopVariable'] as $method) {
             self::assertSame(
@@ -432,7 +432,7 @@ final class MessageFlowDistributedTest extends TestCase
                 return 'route ' . $routingKey;
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $this->handlerId($graph, $service, $method), 'distributed:' . DistributedBus::class), 'attributes');
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => null]], $sendsOf('holdRequestedSeat'));
@@ -465,7 +465,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $distributedBus->sendMessage('ticketing', $routingKey, '{}');
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $this->handlerId($graph, $service, $method), 'distributed:' . DistributedBus::class), 'attributes');
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'withoutReply' => true]], $sendsOf('omitted'));
@@ -487,7 +487,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $distributedBus->sendMessage('ticketing', $routingKey, '{}');
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertSame(
             [['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => null]],
@@ -548,7 +548,7 @@ final class MessageFlowDistributedTest extends TestCase
                 }
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         foreach (['shortArray', 'keyedShortArray', 'keyedInForeach', 'keyedInForeachWithItsKey'] as $method) {
             self::assertSame(
@@ -574,7 +574,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $distributedBus->sendMessage('audit', 'audit.seat', '{}');
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, 'handler:' . $service::class . '::holdRequestedSeat'));
     }
@@ -646,7 +646,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $distributedBus->sendMessage('ticketing', $routingKey, '{}');
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         foreach (['shadowedByAnArrowFunction', 'shadowedByAClosure', 'passedToAFunction', 'passedToAMethod', 'extracted'] as $method) {
             self::assertSame(
@@ -685,7 +685,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $this->routes?->rewrite($routingKey);
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         foreach (['outsideTheClosure', 'beforeTheCall'] as $method) {
             self::assertSame(
@@ -717,7 +717,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $this->first($distributedBus, $routingKey, $attempts);
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertSame(
             [['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'withoutReply' => true]],
@@ -745,7 +745,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $distributedBus->sendMessage(targetServiceName: 'ticketing', routingKey: $routingKey, payload: '{}', replyRoutingKey: $replyRoutingKey);
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $this->handlerId($graph, $service, $method), 'distributed:' . DistributedBus::class), 'attributes');
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result']], $sendsOf('holdRequestedSeat'));
@@ -767,7 +767,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $distributedBus->sendMessage('ticketing', $event::ROUTE->value, '{}');
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $sendsOf = fn (string $method) => array_column($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $this->handlerId($graph, $service, $method), 'distributed:' . DistributedBus::class), 'attributes');
         self::assertSame([['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'replyChannel' => 'tickets.hold.result']], $sendsOf('holdRequestedSeat'));
@@ -787,7 +787,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $distributedBus->sendMessage('ticketing', $this->routes->hold(), '{}');
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertSame(
             [['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'ticketing', 'targetChannel' => 'tickets.hold', 'withoutReply' => true]],
@@ -841,7 +841,7 @@ final class MessageFlowDistributedTest extends TestCase
                 $distributedBus->sendMessage('ticketing', $event->routingKey(), '{}');
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         foreach (['fromAProperty', 'fromAMatch', 'fromAConcatenation', 'fromAnOverridableMethod', 'fromAnOverridableConstant', 'fromAnInterfaceMethod', 'fromAReassignedParameter'] as $method) {
             self::assertSame(

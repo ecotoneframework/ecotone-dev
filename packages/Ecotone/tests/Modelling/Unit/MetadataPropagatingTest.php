@@ -36,7 +36,6 @@ final class MetadataPropagatingTest extends TestCase
     public function test_propagating_headers_to_all_published_synchronous_event_handlers(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [OrderService::class],
             containerOrAvailableServices: [new OrderService()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
@@ -60,7 +59,6 @@ final class MetadataPropagatingTest extends TestCase
     public function test_propagating_headers_to_all_published_asynchronous_event_handlers(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [OrderService::class],
             containerOrAvailableServices: [new OrderService()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
@@ -152,7 +150,6 @@ final class MetadataPropagatingTest extends TestCase
     public function test_not_propagating_polling_metadata(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [OrderService::class],
             containerOrAvailableServices: [new OrderService()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],

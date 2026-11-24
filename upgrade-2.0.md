@@ -4370,9 +4370,19 @@ rename test-support methods without aliases; the renamed methods are listed in e
   so a payload crossing a queue channel is serialized to JSON and rebuilt by JMS on the way back. A type JMS cannot
   rebuild - an interface such as `Ramsey\Uuid\UuidInterface` - then fails with a `ConversionException`, although
   the application declares a converter the test never registered. **How to adapt:** register the application's
-  `#[Converter]` for that type in the flow test (its class in `classesToResolve` and an instance in
-  `containerOrAvailableServices`), or keep the channel PHP-serialized explicitly:
+  `#[Converter]` for that type in the flow test (an instance in `containerOrAvailableServices`), or keep the channel PHP-serialized explicitly:
   `SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::APPLICATION_X_PHP_SERIALIZED)`.
+- **A service passed to `EcotoneLite` is registered without listing its class.** **Before:** an object in
+  `containerOrAvailableServices` was only made available to the container; its `#[CommandHandler]`, `#[Converter]`,
+  interceptor and other attributes were read only when the same class was also in `classesToResolve`. **Now:**
+  `EcotoneLite::bootstrap()` and `bootstrapFlowTesting()` read the attributes of every service passed without a key,
+  or under its own class name (`[$handler]`, `[OrderService::class => $handler]`). A service passed under another
+  name (`'mailer' => $mailer`, `MailerInterface::class => $mailer`) stays a plain dependency, and a
+  `ContainerInterface` is not enumerated, so the classes of its services still go in `classesToResolve`. A test that
+  passed an attributed service it did not list now gets its handlers, converters and interceptors registered: a
+  second handler for one command, or a handler needing configuration the test does not register, fails where it
+  was ignored before. **How to adapt:** remove the classes you already pass as instances from `classesToResolve`
+  (keeping them is harmless). Where a service must not be registered, stop passing it, or pass it under a name.
 - **The Kafka licence is required when Kafka is used, not when it is installed.** **Before:** an installed Kafka
   module refused to boot without an Enterprise licence even when nothing used it. **Now:** it refuses only when a
   `#[KafkaConsumer]`, a `KafkaMessageChannelBuilder`, a `KafkaConsumerConfiguration`, a `TopicConfiguration` or a
@@ -4564,8 +4574,11 @@ rename test-support methods without aliases; the renamed methods are listed in e
   `No Command Handler defined for it. Have you forgot to add #[CommandHandler] to method?`. In
   `bootstrapFlowTesting()` Ecotone now looks up the handler in your autoloaded (non-vendor) namespaces and says
   `Can't send command to App\Shipping\ReserveShippingSlot. It is handled by App\Shipping\ShippingSlotReservationHandler::reserve(),
-  which is not registered in this Ecotone Lite bootstrap. Add App\Shipping\ShippingSlotReservationHandler to the classesToResolve of
-  EcotoneLite::bootstrapFlowTesting(), or load its namespace with EcotoneLite::bootstrapFlowTesting(..., namespaces: ['App\Shipping']).`
+  which is not registered in this Ecotone Lite bootstrap. Pass an instance of App\Shipping\ShippingSlotReservationHandler, without a key,
+  in the containerOrAvailableServices of EcotoneLite::bootstrapFlowTesting(), add App\Shipping\ShippingSlotReservationHandler to its
+  classesToResolve when the service comes from a container passed there, or load its namespace with
+  EcotoneLite::bootstrapFlowTesting(..., namespaces: ['App\Shipping']).`
+  A handler on an aggregate or a saga has no instance to pass, so its message says to add the class to `classesToResolve`.
   When no handler exists it says which attribute to add. Queries get the same message; the application bootstrap keeps
   the previous text. **How to adapt:** nothing.
 - **Handlers typed on an interface or abstract class receive the concrete message after serialisation.** A handler

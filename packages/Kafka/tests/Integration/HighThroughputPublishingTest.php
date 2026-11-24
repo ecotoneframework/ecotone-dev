@@ -160,7 +160,7 @@ final class HighThroughputPublishingTest extends TestCase
             }
         };
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [$commandHandler::class],
+            [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), $commandHandler],
             extensionObjects: [
                 KafkaPublisherConfiguration::createWithDefaults(topicName:$topicName)->withHighThroughputPublishing(),
@@ -225,7 +225,7 @@ final class HighThroughputPublishingTest extends TestCase
         }
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$orderService::class],
+            [],
             [KafkaBrokerConfiguration::class => $brokerConfiguration, $orderService],
             extensionObjects: [$channelBuilder],
             enabledModules: [ModulePackageList::KAFKA_PACKAGE],

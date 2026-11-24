@@ -43,7 +43,7 @@ final class DecisionModelNestedHandlerTest extends TestCase
         $inner = new WaitlistHandlerForNestedTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$outer::class, $inner::class, SeatCountForNestedTest::class, SeatTakenForNestedTest::class],
+            classesToResolve: [SeatCountForNestedTest::class, SeatTakenForNestedTest::class],
             containerOrAvailableServices: [$outer, $inner],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],

@@ -133,7 +133,7 @@ $snapshotConverter = new #[MediaTypeConverter] class () implements Converter {
 };
 
 EcotoneLite::bootstrapFlowTesting(
-    classesToResolve: [SpentTodayAcrossDeployments::class, WalletSpentAcrossDeployments::class, WalletRefundedAcrossDeployments::class, $wallet::class, $snapshotConverter::class],
+    classesToResolve: [SpentTodayAcrossDeployments::class, WalletSpentAcrossDeployments::class, WalletRefundedAcrossDeployments::class],
     containerOrAvailableServices: [
         $wallet,
         $snapshotConverter,

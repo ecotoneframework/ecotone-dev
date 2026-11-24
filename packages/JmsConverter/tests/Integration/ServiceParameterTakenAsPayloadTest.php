@@ -30,7 +30,7 @@ final class ServiceParameterTakenAsPayloadTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, ClockInterface::class => new StaticPsrClock('2026-03-01 12:00:00')],
             enabledModules: [ModulePackageList::JMS_CONVERTER_PACKAGE],
         );

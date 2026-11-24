@@ -40,7 +40,7 @@ final class RedeliveredFlowExecutionRecordingTest extends DbalMessagingTestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
             [DbalBackedMessageChannelBuilder::create('orders')->withReceiveTimeout(100), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::TRACING_PACKAGE],

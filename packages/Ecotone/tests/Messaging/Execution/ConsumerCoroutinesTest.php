@@ -301,7 +301,7 @@ final class ConsumerCoroutinesTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$shipments::class],
+            [],
             [$shipments],
             extensionObjects: array_values(array_filter([SimpleMessageChannelBuilder::createQueueChannel('shipments'), $pollingMetadata, $instantRetry])),
         );

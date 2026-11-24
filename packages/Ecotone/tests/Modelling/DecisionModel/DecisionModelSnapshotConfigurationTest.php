@@ -75,10 +75,8 @@ final class DecisionModelSnapshotConfigurationTest extends TestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
-                WalletsForSnapshotConfigurationTest::class,
                 WalletBalanceForSnapshotConfigurationTest::class,
                 WalletCreditedForSnapshotConfigurationTest::class,
-                WalletBalanceConverterForSnapshotConfigurationTest::class,
             ],
             containerOrAvailableServices: [
                 $wallets,

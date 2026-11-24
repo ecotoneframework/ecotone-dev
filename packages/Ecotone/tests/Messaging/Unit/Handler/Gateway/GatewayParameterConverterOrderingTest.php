@@ -23,7 +23,7 @@ final class GatewayParameterConverterOrderingTest extends TestCase
     {
         $handler = new CapturingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [SendMailGateway::class, CapturingHandler::class],
+            [SendMailGateway::class],
             [$handler],
             enabledModules: [],
         );

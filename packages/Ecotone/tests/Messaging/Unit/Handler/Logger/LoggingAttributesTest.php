@@ -28,7 +28,7 @@ final class LoggingAttributesTest extends TestCase
     {
         $logger = new RecordingLogger();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [LogBeforeHandler::class],
+            [],
             ['logger' => $logger, new LogBeforeHandler()],
             enabledModules: [],
         );
@@ -44,7 +44,7 @@ final class LoggingAttributesTest extends TestCase
     {
         $logger = new RecordingLogger();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [LogAfterHandler::class],
+            [],
             ['logger' => $logger, new LogAfterHandler()],
             enabledModules: [],
         );
@@ -60,7 +60,7 @@ final class LoggingAttributesTest extends TestCase
     {
         $logger = new RecordingLogger();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [LogBeforeFullMessageHandler::class],
+            [],
             ['logger' => $logger, new LogBeforeFullMessageHandler()],
             enabledModules: [],
         );
@@ -76,7 +76,7 @@ final class LoggingAttributesTest extends TestCase
     {
         $logger = new RecordingLogger();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [LogErrorHandler::class],
+            [],
             ['logger' => $logger, new LogErrorHandler()],
             enabledModules: [],
         );

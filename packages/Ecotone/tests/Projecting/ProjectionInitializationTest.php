@@ -177,7 +177,7 @@ final class ProjectionInitializationTest extends TestCase
     private function bootstrap(object $projection, bool $initializedOnBootstrap, array $extensionObjects = []): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             extensionObjects: $extensionObjects,
             enabledModules: [],

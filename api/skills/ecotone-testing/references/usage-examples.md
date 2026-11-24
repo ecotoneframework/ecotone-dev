@@ -16,7 +16,6 @@ public function test_event_handler_reacts_to_event(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class],
         containerOrAvailableServices: [$handler],
     );
 
@@ -39,7 +38,6 @@ public function test_query_returns_result(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class],
         containerOrAvailableServices: [$handler],
     );
 
@@ -64,7 +62,6 @@ public function test_command_handler_receives_command(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class],
         containerOrAvailableServices: [$handler],
     );
 
@@ -135,7 +132,6 @@ public function test_handler_with_dependencies(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class],
         containerOrAvailableServices: [$handler],
     );
 
@@ -228,7 +224,7 @@ public function test_projection_builds_read_model(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$projection::class, Ticket::class],
+        classesToResolve: [Ticket::class],
         containerOrAvailableServices: [$projection],
     );
 

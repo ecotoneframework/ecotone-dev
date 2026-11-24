@@ -331,7 +331,7 @@ final class ConnectionTerminatedByServerTest extends TestCase
     private function bootstrap(object $handler, array $extensionObjects = []): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             [
                 LaravelConnectionReference::defaultConnection(self::connectionName()),

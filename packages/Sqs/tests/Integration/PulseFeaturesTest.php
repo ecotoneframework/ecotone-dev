@@ -82,7 +82,6 @@ final class PulseFeaturesTest extends TestCase
         };
         $channels = [SimpleMessageChannelBuilder::createQueueChannel('order_channel'), SimpleMessageChannelBuilder::createQueueChannel('pulse_channel')];
         $orderService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handlers::class],
             containerOrAvailableServices: [$handlers, ...$services],
             extensionObjects: [
                 ...$channels,
@@ -95,7 +94,6 @@ final class PulseFeaturesTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $pulseService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$pulse::class],
             containerOrAvailableServices: [$pulse],
             extensionObjects: [
                 ...$channels,

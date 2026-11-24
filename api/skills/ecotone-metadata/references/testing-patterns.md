@@ -36,7 +36,6 @@ $firstHeaders = $commandHeaders[0];
 public function test_metadata_propagates_to_event_handlers(): void
 {
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [OrderService::class],
         containerOrAvailableServices: [new OrderService()]
     );
 
@@ -108,7 +107,6 @@ public function test_before_interceptor_enriches_headers(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class, $interceptor::class],
         containerOrAvailableServices: [$handler, $interceptor],
     );
 
@@ -155,7 +153,6 @@ public function test_add_and_remove_headers(): void
 public function test_metadata_propagates_to_async_handlers(): void
 {
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [OrderService::class],
         containerOrAvailableServices: [new OrderService()],
         extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
     );

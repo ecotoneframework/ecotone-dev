@@ -55,7 +55,7 @@ final class ProjectionApiTest extends TestCase
         $this->expectExceptionMessage("Projection 'test_projection' cannot use both #[Polling] and #[Streaming] attributes.");
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -75,7 +75,7 @@ final class ProjectionApiTest extends TestCase
         $this->expectExceptionMessage("Projection 'test_projection' cannot use both #[Polling] and #[Partitioned] attributes.");
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -95,7 +95,7 @@ final class ProjectionApiTest extends TestCase
         $this->expectExceptionMessage("Projection 'test_projection' combines #[Partitioned] with #[ProjectionDeployment(manualKickOff: true)], but a partitioned projection initializes each partition on that partition's first event, so it cannot wait to be kicked off and manualKickOff would be ignored. Either remove manualKickOff: true from #[ProjectionDeployment] and let each partition initialize on its first event, or remove #[Partitioned] to keep the projection waiting until it is kicked off with ecotone:projection:init test_projection.");
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -115,7 +115,7 @@ final class ProjectionApiTest extends TestCase
         $this->expectExceptionMessage("Projection 'test_projection' cannot use both #[Partitioned] and #[Streaming] attributes.");
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -137,7 +137,7 @@ final class ProjectionApiTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection, ConsumerPositionTracker::class => $positionTracker],
             extensionObjects: [SimpleMessageChannelBuilder::createStreamingChannel('streaming_channel', conversionMediaType:MediaType::createApplicationXPHP())],
             enabledModules: [],
@@ -160,7 +160,7 @@ final class ProjectionApiTest extends TestCase
         $this->expectExceptionMessage("Projection 'non_streaming_projection' must have at least one #[FromStream], #[FromAggregateStream] or #[FromTaggedStream] attribute");
 
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,

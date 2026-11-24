@@ -25,7 +25,7 @@ class InterceptorsOrderingTest extends TestCase
     {
         $stack = new InterceptorOrderingStack();
         EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingCase::class, InterceptorOrderingInterceptors::class],
+            [],
             [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), $stack],
             enabledModules: [],
         )->sendCommandWithRouting('commandEndpointReturning');
@@ -48,7 +48,7 @@ class InterceptorsOrderingTest extends TestCase
     {
         $stack = new InterceptorOrderingStack();
         EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingCase::class, InterceptorOrderingInterceptors::class],
+            [],
             [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), $stack],
             enabledModules: [],
         )->sendCommandWithRouting('commandEndpointVoid');
@@ -69,7 +69,7 @@ class InterceptorsOrderingTest extends TestCase
     {
         $callStack = new InterceptorOrderingStack();
         EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingCase::class, InterceptorOrderingInterceptors::class],
+            [],
             [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), $callStack],
             enabledModules: [],
         )->sendDirectToChannel('serviceEndpointReturning');
@@ -92,7 +92,7 @@ class InterceptorsOrderingTest extends TestCase
     {
         $callStack = new InterceptorOrderingStack();
         EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingCase::class, InterceptorOrderingInterceptors::class],
+            [],
             [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), $callStack],
             enabledModules: [],
         )->sendDirectToChannel('serviceEndpointVoid');
@@ -114,7 +114,7 @@ class InterceptorsOrderingTest extends TestCase
         $callStack = new InterceptorOrderingStack();
         /** @var Gateway $gateway */
         $gateway = EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingCase::class, Gateway::class, InterceptorOrderingInterceptors::class, GatewayInterceptors::class],
+            [Gateway::class],
             [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), new GatewayInterceptors(), $callStack],
             enabledModules: [],
         )
@@ -144,7 +144,7 @@ class InterceptorsOrderingTest extends TestCase
         $callStack = new InterceptorOrderingStack();
         /** @var Gateway $gateway */
         $gateway = EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingCase::class, Gateway::class, InterceptorOrderingInterceptors::class, GatewayInterceptors::class],
+            [Gateway::class],
             [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), new GatewayInterceptors(), $callStack],
             enabledModules: [],
         )
@@ -170,7 +170,7 @@ class InterceptorsOrderingTest extends TestCase
     {
         $callStack = new InterceptorOrderingStack();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingAggregate::class, InterceptorOrderingInterceptors::class],
+            [InterceptorOrderingAggregate::class],
             [new InterceptorOrderingInterceptors(), $callStack],
             enabledModules: [],
         );
@@ -219,7 +219,7 @@ class InterceptorsOrderingTest extends TestCase
     {
         $callStack = new InterceptorOrderingStack();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingAggregate::class, InterceptorOrderingInterceptors::class],
+            [InterceptorOrderingAggregate::class],
             [new InterceptorOrderingInterceptors(), $callStack],
             enabledModules: [],
         )
@@ -246,7 +246,7 @@ class InterceptorsOrderingTest extends TestCase
     {
         $stack = new InterceptorOrderingStack();
         EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingCase::class, InterceptorOrderingInterceptors::class],
+            [],
             [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), $stack],
             enabledModules: [],
         )->sendCommandWithRouting('commandWithOutputChannel');
@@ -278,7 +278,7 @@ class InterceptorsOrderingTest extends TestCase
         $callStack = new InterceptorOrderingStack();
         /** @var Gateway $gateway */
         $gateway = EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingCase::class, Gateway::class, InterceptorOrderingInterceptors::class, GatewayInterceptors::class],
+            [Gateway::class],
             [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), new GatewayInterceptors(), $callStack],
             enabledModules: [],
         )
@@ -317,7 +317,7 @@ class InterceptorsOrderingTest extends TestCase
     {
         $callStack = new InterceptorOrderingStack();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingAggregate::class, InterceptorOrderingInterceptors::class, OutputHandler::class],
+            [InterceptorOrderingAggregate::class],
             [new InterceptorOrderingInterceptors(), $callStack, new OutputHandler()],
             enabledModules: [],
         )
@@ -347,7 +347,7 @@ class InterceptorsOrderingTest extends TestCase
     {
         $callStack = new InterceptorOrderingStack();
         EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingAggregate::class, InterceptorOrderingInterceptors::class, OutputHandler::class],
+            [InterceptorOrderingAggregate::class],
             [new InterceptorOrderingInterceptors(), $callStack, new OutputHandler()],
             enabledModules: [],
         )->sendCommandWithRouting('endpointFactoryWithOutput', metadata: ['aggregate.id' => 'id']);
@@ -374,7 +374,7 @@ class InterceptorsOrderingTest extends TestCase
     {
         $callStack = new InterceptorOrderingStack();
         EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingAggregate::class, InterceptorOrderingInterceptors::class, OutputHandler::class],
+            [InterceptorOrderingAggregate::class],
             [new InterceptorOrderingInterceptors(), $callStack, new OutputHandler()],
             enabledModules: [],
         )->sendCommandWithRouting('endpointFactoryWithOutput', metadata: ['aggregate.id' => 'id']);

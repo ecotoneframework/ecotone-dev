@@ -110,7 +110,7 @@ final class JMSConverterConfigurationTest extends TestCase
         $this->expectExceptionMessage(self::TWO_CONFIGURATIONS_MESSAGE);
 
         EcotoneLite::bootstrapFlowTesting(
-            [$configuration::class],
+            [],
             [$configuration],
             enabledModules: [ModulePackageList::JMS_CONVERTER_PACKAGE],
         );

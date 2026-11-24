@@ -95,7 +95,7 @@ final class AsynchronousBusRoutingKeyHeaderTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handlers::class, PulseOrderGateway::class],
+            classesToResolve: [PulseOrderGateway::class],
             containerOrAvailableServices: [$handlers],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
@@ -147,7 +147,6 @@ final class AsynchronousBusRoutingKeyHeaderTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handlers::class],
             containerOrAvailableServices: [$handlers],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],

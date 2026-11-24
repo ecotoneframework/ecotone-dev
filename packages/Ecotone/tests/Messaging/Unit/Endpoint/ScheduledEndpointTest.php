@@ -29,7 +29,7 @@ final class ScheduledEndpointTest extends TestCase
     {
         $service = new NoArgScheduledService();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [NoArgScheduledService::class],
+            [],
             [$service],
             enabledModules: [],
         );
@@ -43,7 +43,7 @@ final class ScheduledEndpointTest extends TestCase
     {
         $service = new ReturningScheduledService();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ReturningScheduledService::class],
+            [],
             [$service],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel(ReturningScheduledService::CHANNEL)],
             enabledModules: [],
@@ -58,7 +58,7 @@ final class ScheduledEndpointTest extends TestCase
     {
         $service = new ReturningScheduledService();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ReturningScheduledService::class],
+            [],
             [$service],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel(ReturningScheduledService::CHANNEL),
@@ -97,7 +97,7 @@ final class ScheduledEndpointTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [UnresolvableParameterScheduledService::class],
+            [],
             [new UnresolvableParameterScheduledService()],
             enabledModules: [],
         );
@@ -144,7 +144,7 @@ final class ScheduledEndpointTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$service::class],
+            [],
             [$service, ClockInterface::class => $clock],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('countedTicks'),

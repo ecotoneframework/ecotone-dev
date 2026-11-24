@@ -146,7 +146,7 @@ final class AfterCommitCallbackTest extends TestCase
     private function bootstrap(object $handler, array $extensionObjects = []): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             [
                 LaravelConnectionReference::defaultConnection(DB::getDefaultConnection()),

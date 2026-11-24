@@ -76,7 +76,7 @@ final class CoroutineConnectionPoolTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, 'doctrine' => $doctrine],
             extensionObjects: [SymfonyConnectionReference::defaultConnection('default')->withConnectionPoolSize(1)->withConnectionPoolWaitSeconds(0), DbalConfiguration::createWithDefaults(), InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::SYMFONY_PACKAGE],

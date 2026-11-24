@@ -55,7 +55,6 @@ final class GatheringTimeoutTest extends TestCase
         $this->expectExceptionMessage("Gathered handler 'summary' has a timeout but asynchronous channel 'summaries' cannot hold delayed messages. Use a channel builder implementing DelayedMessageChannelBuilder with delay support, enable delays on this channel, or remove timeout from #[Gathered].");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [$channel],
             enabledModules: [ModulePackageList::KAFKA_PACKAGE],

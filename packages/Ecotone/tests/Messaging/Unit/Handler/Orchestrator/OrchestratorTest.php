@@ -66,7 +66,7 @@ class OrchestratorTest extends TestCase
     public function test_orchestrator_passes_message(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AuthorizationOrchestrator::class],
+            [],
             [$orchestrator = new AuthorizationOrchestrator()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -87,7 +87,7 @@ class OrchestratorTest extends TestCase
     public function test_orchestrator_executed_from_business_interface(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AuthorizationOrchestrator::class, AuthorizationProcess::class],
+            [AuthorizationProcess::class],
             [$orchestrator = new AuthorizationOrchestrator()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -110,7 +110,7 @@ class OrchestratorTest extends TestCase
     public function test_orchestrator_executed_from_command_handler_output_channel(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AuthorizationOrchestrator::class, CommandHandlerAuthorizationProcessor::class],
+            [],
             [$orchestrator = new AuthorizationOrchestrator(), new CommandHandlerAuthorizationProcessor()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -133,7 +133,7 @@ class OrchestratorTest extends TestCase
     public function test_orchestrator_executed_from_event_handler_output_channel(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AuthorizationOrchestrator::class, AsynchronousEventHandlerAuthorizationProcessor::class],
+            [],
             [$orchestrator = new AuthorizationOrchestrator(), new AsynchronousEventHandlerAuthorizationProcessor()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [ModulePackageList::CORE_PACKAGE, ],
@@ -155,7 +155,7 @@ class OrchestratorTest extends TestCase
     public function test_executing_orchestrator_gateway(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AuthorizationOrchestrator::class, AuthorizationProcessGateway::class],
+            [AuthorizationProcessGateway::class],
             [$orchestrator = new AuthorizationOrchestrator()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [ModulePackageList::CORE_PACKAGE, ],
@@ -177,7 +177,7 @@ class OrchestratorTest extends TestCase
     public function test_routing_fails_if_provided_non_string_collection_for_orchestrator_gateway(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AuthorizationOrchestrator::class, AuthorizationProcessGateway::class],
+            [AuthorizationProcessGateway::class],
             [$orchestrator = new AuthorizationOrchestrator()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [ModulePackageList::CORE_PACKAGE, ],
@@ -222,7 +222,7 @@ class OrchestratorTest extends TestCase
     public function test_orchestrator_returns_empty_array_no_routing_happens(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [SimpleOrchestrator::class],
+            [],
             [new SimpleOrchestrator()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -234,7 +234,7 @@ class OrchestratorTest extends TestCase
     public function test_orchestrator_with_single_step(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [SimpleOrchestrator::class],
+            [],
             [new SimpleOrchestrator()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -249,7 +249,7 @@ class OrchestratorTest extends TestCase
         $this->expectExceptionMessage('Orchestrator method Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\StringReturnTypeOrchestrator::singleStepAsString must return array of strings, but returns string');
 
         EcotoneLite::bootstrapFlowTesting(
-            [StringReturnTypeOrchestrator::class],
+            [],
             [new StringReturnTypeOrchestrator()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -262,7 +262,7 @@ class OrchestratorTest extends TestCase
         $this->expectExceptionMessage('Orchestrator method Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\InvalidReturnTypeOrchestrator::invalidReturnType must return array of strings, but returns stdClass');
 
         EcotoneLite::bootstrapFlowTesting(
-            [InvalidReturnTypeOrchestrator::class],
+            [],
             [new InvalidReturnTypeOrchestrator()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -275,7 +275,7 @@ class OrchestratorTest extends TestCase
         $this->expectExceptionMessage('Orchestrator method Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\NoReturnTypeOrchestrator::noReturnType must return array of strings, but returns nullable type mixed');
 
         EcotoneLite::bootstrapFlowTesting(
-            [NoReturnTypeOrchestrator::class],
+            [],
             [new NoReturnTypeOrchestrator()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -288,7 +288,7 @@ class OrchestratorTest extends TestCase
         $this->expectExceptionMessage('Orchestrator method Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\UnionTypeOrchestrator::unionType must return array of strings, but returns union type array|string');
 
         EcotoneLite::bootstrapFlowTesting(
-            [UnionTypeOrchestrator::class],
+            [],
             [new UnionTypeOrchestrator()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -301,7 +301,7 @@ class OrchestratorTest extends TestCase
         $this->expectExceptionMessage('Orchestrator method Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\NullableArrayOrchestrator::nullableArray must return array of strings, but returns nullable type array');
 
         EcotoneLite::bootstrapFlowTesting(
-            [NullableArrayOrchestrator::class],
+            [],
             [new NullableArrayOrchestrator()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -314,7 +314,7 @@ class OrchestratorTest extends TestCase
         $this->expectExceptionMessage('Orchestrator returned array must contain only strings');
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ArrayWithNonStringOrchestrator::class],
+            [],
             [new ArrayWithNonStringOrchestrator()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -330,7 +330,7 @@ class OrchestratorTest extends TestCase
         $this->expectExceptionMessage('Orchestrator method Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\VoidReturnTypeOrchestrator::voidReturnType must return array of strings, but returns void');
 
         EcotoneLite::bootstrapFlowTesting(
-            [VoidReturnTypeOrchestrator::class],
+            [],
             [new VoidReturnTypeOrchestrator()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -340,7 +340,7 @@ class OrchestratorTest extends TestCase
     public function test_workflow_is_ending_on_null_returned_within_step(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrchestratorEndingDuringFlow::class],
+            [],
             [$service = new OrchestratorEndingDuringFlow()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -354,7 +354,7 @@ class OrchestratorTest extends TestCase
     public function test_second_orchestrator_is_step_within_the_workflow(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [CombinedOrchestrator::class],
+            [],
             [$service = new CombinedOrchestrator()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -368,7 +368,7 @@ class OrchestratorTest extends TestCase
     public function test_command_bus_is_called_within_the_workflow_not_affecting_orchestrator(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrchestratorWithInternalBus::class],
+            [],
             [$service = new OrchestratorWithInternalBus()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -382,7 +382,7 @@ class OrchestratorTest extends TestCase
     public function test_asynchronous_orchestrator(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AsynchronousOrchestrator::class],
+            [],
             [$service = new AsynchronousOrchestrator()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [ModulePackageList::CORE_PACKAGE, ],
@@ -400,7 +400,7 @@ class OrchestratorTest extends TestCase
     public function test_asynchronous_step_within_orchestrator(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrchestratorWithAsynchronousStep::class],
+            [],
             [$service = new OrchestratorWithAsynchronousStep()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [ModulePackageList::CORE_PACKAGE, ],
@@ -419,7 +419,7 @@ class OrchestratorTest extends TestCase
     public function test_asynchronous_step_within_orchestrator_with_input_output_channel(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrchestratorWithAsynchronousAndInputOutputChannels::class],
+            [],
             [$service = new OrchestratorWithAsynchronousAndInputOutputChannels()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [ModulePackageList::CORE_PACKAGE, ],
@@ -445,7 +445,7 @@ class OrchestratorTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [AuthorizationOrchestrator::class, AuthorizationProcessGateway::class],
+            [AuthorizationProcessGateway::class],
             [new AuthorizationOrchestrator()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [ModulePackageList::CORE_PACKAGE, ],
@@ -457,7 +457,7 @@ class OrchestratorTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [SimpleOrchestrator::class],
+            [],
             [new SimpleOrchestrator()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
         );
@@ -466,7 +466,7 @@ class OrchestratorTest extends TestCase
     public function test_orchestrator_with_splitter_as_workflow_step(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrchestratorWithSplitterStep::class],
+            [],
             [$service = new OrchestratorWithSplitterStep()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -486,7 +486,7 @@ class OrchestratorTest extends TestCase
     public function test_orchestrator_with_splitter_having_output_channel(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrchestratorWithSplitterOutputChannel::class],
+            [],
             [$service = new OrchestratorWithSplitterOutputChannel()],
             enabledModules: [ModulePackageList::CORE_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,

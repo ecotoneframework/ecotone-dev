@@ -82,7 +82,6 @@ final class UndeclaredStreamRefusalTest extends EventSourcingMessagingTestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$projection::class],
             containerOrAvailableServices: [$projection],
             extensionObjects: [EventSourcingConfiguration::createInMemory()],
             enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE],

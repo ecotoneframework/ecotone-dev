@@ -64,7 +64,7 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$orders], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         CoroutineTesting::runAtOnce(
             fn () => $ecotone->sendCommandWithRouting('order.place', []),
@@ -123,7 +123,7 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$orders], [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         CoroutineTesting::runAtOnce(fn () => $ecotone->sendCommandWithRouting('outlivesInto', []));
         $processes = $ecotone->popExecutionRecording()->processes;
@@ -255,7 +255,7 @@ final class CoroutineExecutionRecordingTest extends TracingTestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$shipments::class],
+            [],
             [$shipments, ...self::recordingSpansInto($recorder)],
             [
                 SimpleMessageChannelBuilder::createQueueChannel('shipments'),

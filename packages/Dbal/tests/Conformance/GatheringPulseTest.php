@@ -229,7 +229,6 @@ final class GatheringPulseTest extends TestCase
             initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
         );
         $this->pulseService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$pulse::class],
             containerOrAvailableServices: [$pulse],
             extensionObjects: [
                 ...$channels,

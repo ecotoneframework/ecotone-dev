@@ -438,7 +438,7 @@ final class ConnectionTerminatedByServerTest extends DbalMessagingTestCase
     private function bootstrap(object $handler, ConnectionFactory $connectionFactory, array $extensionObjects = []): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => $connectionFactory],
             [DbalBackedMessageChannelBuilder::create('orders'), DbalBackedMessageChannelBuilder::create('shipping'), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],

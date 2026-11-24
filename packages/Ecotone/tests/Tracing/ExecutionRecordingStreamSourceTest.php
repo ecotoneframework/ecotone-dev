@@ -48,7 +48,7 @@ final class ExecutionRecordingStreamSourceTest extends TracingTestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $streamSource::class],
+            [],
             [$projection, $streamSource],
             [TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],

@@ -66,7 +66,7 @@ final class CachedBootstrapIsolationTest extends TestCase
         $cacheDirectory = sys_get_temp_dir() . '/ecotone_cached_bootstrap_isolation_' . bin2hex(random_bytes(6));
 
         EcotoneLite::bootstrap(
-            [RegisterCustomerHandler::class],
+            [],
             [new RegisterCustomerHandler()],
             enabledModules: [],
             useCachedVersion: true,
@@ -75,7 +75,7 @@ final class CachedBootstrapIsolationTest extends TestCase
 
         $blockCustomerHandler = new BlockCustomerHandler();
         EcotoneLite::bootstrap(
-            [BlockCustomerHandler::class],
+            [],
             [$blockCustomerHandler],
             enabledModules: [],
             useCachedVersion: true,
@@ -88,7 +88,7 @@ final class CachedBootstrapIsolationTest extends TestCase
     private function bootstrapWithCache(object $service): ConfiguredMessagingSystem
     {
         return EcotoneLite::bootstrap(
-            [$service::class],
+            [],
             [$service],
             enabledModules: [],
             useCachedVersion: true,

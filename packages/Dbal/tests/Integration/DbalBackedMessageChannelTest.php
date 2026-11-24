@@ -341,7 +341,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $loggerExample = StubLogger::create();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class],
+            [],
             containerOrAvailableServices: [
                 new OrderService(),
                 DbalConnectionFactory::class => new DbalConnectionFactory(['dsn' => 'pgsql://ecotone:secret@localhost:1000/ecotone']),

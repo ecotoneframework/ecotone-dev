@@ -157,7 +157,7 @@ final class CoroutineTracingTest extends TracingTestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, TracerProviderInterface::class => self::prepareTracer($exporter)],
             extensionObjects: [OpenTelemetryConfiguration::createWithDefaults(), CoroutineMessageChannelBuilder::create('async')],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
@@ -228,7 +228,7 @@ final class CoroutineTracingTest extends TracingTestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$handlers::class],
+            [],
             [$handlers, TracerProviderInterface::class => self::prepareTracer($exporter)],
             extensionObjects: [OpenTelemetryConfiguration::createWithDefaults(), SimpleMessageChannelBuilder::createQueueChannel('shipping')],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],

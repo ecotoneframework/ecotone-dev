@@ -25,7 +25,7 @@ final class GatewayParameterConverterAttributesTest extends TestCase
     public function test_headers_gateway_parameter_maps_array_entries_to_message_headers(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [EchoGateway::class, EchoHandler::class],
+            [EchoGateway::class],
             [new EchoHandler(), 'calculatingService' => new CalculatingReferenceService(1)],
             enabledModules: [],
         );
@@ -42,7 +42,7 @@ final class GatewayParameterConverterAttributesTest extends TestCase
     public function test_headers_gateway_parameter_throws_when_argument_is_not_an_array(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [EchoGateway::class, EchoHandler::class],
+            [EchoGateway::class],
             [new EchoHandler(), 'calculatingService' => new CalculatingReferenceService(1)],
             enabledModules: [],
         );
@@ -55,7 +55,7 @@ final class GatewayParameterConverterAttributesTest extends TestCase
     public function test_payload_expression_gateway_parameter_evaluates_against_a_reference_service(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [EchoGateway::class, EchoHandler::class],
+            [EchoGateway::class],
             [new EchoHandler(), 'calculatingService' => new CalculatingReferenceService(1)],
             enabledModules: [],
         );
@@ -68,7 +68,7 @@ final class GatewayParameterConverterAttributesTest extends TestCase
     public function test_payload_gateway_parameter_resolves_class_type_on_request_reply_gateway(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [EchoGateway::class, EchoHandler::class],
+            [EchoGateway::class],
             [new EchoHandler(), 'calculatingService' => new CalculatingReferenceService(1)],
             enabledModules: [],
         );
@@ -87,7 +87,7 @@ final class GatewayParameterConverterAttributesTest extends TestCase
     {
         $capturingHandler = new CapturingOneWayHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [OneWayEchoGateway::class, CapturingOneWayHandler::class],
+            [OneWayEchoGateway::class],
             [$capturingHandler],
             enabledModules: [],
         );

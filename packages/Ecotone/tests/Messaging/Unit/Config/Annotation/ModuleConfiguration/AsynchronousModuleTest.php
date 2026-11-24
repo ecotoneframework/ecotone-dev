@@ -46,7 +46,7 @@ final class AsynchronousModuleTest extends AnnotationConfigurationTestCase
         $this->expectException(ConfigurationException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [AsyncEventHandlerWithoutIdExample::class],
+            [],
             [new AsyncEventHandlerWithoutIdExample()],
             enabledModules: [],
         );
@@ -57,7 +57,7 @@ final class AsynchronousModuleTest extends AnnotationConfigurationTestCase
         $this->expectException(ConfigurationException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [AsyncCommandHandlerWithoutIdExample::class],
+            [],
             [new AsyncCommandHandlerWithoutIdExample()],
             enabledModules: [],
         );

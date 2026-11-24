@@ -133,7 +133,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             }
         };
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [$commandHandler::class],
+            [],
             [RedisConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
             extensionObjects: [
                 RedisMessagePublisherConfiguration::create(queueName:$queueName)->withHighThroughputPublishing(),
@@ -276,7 +276,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
     private function bootstrapEcotoneWithChannel(object $orderService, ?string $licenceKey): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [$orderService::class],
+            [],
             [RedisConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             extensionObjects: [RedisBackedMessageChannelBuilder::create('asyncOrdersChannel')->withHighThroughputPublishing()],
             enabledModules: [ModulePackageList::REDIS_PACKAGE],

@@ -316,7 +316,7 @@ final class AsynchronousRunGatheringTest extends ProjectingTestCase
         $projection = $this->rebuiltAsynchronously();
 
         $ecotone = EcotoneLite::bootstrap(
-            classesToResolve: [$projection::class, GatheredRunAccount::class],
+            classesToResolve: [GatheredRunAccount::class],
             containerOrAvailableServices: [$projection, self::getConnectionFactory()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('rebuild_channel')],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],

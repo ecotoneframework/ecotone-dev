@@ -106,7 +106,7 @@ $snapshotConverter = new #[MediaTypeConverter] class () implements Converter {
 };
 
 EcotoneLite::bootstrapFlowTesting(
-    classesToResolve: [Basket::class, BasketEventConverter::class, BasketHistoryAcrossDeployments::class, $observer::class, $snapshotConverter::class],
+    classesToResolve: [Basket::class, BasketHistoryAcrossDeployments::class],
     containerOrAvailableServices: [
         new BasketEventConverter(),
         $observer,

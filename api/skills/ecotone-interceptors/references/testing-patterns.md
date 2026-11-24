@@ -2,7 +2,7 @@
 
 ## Basic Interceptor Test
 
-Register both the interceptor and handler in `classesToResolve` and `containerOrAvailableServices`:
+Pass the interceptor and the handler as instances in `containerOrAvailableServices`; Ecotone reads the attributes of every service passed there without a key:
 
 ```php
 public function test_interceptor_runs(): void
@@ -23,7 +23,6 @@ public function test_interceptor_runs(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class, $interceptor::class],
         containerOrAvailableServices: [$handler, $interceptor],
     );
 
@@ -75,7 +74,6 @@ public function test_interceptor_execution_order(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class, $interceptors::class],
         containerOrAvailableServices: [$handler, $interceptors, $callStack],
     );
 
@@ -113,7 +111,6 @@ public function test_interceptor_modifies_headers(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class, $interceptor::class],
         containerOrAvailableServices: [$handler, $interceptor],
     );
 
@@ -125,6 +122,6 @@ public function test_interceptor_modifies_headers(): void
 
 ## Key Testing Notes
 
-- Always register interceptor classes in both `classesToResolve` (for discovery) and `containerOrAvailableServices` (for instantiation)
+- Pass the interceptor instance in `containerOrAvailableServices`; that registers it. `classesToResolve` is only for classes you have no instance of, such as an aggregate
 - Use anonymous classes with public state properties (like `$called`, `$receivedHeaders`) to verify interceptor behavior
 - The execution order is: Presend -> Before -> Around (start) -> handler -> Around (end) -> After

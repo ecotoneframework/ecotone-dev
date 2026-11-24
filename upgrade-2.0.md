@@ -4555,8 +4555,11 @@ rename test-support methods without aliases; the renamed methods are listed in e
   `No Command Handler defined for it. Have you forgot to add #[CommandHandler] to method?`. In
   `bootstrapFlowTesting()` Ecotone now looks up the handler in your autoloaded (non-vendor) namespaces and says
   `Can't send command to App\Shipping\ReserveShippingSlot. It is handled by App\Shipping\ShippingSlotReservationHandler::reserve(),
-  which is not registered in this Ecotone Lite bootstrap. Add App\Shipping\ShippingSlotReservationHandler to the classesToResolve of
-  EcotoneLite::bootstrapFlowTesting(), or load its namespace with EcotoneLite::bootstrapFlowTesting(..., namespaces: ['App\Shipping']).`
+  which is not registered in this Ecotone Lite bootstrap. Pass an instance of App\Shipping\ShippingSlotReservationHandler, without a key,
+  in the containerOrAvailableServices of EcotoneLite::bootstrapFlowTesting(), add App\Shipping\ShippingSlotReservationHandler to its
+  classesToResolve when the service comes from a container passed there, or load its namespace with
+  EcotoneLite::bootstrapFlowTesting(..., namespaces: ['App\Shipping']).`
+  A handler on an aggregate or a saga has no instance to pass, so its message says to add the class to `classesToResolve`.
   When no handler exists it says which attribute to add. Queries get the same message; the application bootstrap keeps
   the previous text. **How to adapt:** nothing.
 - **Handlers typed on an interface or abstract class receive the concrete message after serialisation.** A handler

@@ -59,7 +59,7 @@ final class ServicePassedToBootstrapTest extends TestCase
             enabledModules: [],
         );
 
-        $this->expectExceptionMessage("Can't send command to ticket.open. No Command Handler is registered for it in this Ecotone Lite bootstrap. Add #[CommandHandler('ticket.open')] to a method and pass an instance of its class in the containerOrAvailableServices of EcotoneLite::bootstrapFlowTesting().");
+        $this->expectExceptionMessage("Can't send command to ticket.open. No Command Handler is registered for it in this Ecotone Lite bootstrap. Add #[CommandHandler('ticket.open')] to a method and pass an instance of its class, without a key, in the containerOrAvailableServices of EcotoneLite::bootstrapFlowTesting().");
 
         $ecotone->sendCommandWithRouting('ticket.open', 'printer is on fire');
     }

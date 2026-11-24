@@ -31,7 +31,7 @@ final class MissingHandlerMessage
                 return "{$notRegistered} Add {$handlerClass} to the classesToResolve of EcotoneLite::bootstrapFlowTesting(), {$loadNamespace}";
             }
 
-            return "{$notRegistered} Pass an instance of {$handlerClass} in the containerOrAvailableServices of EcotoneLite::bootstrapFlowTesting(), add {$handlerClass} to its classesToResolve when the service comes from a container passed there, {$loadNamespace}";
+            return "{$notRegistered} Pass an instance of {$handlerClass}, without a key, in the containerOrAvailableServices of EcotoneLite::bootstrapFlowTesting(), add {$handlerClass} to its classesToResolve when the service comes from a container passed there, {$loadNamespace}";
         }
 
         $attributeShortName = substr($handlerAttribute, (int) strrpos($handlerAttribute, '\\') + 1);
@@ -40,6 +40,6 @@ final class MissingHandlerMessage
             : "#[{$attributeShortName}('{$routingKey}')] to a method";
         $kindName = ucfirst($messageKind);
 
-        return "Can't send {$messageKind} to {$routingKey}. No {$kindName} Handler is registered for it in this Ecotone Lite bootstrap. Add {$handlerDeclaration} and pass an instance of its class in the containerOrAvailableServices of EcotoneLite::bootstrapFlowTesting(). When the method is on an aggregate or a saga, or the service comes from a container passed there, add its class to the classesToResolve instead.";
+        return "Can't send {$messageKind} to {$routingKey}. No {$kindName} Handler is registered for it in this Ecotone Lite bootstrap. Add {$handlerDeclaration} and pass an instance of its class, without a key, in the containerOrAvailableServices of EcotoneLite::bootstrapFlowTesting(). When the method is on an aggregate or a saga, or the service comes from a container passed there, add its class to the classesToResolve instead.";
     }
 }

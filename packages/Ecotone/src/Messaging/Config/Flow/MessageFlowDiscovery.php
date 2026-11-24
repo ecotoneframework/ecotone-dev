@@ -499,6 +499,11 @@ final class MessageFlowDiscovery
         ], $attributes));
         $this->collaborators[$id] = $this->collaboratorsOf($registration);
         $this->handlerRegistrations[$id] = $registration;
+        foreach ($registration->hasMethodAnnotation(Splitter::class) ? $registration->getMethodAnnotationsWithType(Splitter::class) : [] as $splitter) {
+            if ($splitter->gatherChannelName !== '') {
+                $this->edges[] = new FlowEdge(from: $id, to: $this->channelNode($splitter->gatherChannelName)->id, kind: FlowEdgeKind::SENDS_TO, attributes: ['via' => 'gatherChannelName']);
+            }
+        }
         $owner = $this->ownerByClass[$registration->getClassName()] ?? null;
         if ($kind === FlowNodeKind::EVENT_HANDLER && $owner !== null && $this->nodes[$owner]->kind === FlowNodeKind::PROJECTION) {
             $this->edges[] = new FlowEdge($id, $owner, FlowEdgeKind::PROJECTS_INTO);

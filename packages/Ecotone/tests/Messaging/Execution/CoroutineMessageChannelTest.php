@@ -8,12 +8,14 @@ use Closure;
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\ErrorChannel;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -24,6 +26,7 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Attribute\TimeToLive;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -35,7 +38,11 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\CollectedMessages;
+use Ecotone\Api\Messaging\CollectedReleaseReason;
 use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Api\Messaging\GatheredParts;
+use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\SleepInterface;
@@ -1283,6 +1290,391 @@ final class CoroutineMessageChannelTest extends TestCase
 
         ksort($logger->records);
         $this->assertSame(['a' => 'first.endpoint', 'b' => 'second.endpoint'], $logger->records);
+    }
+
+    public function test_parts_of_a_split_command_handler_run_on_the_channel(): void
+    {
+        $handler = new class () {
+            public array $handled = [];
+
+            #[CommandHandler('import', endpointId: 'import.handler', outputChannelName: 'import.row')]
+            #[Splitter]
+            public function import(array $rows): array
+            {
+                return $rows;
+            }
+
+            #[Asynchronous('rows')]
+            #[InternalHandler('import.row', endpointId: 'import.row.handler')]
+            public function row(int $row): void
+            {
+                $this->handled[$row] = Coroutine::getCid();
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('rows')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $sender = 0;
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone, &$sender): void {
+            $sender = Coroutine::getCid();
+            $ecotone->sendCommandWithRouting('import', [1, 2, 3]);
+        });
+
+        $this->assertSame([1, 2, 3], array_keys($handler->handled));
+        $this->assertNotContains($sender, $handler->handled);
+    }
+
+    public function test_a_split_command_handler_on_the_channel_sends_its_parts_to_handlers_on_the_channel(): void
+    {
+        $handler = new class () {
+            public array $handled = [];
+            public int $splitter = 0;
+
+            #[Asynchronous('imports')]
+            #[CommandHandler('import', endpointId: 'import.handler', outputChannelName: 'import.row')]
+            #[Splitter]
+            public function import(array $rows): array
+            {
+                $this->splitter = Coroutine::getCid();
+
+                return $rows;
+            }
+
+            #[Asynchronous('imports')]
+            #[InternalHandler('import.row', endpointId: 'import.row.handler')]
+            public function row(int $row): void
+            {
+                $this->handled[$row] = Coroutine::getCid();
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('imports')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $sender = 0;
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone, &$sender): void {
+            $sender = Coroutine::getCid();
+            $ecotone->sendCommandWithRouting('import', [1, 2, 3]);
+        });
+
+        $this->assertNotSame($sender, $handler->splitter);
+        $this->assertSame([1, 2, 3], array_keys($handler->handled));
+        $this->assertNotContains($sender, $handler->handled);
+    }
+
+    public function test_parts_of_a_split_command_handler_handled_on_the_channel_are_gathered_on_the_channel(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+            public array $workers = [];
+
+            #[CommandHandler('import', endpointId: 'import.handler', outputChannelName: 'import.row')]
+            #[Splitter(gatherChannelName: 'import.summary')]
+            public function import(array $rows): array
+            {
+                return $rows;
+            }
+
+            #[Asynchronous('rows')]
+            #[InternalHandler('import.row', endpointId: 'import.row.handler')]
+            public function row(int $row): int
+            {
+                $this->workers[] = Coroutine::getCid();
+                usleep(1000 * (4 - $row % 4));
+
+                return $row * 2;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('import.summary', endpointId: 'import.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = [$parts->results, $parts->originalPayload, $parts->releaseReason, Coroutine::getCid()];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('rows'), CoroutineMessageChannelBuilder::create('summaries')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('import', [1, 2, 3]));
+
+        $this->assertCount(1, $handler->gathered);
+        $this->assertSame([1 => 2, 2 => 4, 3 => 6], $handler->gathered[0][0]);
+        $this->assertSame([1, 2, 3], $handler->gathered[0][1]);
+        $this->assertSame(GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR, $handler->gathered[0][2]);
+        $this->assertNotContains($handler->gathered[0][3], $handler->workers);
+    }
+
+    public function test_a_split_command_handler_and_its_parts_share_the_channel_and_are_gathered_on_a_channel_of_one_coroutine(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[Asynchronous('imports')]
+            #[CommandHandler('import', endpointId: 'import.handler', outputChannelName: 'import.row')]
+            #[Splitter(gatherChannelName: 'import.summary')]
+            public function import(array $rows): array
+            {
+                return $rows;
+            }
+
+            #[Asynchronous('imports')]
+            #[InternalHandler('import.row', endpointId: 'import.row.handler')]
+            public function row(int $row): int
+            {
+                usleep(1000 * (4 - $row % 4));
+
+                return $row * 2;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('import.summary', endpointId: 'import.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts->results;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('imports'), CoroutineMessageChannelBuilder::create('summaries')->withCoroutines(1)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(
+            static fn () => $ecotone->sendCommandWithRouting('import', [1, 2, 3]),
+            static fn () => $ecotone->sendCommandWithRouting('import', [10, 20]),
+        );
+
+        $this->assertEqualsCanonicalizing([[1 => 2, 2 => 4, 3 => 6], [1 => 20, 2 => 40]], $handler->gathered);
+    }
+
+    public function test_an_empty_split_of_a_command_handler_is_gathered_on_the_channel(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('import', endpointId: 'import.handler', outputChannelName: 'import.row')]
+            #[Splitter(gatherChannelName: 'import.summary')]
+            public function import(array $rows): array
+            {
+                return $rows;
+            }
+
+            #[Asynchronous('rows')]
+            #[InternalHandler('import.row', endpointId: 'import.row.handler')]
+            public function row(int $row): int
+            {
+                return $row;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('import.summary', endpointId: 'import.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = [$parts->size, $parts->results];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('rows'), CoroutineMessageChannelBuilder::create('summaries')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('import', []));
+
+        $this->assertSame([[0, []]], $handler->gathered);
+    }
+
+    public function test_a_gathering_timeout_on_the_channel_releases_the_parts_that_arrived(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[CommandHandler('import', endpointId: 'import.handler', outputChannelName: 'import.row')]
+            #[Splitter(gatherChannelName: 'import.summary')]
+            public function import(array $rows): array
+            {
+                return $rows;
+            }
+
+            #[Asynchronous('rows')]
+            #[InternalHandler('import.row', endpointId: 'import.row.handler')]
+            public function row(int $row): int
+            {
+                if ($row === 2) {
+                    throw new RuntimeException('row failed');
+                }
+
+                return $row * 2;
+            }
+
+            #[Gathered(timeout: new Duration(milliseconds: 20))]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('import.summary', endpointId: 'import.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = [$parts->results, $parts->missingPartNumbers, $parts->releaseReason];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('rows'), CoroutineMessageChannelBuilder::create('summaries'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('import', [1, 2, 3]));
+
+        $this->assertSame([[[1 => 2, 3 => 6], [2], GatheredReleaseReason::TIMEOUT]], $handler->gathered);
+    }
+
+    public function test_the_channel_of_a_collected_handler_handles_one_message_at_a_time_when_no_coroutines_are_stated(): void
+    {
+        $handler = new class () {
+            public int $active = 0;
+            public int $mostAtOnce = 0;
+
+            #[Asynchronous('search')]
+            #[CommandHandler('archive', endpointId: 'archive.handler')]
+            public function archive(): void
+            {
+                $this->active++;
+                $this->mostAtOnce = max($this->mostAtOnce, $this->active);
+                usleep(1000);
+                $this->active--;
+            }
+
+            #[Collected(maxSize: 2)]
+            #[Asynchronous('search')]
+            #[CommandHandler('product.index', endpointId: 'product.index.handler')]
+            public function index(CollectedMessages $changes): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(...array_fill(0, 3, static fn () => $ecotone->sendCommandWithRouting('archive')));
+
+        $this->assertSame(1, $handler->mostAtOnce);
+    }
+
+    #[DataProvider('channels_registered_with_several_coroutines')]
+    public function test_a_gathered_handler_on_a_channel_of_several_coroutines_is_refused_at_bootstrap(CoroutineMessageChannelBuilder $channel, int $coroutines): void
+    {
+        $handler = new class () {
+            #[CommandHandler('import', endpointId: 'import.handler', outputChannelName: 'import.row')]
+            #[Splitter(gatherChannelName: 'import.summary')]
+            public function import(array $rows): array
+            {
+                return $rows;
+            }
+
+            #[InternalHandler('import.row', endpointId: 'import.row.handler')]
+            public function row(int $row): int
+            {
+                return $row;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('import.summary', endpointId: 'import.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("Coroutine message channel `summaries` is registered with withCoroutines({$coroutines}), which #[Gathered] handler `" . $handler::class . "::summarize` (endpoint `import.summary.handler`) cannot be consumed with: parts finishing together would be recorded in their group at the same time, all but one would lose the group's optimistic write on every attempt until the instant retries run out, and a group missing those parts is never gathered. Leave withCoroutines() out of CoroutineMessageChannelBuilder::create('summaries'), the channel of a gathered handler then handles one message at a time, and keep the handlers doing the work of the parts on another channel; or move the gathered handler to a channel consumed with ecotone:run without its coroutines option.");
+
+        EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [$channel], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+    }
+
+    public static function channels_registered_with_several_coroutines(): array
+    {
+        return [
+            'two coroutines' => [CoroutineMessageChannelBuilder::create('summaries')->withCoroutines(2), 2],
+            'as many as other channels run by default' => [CoroutineMessageChannelBuilder::create('summaries')->withCoroutines(CoroutineMessageChannelBuilder::DEFAULT_COROUTINES), CoroutineMessageChannelBuilder::DEFAULT_COROUTINES],
+        ];
+    }
+
+    public function test_messages_sent_at_once_are_collected_on_the_channel_into_one_batch(): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 3)]
+            #[Asynchronous('search')]
+            #[CommandHandler('product.index', endpointId: 'product.index.handler')]
+            public function index(CollectedMessages $changes): void
+            {
+                $this->batches[] = [array_column($changes->messages, 'payload'), $changes->releaseReason, Coroutine::getCid()];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $senders = [];
+
+        CoroutineTesting::runAtOnce(...array_map(static fn (int $product) => static function () use ($ecotone, $product, &$senders): void {
+            $senders[] = Coroutine::getCid();
+            $ecotone->sendCommandWithRouting('product.index', $product);
+        }, [1, 2, 3, 4]));
+
+        $this->assertCount(1, $handler->batches);
+        $this->assertSame([1, 2, 3], $handler->batches[0][0]);
+        $this->assertSame(CollectedReleaseReason::MAX_SIZE_REACHED, $handler->batches[0][1]);
+        $this->assertNotContains($handler->batches[0][2], $senders);
+    }
+
+    public function test_messages_collected_on_the_channel_are_released_when_the_waiting_limit_passes(): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxWait: new Duration(milliseconds: 20))]
+            #[Asynchronous('search')]
+            #[CommandHandler('product.index', endpointId: 'product.index.handler')]
+            public function index(CollectedMessages $changes): void
+            {
+                $this->batches[] = [array_column($changes->messages, 'payload'), $changes->releaseReason];
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-03-01 12:00:00'));
+        $ecotone->whenWaiting(static function (DateTimeImmutable $now) use ($ecotone): void {
+            $ecotone->changeTimeTo($now);
+        });
+
+        CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
+            $ecotone->sendCommandWithRouting('product.index', 1);
+            $ecotone->sendCommandWithRouting('product.index', 2);
+        });
+
+        $this->assertSame([[[1, 2], CollectedReleaseReason::MAX_WAIT_REACHED]], $handler->batches);
+    }
+
+    public function test_messages_collected_on_the_channel_are_batched_by_their_key(): void
+    {
+        $handler = new class () {
+            public array $batches = [];
+
+            #[Collected(maxSize: 2, groupBy: "headers['tenant']")]
+            #[Asynchronous('search')]
+            #[CommandHandler('product.index', endpointId: 'product.index.handler')]
+            public function index(CollectedMessages $changes): void
+            {
+                $this->batches[$changes->groupKey] = array_column($changes->messages, 'payload');
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        CoroutineTesting::runAtOnce(
+            static fn () => $ecotone->sendCommandWithRouting('product.index', 1, metadata: ['tenant' => 'a']),
+            static fn () => $ecotone->sendCommandWithRouting('product.index', 2, metadata: ['tenant' => 'b']),
+            static fn () => $ecotone->sendCommandWithRouting('product.index', 3, metadata: ['tenant' => 'a']),
+            static fn () => $ecotone->sendCommandWithRouting('product.index', 4, metadata: ['tenant' => 'b']),
+        );
+
+        $this->assertSame(['a' => [1, 3], 'b' => [2, 4]], $handler->batches);
+    }
+
+    public function test_a_collected_handler_on_a_channel_of_several_coroutines_is_refused_at_bootstrap(): void
+    {
+        $handler = new class () {
+            #[Collected(maxSize: 3)]
+            #[Asynchronous('search')]
+            #[CommandHandler('product.index', endpointId: 'product.index.handler')]
+            public function index(CollectedMessages $changes): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Coroutine message channel `search` is registered with withCoroutines(3), which #[Collected] handler `' . $handler::class . "::index` (endpoint `product.index.handler`) cannot be consumed with: messages arriving together would be recorded in their batch at the same time, all but one would lose the batch's optimistic write on every attempt until the instant retries run out, and those messages are missing from the batch. Leave withCoroutines() out of CoroutineMessageChannelBuilder::create('search'), the channel of a collected handler then handles one message at a time, and keep handlers that should run at once on another channel; or move the collected handler to a channel consumed with ecotone:run without its coroutines option.");
+
+        EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')->withCoroutines(3)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
     public function test_a_sender_on_a_fiber_outside_a_coroutine_is_refused(): void

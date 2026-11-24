@@ -7,9 +7,11 @@ namespace Ecotone\Messaging\Channel\Coroutine;
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\ModuleAnnotation;
@@ -78,6 +80,7 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
         $channelNames = array_map(static fn (CoroutineMessageChannelBuilder $channel) => $channel->messageChannelName, $channels);
         $handlers = $this->coroutineHandlers($channelNames, $extensionObjects);
         $this->refuseUnsupportedDeliveryAttributes($handlers, $interfaceToCallRegistry);
+        $this->registerCoroutinesOfChannels(configuration: $messagingConfiguration, handlers: $handlers, registry: $interfaceToCallRegistry, channels: $channels);
         $this->registerFailureLogging(configuration: $messagingConfiguration, registry: $interfaceToCallRegistry, channelNames: $channelNames, handlers: $handlers);
         $this->registerConsumers($messagingConfiguration, $channelNames);
         $this->registerReplay(configuration: $messagingConfiguration, registry: $interfaceToCallRegistry, channels: $channels);
@@ -190,6 +193,34 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
                 }
             }
         }
+    }
+
+    /**
+     * @param CoroutineMessageChannelBuilder[] $channels
+     */
+    private function registerCoroutinesOfChannels(Configuration $configuration, array $handlers, InterfaceToCallRegistry $registry, array $channels): void
+    {
+        $statedCoroutines = array_column(array: $channels, column_key: 'coroutines', index_key: 'messageChannelName');
+        $coroutines = array_map(static fn (?int $stated): int => $stated ?? CoroutineMessageChannelBuilder::DEFAULT_COROUTINES, $statedCoroutines);
+        $reasons = [
+            Gathered::class => ['Gathered', "parts finishing together would be recorded in their group at the same time, all but one would lose the group's optimistic write on every attempt until the instant retries run out, and a group missing those parts is never gathered.", 'keep the handlers doing the work of the parts on another channel', 'gathered'],
+            Collected::class => ['Collected', "messages arriving together would be recorded in their batch at the same time, all but one would lose the batch's optimistic write on every attempt until the instant retries run out, and those messages are missing from the batch.", 'keep handlers that should run at once on another channel', 'collected'],
+        ];
+        foreach ($handlers as [$handler, $handlerChannels]) {
+            $channel = reset($handlerChannels);
+            $interface = $registry->getFor($handler->getClassName(), $handler->getMethodName());
+            foreach ($reasons as $attributeClass => [$attribute, $reason, $otherHandlers, $kind]) {
+                if (! $interface->hasMethodAnnotation($attributeClass)) {
+                    continue;
+                }
+                if (($statedCoroutines[$channel] ?? 1) > 1) {
+                    $endpointId = $handler->getAnnotationForMethod()->getEndpointId();
+                    throw ConfigurationException::create("Coroutine message channel `{$channel}` is registered with withCoroutines({$statedCoroutines[$channel]}), which #[{$attribute}] handler `{$handler->getClassName()}::{$handler->getMethodName()}` (endpoint `{$endpointId}`) cannot be consumed with: {$reason} Leave withCoroutines() out of CoroutineMessageChannelBuilder::create('{$channel}'), the channel of a {$kind} handler then handles one message at a time, and {$otherHandlers}; or move the {$kind} handler to a channel consumed with ecotone:run without its coroutines option.");
+                }
+                $coroutines[$channel] = 1;
+            }
+        }
+        $configuration->registerServiceDefinition(CoroutineMessageChannelCoroutines::class, new Definition(CoroutineMessageChannelCoroutines::class, [$coroutines]));
     }
 
     private function registerRelease(Configuration $configuration, InterfaceToCallRegistry $registry): void

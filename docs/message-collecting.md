@@ -130,6 +130,33 @@ endpoints without it, keep it on globally and switch it off only for those endpo
 `#[WithoutDatabaseTransaction]`. Flow tests without DBAL keep batches in memory and restore a batch when its
 handler fails, so there a retry runs the handler again even without a transaction.
 
+## Collecting on a coroutine message channel
+
+On Swoole or OpenSwoole a collected handler can run in the worker that sent its messages. Register its channel with
+`CoroutineMessageChannelBuilder`:
+
+```php
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
+
+#[ServiceContext]
+public function searchChannel(): CoroutineMessageChannelBuilder
+{
+    return CoroutineMessageChannelBuilder::create('search');
+}
+```
+
+Messages sent at once by several requests are recorded one after another into the same batch, `groupBy` keeps a
+batch per key, and `maxWait` waits on an in-process timer. The channel of a `#[Collected]` handler handles one
+message at a time, where other coroutine message channels handle ten: messages arriving together would otherwise
+lose the batch's optimistic write until the instant retries run out and be missing from the batch. Every handler on
+that channel runs one at a time, so keep handlers that should run at once on another channel. Bootstrap refuses
+`withCoroutines()` with more than one coroutine on the collected handler's channel. Messages and the `maxWait`
+timeout wait in the worker's memory, as every message of a coroutine message channel does.
+
+The same holds for a collected handler on a channel consumed with `ecotone:run`: run that consumer without the
+`coroutines` option, or messages recorded at once can be missing from the batch.
+
 ## Storage and channel setup
 
 Install `ecotone/dbal`, configure its connection and enable `ModulePackageList::DBAL_PACKAGE` (or `dbal` in your

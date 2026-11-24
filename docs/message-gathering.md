@@ -90,6 +90,43 @@ asynchronous gathered handler with zero parts. A failed part follows the normal 
 same consumer transaction. [Splitting a handler's output](message-splitting.md) describes supported handlers,
 aggregate and saga actions, interceptor configuration and bootstrap refusals.
 
+The message flow graph and Pulse draw a `gathers` arrow from the splitter, or from the handler stacked with
+`#[Splitter]`, to its gather channel, so the gathered handler is reachable from the message that was split.
+
+## Gathering on coroutine message channels
+
+On Swoole or OpenSwoole the parts can be worked and gathered in the worker that split them, with no separate
+consumer. Register the part handlers' channel and the gathered handler's channel with
+`CoroutineMessageChannelBuilder`, each on a channel of its own:
+
+```php
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
+
+#[ServiceContext]
+public function importChannels(): array
+{
+    return [
+        CoroutineMessageChannelBuilder::create('import_workers'),
+        CoroutineMessageChannelBuilder::create('import_summaries'),
+    ];
+}
+```
+
+The parts start after the splitting handler's transaction commits and run at once, up to the workers channel's
+limit. Their reports are recorded one after another, and the gathered handler runs once with every result. The
+splitting handler itself may be `#[Asynchronous]` on the workers channel too. A timeout waits on an in-process timer.
+
+The channel of a `#[Gathered]` handler handles one message at a time, where other coroutine message channels handle
+ten: parts finishing together would otherwise report at the same time and lose the group's optimistic write until
+the instant retries run out, leaving the group open. Every handler on that channel runs one at a time, so keep the
+part handlers on another channel and the work still runs at once. Bootstrap refuses `withCoroutines()` with more
+than one coroutine on the gathered handler's channel. Parts, reports and a timeout wait in the worker's memory, as
+every message of a coroutine message channel does.
+
+The same holds for a gathered handler on a channel consumed with `ecotone:run`: run that consumer without the
+`coroutines` option, or its reports are recorded at once and a group can be left open.
+
 ## Failure, timeout and storage
 
 Without `timeout`, the group waits for all parts. A failed part remains missing: fix it and replay it from the

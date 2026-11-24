@@ -8,6 +8,7 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannel;
 use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannelConsumer;
+use Ecotone\Messaging\Channel\Coroutine\CoroutineMessageChannelCoroutines;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -25,7 +26,7 @@ final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, Del
 {
     public const DEFAULT_COROUTINES = 10;
 
-    private function __construct(public readonly string $messageChannelName, private readonly int $coroutines = self::DEFAULT_COROUTINES)
+    private function __construct(public readonly string $messageChannelName, public readonly ?int $coroutines = null)
     {
     }
 
@@ -37,7 +38,7 @@ final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, Del
     public function withCoroutines(int $coroutines): self
     {
         if ($coroutines < 1) {
-            throw ConfigurationException::create("Coroutine message channel `{$this->messageChannelName}` cannot run on {$coroutines} coroutines: it needs at least one. Pass a positive number to CoroutineMessageChannelBuilder::withCoroutines(), or leave it out for the default of " . self::DEFAULT_COROUTINES . '.');
+            throw ConfigurationException::create("Coroutine message channel `{$this->messageChannelName}` cannot run on {$coroutines} coroutines: it needs at least one. Pass a positive number to CoroutineMessageChannelBuilder::withCoroutines(), or leave it out for the default of " . self::DEFAULT_COROUTINES . ', or of one for the channel of a #[Gathered] or #[Collected] handler.');
         }
         return new self(...[...get_object_vars($this), 'coroutines' => $coroutines]);
     }
@@ -74,6 +75,6 @@ final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, Del
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return new Definition(CoroutineMessageChannel::class, [$this->messageChannelName, new Reference(ContainerInterface::class), $this->coroutines, new Reference(EcotoneClockInterface::class), new Reference(MessageBuilder::class), new Reference(CoroutineMessageChannel::SLEEP_SERVICE_ID)]);
+        return new Definition(CoroutineMessageChannel::class, [$this->messageChannelName, new Reference(ContainerInterface::class), new Reference(CoroutineMessageChannelCoroutines::class), new Reference(EcotoneClockInterface::class), new Reference(MessageBuilder::class), new Reference(CoroutineMessageChannel::SLEEP_SERVICE_ID)]);
     }
 }

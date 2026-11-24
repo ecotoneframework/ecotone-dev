@@ -127,7 +127,7 @@ In this repository:
 - `upgrade-2.0.md` - every 1.x → 2.0 behaviour change, with Before / Now / How to adapt
 - `upgrade/namespace-map-2.0.csv` - the full old → new FQCN mapping for the 2.0 `Api` move
 - `docs/superpowers/specs/` - design decisions, the alternatives considered, and why. Untracked here:
-  `docs/superpowers/` is in `.gitignore`, and the records live on branch `dgafka/dcb-docs`
+  `docs/` is in `.gitignore`, and the records live on branch `dgafka/dcb-docs`
 - `api/skills/ecotone-*` - per-area guides for Ecotone users on the user-facing API, split to
   `ecotoneframework/skills` on release; never loaded while developing the framework
 

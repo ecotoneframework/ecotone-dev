@@ -118,7 +118,7 @@ them.
 | `framework-testing T1` | the order of work, not a property of the change; its proof is BH2 |
 | `framework-enterprise-licensing 7a` | about copying Enterprise files out of this repository |
 | `framework-design-and-briefs D3`, `framework-design-and-briefs D5` | how a brief and a move of types are written up, before the review |
-| `framework-design-and-briefs D4` | carried out by the push process: the decided lists are committed (rule P3) |
+| `framework-design-and-briefs D4` | carried out by the push process: the decided lists are saved to files (rule P3) |
 | `framework-agent-tooling A3`, `framework-orientation O3` | enforced by `php bin/check-agent-skills.php` in CI |
 | `framework-dev-environment 21`, `framework-dev-environment E1`, `framework-dev-environment E2`, `framework-dev-environment 20`, `framework-dev-environment E3` | how commands are run, which leaves nothing in the change |
 | `framework-orientation O1` | which skills the implementing session loaded |

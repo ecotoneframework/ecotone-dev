@@ -11,7 +11,7 @@ and a column the shipped code never had (`ecotone_tagged_events`, `tag_sequence`
 guarantee, that a decision model scoped only by a filter-only tag name is a bootstrap `ConfigurationException`,
 implemented nowhere. That one review produced seven commits and left four ranked items open.
 
-`docs/superpowers/` is in `.gitignore` but the specs are tracked, so adding one needs `git add -f`.
+`docs/` is in `.gitignore`, so a spec written there stays in the local checkout and is not tracked.
 
 ---
 
@@ -86,14 +86,15 @@ one was answered correctly, and every one cost a stop. A brief states, up front:
   code was written — 6 and 22 commits, no new behaviour in either — and each of rule 10a's five missed paths was a
   later corrective commit.
 
-### A review that numbers its findings commits the numbered list
+### A review that numbers its findings saves the numbered list to a file
 
 DCB commit subjects carry finding IDs — `(B1)`, `(M1)`, `(M5)`, `(N9)`–`(N13)` — and two of the three friction
 reports independently went looking for the document that assigned them, across all 26 DCB worktrees, and could not
 find it committed anywhere. Only the resolutions survive, so no fix can be read against what was actually asked. The
 readability review is the counter-example and the shape to copy:
 `docs/superpowers/specs/2026-09-28-dcb-readability-review.md` is committed with its full ranked list, and every item
-it raised can still be traced to the commit that closed it.
+it raised can still be traced to the commit that closed it. Since `docs/` left the repository the list is a local
+file under `docs/reviews/`: what matters is that it is written down before the first fix cites it.
 
 ---
 

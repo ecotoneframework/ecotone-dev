@@ -3,7 +3,7 @@ name: framework-design-and-briefs
 description: >-
   Process rules for Ecotone framework design work: justify new storage against existing
   read paths, make a design's claims the acceptance tests, state a brief's boundaries up
-  front, commit numbered review lists, keep upgrade-2.0.md and specs current, and practices
+  front, save numbered review lists to a file, keep upgrade-2.0.md and specs current, and practices
   worth repeating. Use when writing or reviewing a design, a spec, a task brief for another
   agent, an upgrade note, or a numbered review in the ecotone-dev repository.
 ---
@@ -38,9 +38,11 @@ with other features, which database engines the change is verified on, and which
   be reviewed against.
 - **Verified by:** `eval:design-new-index`
 
-### D4. A review that numbers its findings commits the numbered list
-So a fix citing `(M1)` can be read against what was asked.
-- **Expected:** numbered review findings are saved to a committed file before fixes cite them.
+### D4. A review that numbers its findings saves the numbered list to a file
+So a fix citing `(M1)` can be read against what was asked. The file goes under `docs/reviews/`, which is in
+`.gitignore`: it stays in the local checkout and is not committed.
+- **Expected:** numbered review findings are saved to a file under `docs/reviews/` before fixes cite them, and the
+  file is not committed.
 - **Verified by:** `eval:design-new-index`
 
 ### D5. A move of several co-imported types reverts newest-first

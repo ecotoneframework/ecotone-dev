@@ -39,6 +39,7 @@ class InterceptedConsumerRunner implements EndpointRunner
         private MessageBuilder $messageBuilder,
         private bool $drainsAQueue,
         private array $streamsConsumed,
+        private array $handlersHandlingOneMessageAtATime,
     ) {
     }
 
@@ -56,6 +57,7 @@ class InterceptedConsumerRunner implements EndpointRunner
             coroutines: $pollingMetadata->coroutines,
             drainsAQueue: $this->drainsAQueue,
             streamsConsumed: $this->streamsConsumed,
+            handlersHandlingOneMessageAtATime: $this->handlersHandlingOneMessageAtATime,
             createConsumer: fn (): ConsumerLifecycle => $this->createConsumer($executionPollingMetadata),
         );
     }

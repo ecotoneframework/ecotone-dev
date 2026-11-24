@@ -93,6 +93,7 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
             new Reference(MessageBuilder::class),
             $this->drainsAQueue(),
             $this->streamsConsumed(),
+            [],
         ]);
         $builder->registerPollingEndpoint(
             endpointId: $this->endpointId,
@@ -100,6 +101,7 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
             withContinuousPolling: $this->withContinuesPolling(),
             drainsAQueue: $this->drainsAQueue(),
             streamsConsumed: $this->streamsConsumed(),
+            handlersHandlingOneMessageAtATime: [],
         );
     }
 

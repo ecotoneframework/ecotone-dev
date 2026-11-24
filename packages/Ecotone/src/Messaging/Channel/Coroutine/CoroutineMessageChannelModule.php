@@ -7,11 +7,9 @@ namespace Ecotone\Messaging\Channel\Coroutine;
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\ModuleAnnotation;
@@ -33,6 +31,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Handler\Gathering\HandlersRecordingIntoOneGroup;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
@@ -202,14 +201,10 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
     {
         $statedCoroutines = array_column(array: $channels, column_key: 'coroutines', index_key: 'messageChannelName');
         $coroutines = array_map(static fn (?int $stated): int => $stated ?? CoroutineMessageChannelBuilder::DEFAULT_COROUTINES, $statedCoroutines);
-        $reasons = [
-            Gathered::class => ['Gathered', "parts finishing together would be recorded in their group at the same time, all but one would lose the group's optimistic write on every attempt until the instant retries run out, and a group missing those parts is never gathered.", 'keep the handlers doing the work of the parts on another channel', 'gathered'],
-            Collected::class => ['Collected', "messages arriving together would be recorded in their batch at the same time, all but one would lose the batch's optimistic write on every attempt until the instant retries run out, and those messages are missing from the batch.", 'keep handlers that should run at once on another channel', 'collected'],
-        ];
         foreach ($handlers as [$handler, $handlerChannels]) {
             $channel = reset($handlerChannels);
             $interface = $registry->getFor($handler->getClassName(), $handler->getMethodName());
-            foreach ($reasons as $attributeClass => [$attribute, $reason, $otherHandlers, $kind]) {
+            foreach (HandlersRecordingIntoOneGroup::LOST_WHEN_HANDLED_AT_ONCE as $attributeClass => [$attribute, $reason, $otherHandlers, $kind]) {
                 if (! $interface->hasMethodAnnotation($attributeClass)) {
                     continue;
                 }

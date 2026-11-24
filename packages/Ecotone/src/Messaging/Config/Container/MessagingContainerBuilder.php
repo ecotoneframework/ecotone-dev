@@ -63,7 +63,7 @@ class MessagingContainerBuilder
         return $this->bootstrapConfiguration;
     }
 
-    public function registerPollingEndpoint(string $endpointId, Definition $definition, bool $withContinuousPolling, bool $drainsAQueue, array $streamsConsumed): void
+    public function registerPollingEndpoint(string $endpointId, Definition $definition, bool $withContinuousPolling, bool $drainsAQueue, array $streamsConsumed, array $handlersHandlingOneMessageAtATime): void
     {
         if (isset($this->pollingEndpoints[$endpointId])) {
             throw InvalidArgumentException::create("Endpoint with id {$endpointId} already exists");
@@ -75,7 +75,7 @@ class MessagingContainerBuilder
         }
 
         $pollingMetadata = $this->getPollingConfigurationForPolledEndpoint($endpointId, $withContinuousPolling);
-        ConsumerCoroutines::refuseEndpointWhoseMessagesCannotBeHandledAtOnce($endpointId, $pollingMetadata->coroutines, $drainsAQueue, $streamsConsumed);
+        ConsumerCoroutines::refuseEndpointWhoseMessagesCannotBeHandledAtOnce($endpointId, $pollingMetadata->coroutines, $drainsAQueue, $streamsConsumed, $handlersHandlingOneMessageAtATime);
         $this->registerPollingMetadata($pollingMetadata);
         $this->register($runnerReference, $definition);
         $this->pollingEndpoints[$endpointId] = $endpointId;

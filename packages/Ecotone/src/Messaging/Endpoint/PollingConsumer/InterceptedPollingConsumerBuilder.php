@@ -80,7 +80,7 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
 
     abstract protected function compileMessagePoller(MessagingContainerBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): Definition|Reference;
 
-    public function registerConsumer(MessagingContainerBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder, array $streamsConsumed): void
+    public function registerConsumer(MessagingContainerBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder, array $streamsConsumed, array $handlersHandlingOneMessageAtATime): void
     {
         $endpointId = $messageHandlerBuilder->getEndpointId();
         $requestChannelName = 'internal_inbound_gateway_channel.'.Uuid::v7()->toRfc4122();
@@ -119,6 +119,7 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
             new Reference(MessageBuilder::class),
             true,
             $streamsConsumed,
+            $handlersHandlingOneMessageAtATime,
         ]);
         $builder->registerPollingEndpoint(
             endpointId: $endpointId,
@@ -126,6 +127,7 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
             withContinuousPolling: $this->withContinuesPolling(),
             drainsAQueue: true,
             streamsConsumed: $streamsConsumed,
+            handlersHandlingOneMessageAtATime: $handlersHandlingOneMessageAtATime,
         );
     }
 

@@ -246,7 +246,7 @@ other handler on it, because parts finishing together would lose the group's opt
 out; bootstrap refuses `withCoroutines()` with more than one coroutine there. A `#[Collected]` handler follows the
 same rule: its own channel without `withCoroutines()`, and messages sent at once by several requests are recorded
 into one batch. On a channel consumed with `ecotone:run`, run the consumer of a `#[Gathered]` or `#[Collected]`
-handler without `--coroutines`.
+handler without `--coroutines`: the consumer refuses the option, and `PollingMetadata::withCoroutines()`, above one.
 
 ```php
 use Ecotone\Api\Attribute\Asynchronous;

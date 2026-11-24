@@ -17,8 +17,9 @@ final class ConsumerCoroutines
 {
     /**
      * @param string[] $streamsConsumed
+     * @param list<array{reason: string, wayToHandleMoreAtOnce: string}> $handlersHandlingOneMessageAtATime
      */
-    public static function refuseEndpointWhoseMessagesCannotBeHandledAtOnce(string $endpointId, int $coroutines, bool $drainsAQueue, array $streamsConsumed): void
+    public static function refuseEndpointWhoseMessagesCannotBeHandledAtOnce(string $endpointId, int $coroutines, bool $drainsAQueue, array $streamsConsumed, array $handlersHandlingOneMessageAtATime): void
     {
         if ($coroutines < 1) {
             throw ConfigurationException::create(
@@ -50,15 +51,23 @@ final class ConsumerCoroutines
                 . 'To handle more of its messages at once: for a Kafka topic start more processes of this consumer, with at least as many partitions of the topic as processes; a RabbitMQ stream is read in order by one consumer, so let its handler send the work to an #[Asynchronous] queue channel and consume that channel on coroutines. A dynamic channel whose custom receiving strategy reads only queue channels can consume on coroutines when it receives through DynamicMessageChannelBuilder::createRoundRobin(), createRoundRobinWithDifferentChannels() or createThrottlingStrategy() naming those channels.'
             );
         }
+        foreach ($handlersHandlingOneMessageAtATime as $handler) {
+            throw ConfigurationException::create(
+                "Consumer `{$endpointId}` is set to consume on {$coroutines} coroutines, but {$handler['reason']} "
+                . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
+                . "To handle more messages at once, {$handler['wayToHandleMoreAtOnce']}"
+            );
+        }
     }
 
     /**
      * @param string[] $streamsConsumed
+     * @param list<array{reason: string, wayToHandleMoreAtOnce: string}> $handlersHandlingOneMessageAtATime
      * @param Closure(): ConsumerLifecycle $createConsumer
      */
-    public static function consume(string $endpointId, int $coroutines, bool $drainsAQueue, array $streamsConsumed, Closure $createConsumer): void
+    public static function consume(string $endpointId, int $coroutines, bool $drainsAQueue, array $streamsConsumed, array $handlersHandlingOneMessageAtATime, Closure $createConsumer): void
     {
-        self::refuseEndpointWhoseMessagesCannotBeHandledAtOnce($endpointId, $coroutines, $drainsAQueue, $streamsConsumed);
+        self::refuseEndpointWhoseMessagesCannotBeHandledAtOnce($endpointId, $coroutines, $drainsAQueue, $streamsConsumed, $handlersHandlingOneMessageAtATime);
 
         $runtime = self::coroutineRuntime();
         if ($runtime === null) {

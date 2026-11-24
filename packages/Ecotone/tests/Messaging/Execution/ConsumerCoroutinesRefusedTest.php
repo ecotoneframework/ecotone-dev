@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Execution;
 
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
@@ -16,8 +19,11 @@ use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\CollectedMessages;
+use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -33,6 +39,13 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
         . 'A coroutine finishing a later message would commit past an earlier message another coroutine is still handling, so that message is never handled when the process stops, and the messages are handled out of order. '
         . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
         . 'To handle more of its messages at once: for a Kafka topic start more processes of this consumer, with at least as many partitions of the topic as processes; a RabbitMQ stream is read in order by one consumer, so let its handler send the work to an #[Asynchronous] queue channel and consume that channel on coroutines. A dynamic channel whose custom receiving strategy reads only queue channels can consume on coroutines when it receives through DynamicMessageChannelBuilder::createRoundRobin(), createRoundRobinWithDifferentChannels() or createThrottlingStrategy() naming those channels.';
+
+    private const GATHERED_HANDLER_REFUSAL = 'Consumer `summaries` is set to consume on 3 coroutines, but it handles the messages of #[Gathered] handler `%s::summarize` (endpoint `import.summary.handler`): parts finishing together would be recorded in their group at the same time, all but one would lose the group\'s optimistic write on every attempt until the instant retries run out, and a group missing those parts is never gathered. '
+        . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
+        . 'To handle more messages at once, keep the handlers doing the work of the parts on another channel and consume that channel on coroutines.';
+    private const COLLECTED_HANDLER_REFUSAL = 'Consumer `search` is set to consume on 3 coroutines, but it handles the messages of #[Collected] handler `%s::index` (endpoint `product.index.handler`): messages arriving together would be recorded in their batch at the same time, all but one would lose the batch\'s optimistic write on every attempt until the instant retries run out, and those messages are missing from the batch. '
+        . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
+        . 'To handle more messages at once, keep handlers that should run at once on another channel and consume that channel on coroutines.';
 
     public function test_consuming_on_coroutines_passed_when_running_the_consumer_is_refused_without_a_coroutine_runtime(): void
     {
@@ -267,6 +280,105 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
         $ecotone->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $this->assertSame(1, $ecotone->sendQueryWithRouting('shipment.shipped'));
+    }
+
+    #[DataProvider('handlers_recording_messages_into_one_group')]
+    public function test_consumer_of_a_gathered_or_collected_handler_is_refused_to_consume_on_coroutines_passed_when_running_it(object $handler, string $channel, string $refusal): void
+    {
+        $ecotone = $this->bootstrapQueueConsumedBy($handler, $channel);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf($refusal, $handler::class));
+
+        $ecotone->run($channel, ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
+    }
+
+    #[DataProvider('handlers_recording_messages_into_one_group')]
+    public function test_consumer_of_a_gathered_or_collected_handler_is_refused_to_consume_on_the_coroutines_option_of_the_console_command(object $handler, string $channel, string $refusal): void
+    {
+        $ecotone = $this->bootstrapQueueConsumedBy($handler, $channel);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf($refusal, $handler::class));
+
+        $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => $channel, 'finishWhenNoMessages' => true, 'coroutines' => 3]);
+    }
+
+    #[DataProvider('handlers_recording_messages_into_one_group')]
+    public function test_consumer_of_a_gathered_or_collected_handler_with_coroutines_in_its_polling_metadata_is_refused_when_the_application_boots(object $handler, string $channel, string $refusal): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf($refusal, $handler::class));
+
+        $this->bootstrapQueueConsumedBy($handler, $channel, PollingMetadata::create($channel)->withCoroutines(3));
+    }
+
+    public function test_consumer_of_the_parts_boots_with_coroutines_beside_the_consumer_of_their_gathered_handler(): void
+    {
+        $handler = self::handlers_recording_messages_into_one_group()['gathered'][0];
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [$handler],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('rows'), SimpleMessageChannelBuilder::createQueueChannel('summaries'), PollingMetadata::create('rows')->withCoroutines(3)],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $ecotone->sendCommandWithRouting('import', [1, 2]);
+        $ecotone->run('rows', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(1));
+        $ecotone->run('summaries', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $this->assertSame([[1 => 2, 2 => 4]], $handler->gathered);
+    }
+
+    public static function handlers_recording_messages_into_one_group(): array
+    {
+        return [
+            'gathered' => [new class () {
+                public array $gathered = [];
+
+                #[CommandHandler('import', endpointId: 'import.handler', outputChannelName: 'import.row')]
+                #[Splitter(gatherChannelName: 'import.summary')]
+                public function import(array $rows): array
+                {
+                    return $rows;
+                }
+
+                #[Asynchronous('rows')]
+                #[InternalHandler('import.row', endpointId: 'import.row.handler')]
+                public function row(int $row): int
+                {
+                    return $row * 2;
+                }
+
+                #[Gathered]
+                #[Asynchronous('summaries')]
+                #[InternalHandler('import.summary', endpointId: 'import.summary.handler')]
+                public function summarize(GatheredParts $parts): void
+                {
+                    $this->gathered[] = $parts->results;
+                }
+            }, 'summaries', self::GATHERED_HANDLER_REFUSAL],
+            'collected' => [new class () {
+                #[Collected(maxSize: 3)]
+                #[Asynchronous('search')]
+                #[CommandHandler('product.index', endpointId: 'product.index.handler')]
+                public function index(CollectedMessages $changes): void
+                {
+                }
+            }, 'search', self::COLLECTED_HANDLER_REFUSAL],
+        ];
+    }
+
+    private function bootstrapQueueConsumedBy(object $handler, string $channel, ?PollingMetadata $pollingMetadata = null): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            [],
+            [$handler],
+            extensionObjects: array_values(array_filter([SimpleMessageChannelBuilder::createQueueChannel('rows'), SimpleMessageChannelBuilder::createQueueChannel($channel), $pollingMetadata])),
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 
     private function bootstrapReports(?PollingMetadata $pollingMetadata = null): FlowTestSupport

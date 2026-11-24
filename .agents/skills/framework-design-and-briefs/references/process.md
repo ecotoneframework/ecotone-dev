@@ -92,7 +92,7 @@ DCB commit subjects carry finding IDs — `(B1)`, `(M1)`, `(M5)`, `(N9)`–`(N13
 reports independently went looking for the document that assigned them, across all 26 DCB worktrees, and could not
 find it committed anywhere. Only the resolutions survive, so no fix can be read against what was actually asked. The
 readability review is the counter-example and the shape to copy:
-`docs/superpowers/specs/2026-09-28-dcb-readability-review.md` is committed with its full ranked list, and every item
+`docs/superpowers/specs/2026-09-28-dcb-readability-review.md` keeps its full ranked list, and every item
 it raised can still be traced to the commit that closed it. Since `docs/` left the repository the list is a local
 file under `docs/reviews/`: what matters is that it is written down before the first fix cites it.
 

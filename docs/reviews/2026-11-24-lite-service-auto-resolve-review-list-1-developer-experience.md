@@ -1,7 +1,9 @@
-NOT PASSED: DX1
+PASSED
 
-Developer experience review of `git diff main...HEAD` on dgafka/ecotone-lite (d5bffa12b feature, 19d745db2 codemod,
-sampled).
+Developer experience review of `git diff main...HEAD` on dgafka/ecotone-lite. First pass: d5bffa12b (the feature)
+and 19d745db2 (the codemod, sampled), which gave NOT PASSED: DX1. Re-review: the fix commits
+`git diff 5218f2a38..HEAD` (39abb2456, d3b7666f1). In that pass I decided DX1 again and checked every other
+requirement against the new commits.
 
 ## The end user's code, most common case
 
@@ -14,56 +16,60 @@ $ecotone->sendCommandWithRouting('ticket.open', 'printer is on fire');
 ```
 
 What the user has to know: one class imported (`EcotoneLite`), one argument (`containerOrAvailableServices`), the
-handler instance passed once. Before the change the same class also had to be listed in `classesToResolve`; that
-second statement of the same fact is gone. A service meant only as a dependency is passed under a key that is not
-its class name (`['ticketDesk' => $desk]`), and a PSR `ContainerInterface` still needs `classesToResolve`, because
-it cannot be enumerated.
+handler instance passed once. `classesToResolve` is kept for classes the user has no instance of (aggregates, sagas,
+interfaces) and for services behind a `ContainerInterface`. A service meant only as a dependency is passed under a
+name (`'mailer' => $mailer`).
 
 ## Requirements
 
-DX1 — missing — api/skills/ecotone-interceptors/references/testing-patterns.md:5 and :128,
-      api/skills/ecotone-testing/references/testing-patterns.md:23 and :91-93,
-      api/skills/ecotone-testing/references/usage-examples.md:19, :42, :67, :138 (and the same `classesToResolve:
-      [$handler::class]` + `[$handler]` pair in ecotone-resiliency, ecotone-metadata, ecotone-distribution,
-      ecotone-asynchronous testing-patterns), packages/Ecotone/src/Modelling/Config/Routing/MissingHandlerMessage.php:24
-      and :33 — the code dropped the step, but what the end user reads still makes them take it: the public skills
-      teach listing the passed handler in `classesToResolve` as well ("Always register interceptor classes in both
-      `classesToResolve` ... and `containerOrAvailableServices`"), the troubleshooting table names "Handler class not in
-      `classesToResolve`" as the cause, and the "not registered in this Ecotone Lite bootstrap" message offers only
-      `classesToResolve` or `namespaces` as the way out, never the shortest one — so a user (or their agent) keeps
-      writing a step that no longer has a reason — the simpler form: examples pass the instance once
-      (`bootstrapFlowTesting(containerOrAvailableServices: [$handler])`), keep `classesToResolve` only for classes
-      not passed as instances (aggregates, projections built by the framework, gateways, services under another key
-      or behind a `ContainerInterface`), and let the message name "pass an instance of {$handlerClass} in
-      containerOrAvailableServices" as one of the ways out — skill: framework-service-design, framework-error-handling
-      (message), framework-agent-tooling (api/skills edits)
-DX2 — covered — the handler is switched on by the attributes it already carries and by being passed once;
-      no registry, base class or interface; packages/Ecotone/Api/Lite/EcotoneLite.php:178 and :299-312,
-      ServicePassedToBootstrapTest::test_handler_passed_as_a_service_is_registered_without_listing_its_class
-DX3 — covered — the class is now stated once instead of in both `classesToResolve` and
-      `containerOrAvailableServices` (EcotoneLite.php:305-308); commit 19d745db2 removes the 1,318 duplicated entries
-      in the test suites; sampled hunks (e.g. `bootstrapFlowTesting([$service::class], [$service], ...)` →
-      `bootstrapFlowTesting([], [$service], ...)`) keep only the classes not passed as instances
+DX1 — covered (re-review; was missing) — every place an end user learns the step now teaches it once and gives the
+      reason for what is left:
+      - the public skills pass the handler once as an instance: api/skills/ecotone-testing/SKILL.md:36-50, :288-295
+        (rule 1 states the keyed-service opt-out and that `classesToResolve` is for aggregates, sagas and interfaces);
+        references/usage-examples.md, references/testing-patterns.md:45 and the troubleshooting rows :90 and :92;
+        ecotone-interceptors/references/testing-patterns.md:5 and :125 (the "always register in both" line is
+        replaced); the resiliency, metadata, distribution and asynchronous testing patterns
+      - the missing-handler message names passing the instance as the way out, and keeps `classesToResolve` for
+        aggregates and sagas and for a container passed in:
+        packages/Ecotone/src/Modelling/Config/Routing/MissingHandlerMessage.php:27-34 and :43. The aggregate branch
+        checks `Aggregate` with IS_INSTANCEOF, and `Saga`, `EventSourcingAggregate` and `EventSourcingSaga` all
+        extend `Aggregate`, so sagas get the classesToResolve advice too.
+      - proved by UnregisteredHandlerMessageTest::test_command_handled_by_an_aggregate_missing_from_the_bootstrap_names_the_class_to_resolve,
+        the updated messages in UnregisteredHandlerMessageTest, and
+        ServicePassedToBootstrapTest::test_service_passed_under_another_name_is_only_a_dependency, which now
+        asserts the message
+      - upgrade-2.0.md:4356-4366 gives the Before/Now/How to adapt entry, including the keyed opt-out and the
+        newly registered attributed services
+DX2 — covered — the handler is switched on by the attributes it already carries and by being passed once, with no
+      registry, base class or interface (packages/Ecotone/Api/Lite/EcotoneLite.php:178, :299-312;
+      ServicePassedToBootstrapTest::test_handler_passed_as_a_service_is_registered_without_listing_its_class). The
+      new commits do not change this.
+DX3 — covered — the class is stated once (EcotoneLite.php:305-308). Commit e3d6b319d (formerly 19d745db2) removes
+      the duplicated entries in the test suites, and d3b7666f1 removes them from the public skill examples and from
+      the upgrade-2.0.md converter note (:4354).
 DX6 — default: a service passed without a key or under its own class name is registered — covered — it agrees
-      with how the same `containerOrAvailableServices` array already treats a service by key (the key is its service
-      id, the class name is the natural id), and with Symfony and Laravel where the user names a service once and
-      Ecotone reads its attributes; ServicePassedToBootstrapTest covers both bootstrap() and bootstrapFlowTesting()
-DX9 — covered — no new name an end user reads; the private `withClassesOfProvidedServices` (EcotoneLite.php:299)
-      reads without the implementation
+      with how `containerOrAvailableServices` already treats a key as the service id, and with Symfony and Laravel,
+      where a service is named once. ServicePassedToBootstrapTest covers both bootstrap() and
+      bootstrapFlowTesting(). The opt-out is now stated where users look: ecotone-testing rule 1 (SKILL.md:290-291)
+      and upgrade-2.0.md:4361.
+DX9 — covered — the new commits add no name an end user reads. The message reuses the existing parameter names
+      `containerOrAvailableServices` and `classesToResolve`.
 DX4, DX5 — not-apply — no option is added or changed: neither bootstrap() nor bootstrapFlowTesting() gains a
-      parameter
-DX7, DX8 — not-apply — the changed default touches which handlers are registered, not failure handling, delivery,
+      parameter, also after the fix commits
+DX7, DX8 — not-apply — the changed default affects which handlers are registered, not failure handling, delivery,
       transactions or data safety, and no less safe behaviour is offered
 DX10 — not-apply — the change adds no name
 
 ## Not on the list
 
-- The opt-out is implicit. Passing a service under a key other than its class name now means "a dependency, do
-  not read its attributes"; passing it positionally means "register it". That is the right default, but the rule
-  is only in the commit message. A positional object with attributes the user did not mean to activate (a
-  `#[Converter]`, an interceptor, a second handler for the same routing key) is now registered. The three
-  PdoEventSourcing tagging tests show it: they had to stop passing handlers they had passed before. The public
-  testing skill should state the rule in one line next to the DX1 fix.
-- `ServicePassedToBootstrapTest::test_service_passed_under_another_name_is_only_a_dependency` asserts only
-  `DestinationResolutionException`. It does not assert that the message tells the user how to register the
-  service. That ties in with the message part of DX1.
+- The "No Command Handler is registered" message (MissingHandlerMessage.php:43) says "pass an instance of its
+  class in the containerOrAvailableServices". It is also the message a user gets after passing the instance
+  under a name (`['ticketDesk' => $desk]`, the case asserted in ServicePassedToBootstrapTest). That user did pass
+  an instance, so "pass an instance of its class **without a key**" would tell them what to change. The rule is
+  already stated in ecotone-testing rule 1 and upgrade-2.0.md, so this does not change the result.
+- api/skills/ecotone-interceptors/SKILL.md:225, the index line for its testing-patterns reference, still
+  describes it as "registering interceptors with `classesToResolve`". The reference itself now teaches the
+  instance form, so this is only a stale summary.
+- Known and left as is, per the coordinator: test helper wrappers (`$this->bootstrapFlowTesting`) and lists with
+  comments or built from constants were not swept by the codemod, and positional `[]` placeholders stay. Neither
+  is end-user surface.

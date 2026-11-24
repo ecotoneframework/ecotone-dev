@@ -1,6 +1,28 @@
-PASSED
+NOT PASSED: BH2, BH12
 
-Behaviour review of `git diff main...HEAD` (d5bffa12b, 19d745db2) on branch dgafka/ecotone-lite.
+Behaviour review of `git diff main...HEAD` on branch dgafka/ecotone-lite. Round 1 covered d5bffa12b and 19d745db2
+(reworded to e3d6b319d, same content). The re-review covers `git diff 5218f2a38..HEAD`: 39abb2456 (the missing-handler
+message names passing the instance) and d3b7666f1 (the skills pass a handler once).
+
+## Re-review (5218f2a38..HEAD)
+
+Round 1 decided no requirement `missing`, so this round decides again the requirements the new commits touch: BH2,
+BH9, BH12 and BH13, plus BH22, which the reworded message could have touched. The other decisions below are
+unchanged.
+
+New claim: when a handler class is found but not registered, the message tells the developer to pass an instance in
+`containerOrAvailableServices`. It names `classesToResolve` for an aggregate or a saga, and for a service from a
+passed container. This is in `packages/Ecotone/src/Modelling/Config/Routing/MissingHandlerMessage.php:30-34`, and the
+aggregate check is `getAttributes(Aggregate::class, IS_INSTANCEOF)`. When no handler exists at all, the message also
+names passing an instance (`:43`).
+
+Runs on this tree, in the container, one at a time:
+- `packages/Ecotone/tests/Lite`: OK (96 tests, 151 assertions).
+- `packages/PdoEventSourcing/tests/Integration/Tagging/DynamicConsistencyBoundaryDisabledDbalTest.php` (the
+  `strict: true` change): OK (6 tests, 10 assertions).
+- `bin/test-agent-skills` for ecotone-testing, ecotone-interceptors, ecotone-metadata, ecotone-resiliency,
+  ecotone-distribution, ecotone-asynchronous, ecotone-event-sourcing, ecotone-business-interface and
+  framework-module-scaffolding: threshold 0.8, 1 run per case. Scores are under BH13.
 
 ## Problem and outcome
 
@@ -22,6 +44,25 @@ object by `get_class()` (`InMemoryPSRContainer.php:33`), so the reference the re
 passed instance. The tests assert that by querying state the command wrote. The change reaches the outcome.
 
 ## Decisions
+
+BH2 (saga handler message) — missing — packages/Ecotone/src/Modelling/Config/Routing/MissingHandlerMessage.php:30
+      — the brief claims that aggregate and saga handlers keep `classesToResolve` in the message. Only the aggregate
+      case is tested: UnregisteredHandlerMessageTest::test_command_handled_by_an_aggregate_missing_from_the_bootstrap_names_the_class_to_resolve.
+      The saga case holds only because `Saga extends Aggregate` (`Api/Attribute/Saga.php:13`) and the check uses
+      `IS_INSTANCEOF`, so no test proves it. If a later change stopped `Saga` extending `Aggregate`, a developer
+      with an unregistered saga would be told to "pass an instance" of a class Ecotone builds itself. Add a
+      `#[Saga]` fixture next to ShippingDepot, and a test that asserts its message names `classesToResolve`. — skill:
+      framework-testing, framework-error-handling
+BH12 (UnregisteredHandlerMessageTest) — missing — packages/Ecotone/tests/Lite/Test/UnregisteredHandlerMessageTest.php:26,68,82
+      — the new aggregate test (`:60`) and the two tests whose expected message was reworded (`:18`, `:74`) assert
+      `expectException(DestinationResolutionException::class)`. That is `Ecotone\Messaging\Handler\DestinationResolutionException`
+      from `packages/Ecotone/src`, an internal class an application never imports. Drop the `expectException`
+      lines and keep the `expectExceptionMessage` assertions, as 39abb2456 already did in
+      ServicePassedToBootstrapTest. The import at `:8` and the same line in the untouched query test (`:54`) go
+      with it. — skill: framework-testing
+BH12 (correction of round 1) — round 1 called `DestinationResolutionException` the exception an application gets
+      and said ServicePassedToBootstrapTest used no `src/` class. That was wrong: the class lives in `src/`. 39abb2456
+      has since removed it from ServicePassedToBootstrapTest, so that file is now covered (see below).
 
 BH1 — covered — trace above: `EcotoneLite.php:178,299-312`. Both entry points pass through it. The outcome is
       asserted by ServicePassedToBootstrapTest::test_handler_passed_as_a_service_is_registered_without_listing_its_class
@@ -56,9 +97,33 @@ BH10 — covered — synchronous: ServicePassedToBootstrapTest. Asynchronous: af
       `packages/Ecotone/tests/Messaging/Collecting/CollectingTest.php`. I re-ran it on this tree: OK (26 tests,
       31 assertions). I also probed outside the suite: an `#[Asynchronous]` handler passed unkeyed is queued and
       handled after `run('async')`.
-BH12 — covered — ServicePassedToBootstrapTest uses only EcotoneLite, FlowTestSupport and the buses, with an inline
-      anonymous handler and a `DestinationResolutionException` expectation (the exception an application gets). There
-      is no reflection, no SQL and no `src/` class. The three PdoEventSourcing tests change only which services they pass.
+BH2 (missing-handler message names passing the instance) — covered —
+      UnregisteredHandlerMessageTest::test_command_handled_by_a_class_missing_from_the_bootstrap_names_the_class_to_register,
+      ::test_command_without_any_handler_says_what_to_add and
+      ServicePassedToBootstrapTest::test_service_passed_under_another_name_is_only_a_dependency. All three assert the
+      new message text. Red proof from the implementer, before MissingHandlerMessage was edited:
+      'Tests: 9, Assertions: 14, Failures: 3', exactly these three. Now OK; I re-ran it inside the Lite suite.
+BH2 (aggregate handler message keeps classesToResolve) — covered —
+      UnregisteredHandlerMessageTest::test_command_handled_by_an_aggregate_missing_from_the_bootstrap_names_the_class_to_resolve.
+      It passes both before and after the change: the aggregate message is the old text, so the test guards the
+      new branch at `MissingHandlerMessage.php:30` from sending aggregates down the "pass an instance" path.
+BH12 (ServicePassedToBootstrapTest) — covered — it uses EcotoneLite, FlowTestSupport, the buses, an inline anonymous
+      handler and `expectExceptionMessage` only. Since 39abb2456 it has no `src/` exception class, no reflection
+      and no SQL. The ShippingDepot fixture uses only Api attributes. The three PdoEventSourcing tests change only
+      which services they pass.
+BH13 — covered — the case scores of `bin/test-agent-skills`, all at or above the 0.8 threshold:
+      ecotone-testing/ticket-lifecycle 1.00 (its changed rule-1 grader passes, 3/3 judges),
+      ecotone-asynchronous/background-notifications 0.83, ecotone-event-sourcing/order-read-model 1.00,
+      ecotone-distribution/order-to-inventory 1.00, ecotone-event-sourcing/ticket-projection 1.00,
+      ecotone-interceptors/cross-cutting-interceptors 1.00, ecotone-metadata/request-context-headers 1.00,
+      ecotone-resiliency/flaky-payment-provider 1.00, ecotone-testing/execution-recording 1.00,
+      framework-module-scaffolding/new-package 1.00. One grader failed:
+      background-notifications rule-5 (ecotone-asynchronous rule 5, FAIL 3/3 judges). The generated test passed
+      the handler as an instance, as the changed skill now teaches, ran `run()`, asserted nothing was sent before
+      it, and used `advanceTimeBy()`. It failed only because it registered no in-memory channel in
+      `extensionObjects:`. That is the part of rule 5 the diff does not touch. The one changed rule, ecotone-testing
+      rule 1, has its grader `api/evals/ecotone-testing/ticket-lifecycle/graders/rule-1.md`, updated and passing.
+      The other changed skill files are reference examples and change no rule.
 BH14 — covered — the change sits before every feature: it only adds classes to the annotation finder, exactly as if
       they were listed in `classesToResolve`. It is proven combined with the features through the rewritten tests
       of 19d745db2, which now register their handlers only this way, and their suites ran OK on the final tree
@@ -76,15 +141,15 @@ BH8 — covered — the empty case, no services or a ContainerInterface, leaves 
       values are skipped by the `is_object` guard. I probed outside the suite that Closures passed unkeyed or keyed
       bootstrap cleanly.
 BH9 — not-apply — the change adds no attribute or configuration that can be written wrongly. A handler under a
-      foreign key stays unregistered, as before, and the existing MissingHandlerMessage still names the way out
-      (`classesToResolve`), asserted as an exception by test_service_passed_under_another_name_is_only_a_dependency.
+      foreign key stays unregistered, as before. Since 39abb2456 the missing-handler message (raised at send time,
+      not at bootstrap) names passing an instance, and BH2 above decides the tests asserting it.
 BH11 — not-apply — nothing depends on time.
-BH13 — not-apply — the diff touches no `.agents/skills`, `api/skills`, `.agents/evals` or `api/evals` file.
 BH15 to BH21 — not-apply — `withClassesOfProvidedServices()` is a pure static function run once at bootstrap. It adds
       no service state, no wait, no I/O, no consumer, no child-execution copy and no coroutine test file.
 BH22 — not-apply — no message flow or flow feature changes. The change alters only which classes the annotation
       finder reads. Every scenario in `packages/Ecotone/src/Test/Flow/*` (Coroutine, Projection, Endpoint, Gateway)
       already lists each service it passes in `classesToResolve`, so the flow comparison has no before/after to show.
+      The reworded message affects no scenario: no scenario expects a missing-handler failure.
 
 ## Not on the list
 
@@ -98,3 +163,8 @@ BH22 — not-apply — no message flow or flow feature changes. The change alter
   reaches the passed instance).
 - The DataProtection FileTest errors reported by the implementer are in a file the diff does not touch. I did not
   re-run them.
+- Message wording (left for the developer experience review): a developer who passed the handler under another name
+  (`'ticketDesk' => $handler`) is told to "pass an instance of its class in the containerOrAvailableServices". They
+  already did. The message does not say the instance must be passed without a key or under its own class name.
+- `bin/test-agent-skills` wrote its results to `api/evals/results/2026-11-24T13-15-47Z/`, which is gitignored
+  (`.gitignore:30`), so it adds no tracked file.

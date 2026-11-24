@@ -1,128 +1,127 @@
-NOT PASSED: GL1, GL15, GL43, GL50
+NOT PASSED: GL43, GL46
 
-# Guidelines review: EcotoneLite resolves the class of a passed service (round 1)
+# Guidelines review: EcotoneLite resolves the class of a passed service (round 2)
 
-Range `main...HEAD`: d5bffa12b `feat(lite): a service passed to EcotoneLite is registered without listing its class`
-and 19d745db2 `test: classes passed as services are no longer repeated in classesToResolve`.
+Round 1 reviewed `main...HEAD` at d5bffa12b and 19d745db2 and ended `NOT PASSED: GL1, GL15, GL43, GL50`. Round 2
+re-decides those four and every requirement the fix range `5218f2a38..HEAD` touches. The other requirements keep
+their round-1 status, which is restated below.
 
 ## What changed and why
 
-Purpose: a handler instance passed in `containerOrAvailableServices` was registered only if its class was also listed in
-`classesToResolve`. If the class was left out, the test failed with "handler is not registered". Now `bootstrap()` and
-`bootstrapFlowTesting()` add the class of every service passed without a key, or under its own class name. A service
-under another name stays a plain dependency, and a `ContainerInterface` is not enumerated.
+Range `main...HEAD`:
+- d5bffa12b `feat(lite): a service passed to EcotoneLite is registered without listing its class`
+- e3d6b319d `test(lite): classes passed as services are no longer repeated in classesToResolve` (19d745db2 reworded,
+  content identical)
+- 5218f2a38 `docs(reviews): …`, the decided lists
+- 39abb2456 `fix(lite): the missing handler message names passing the handler instance`
+- d3b7666f1 `docs(skills): testing examples pass a handler once, as an instance`
 
-Files read in full:
-- `packages/Ecotone/Api/Lite/EcotoneLite.php`: the `classesToResolve:` argument (`:178`) now goes through the new
-  private `withClassesOfProvidedServices()` (`:294-312`).
-- `packages/Ecotone/tests/Lite/Test/ServicePassedToBootstrapTest.php` (new): four tests.
-- `packages/PdoEventSourcing/tests/Integration/Tagging/AggregateBackedDecisionModelDbalTest.php`,
-  `DynamicConsistencyBoundaryDisabledDbalTest.php`, `StateStoredAggregateCounterDbalTest.php`: these tests passed a
-  handler in every scenario but listed its class in only some of them. They now pass the handler only in the scenarios
-  where it should be registered.
-- 19d745db2 (306 test files, 968+/1156−): sampled. I read the `Ecotone/tests/Modelling` hunks and the added lines that do
-  more than remove an entry. All of them remove a `classesToResolve` entry whose instance is passed without a key, or
-  reflow a list after that removal. No phpstan baseline, `src/`, `Api/`, skill or doc file changed.
+Purpose: a handler passed as an instance in `containerOrAvailableServices` is now registered without repeating its
+class in `classesToResolve`. A service under another name stays a plain dependency, and a `ContainerInterface` is not
+enumerated.
 
-Skills whose requirements apply: `framework-testing` (new and changed tests), `framework-service-design` (a new method
-and an added branch in the bootstrap wiring, a new call in a test), `framework-public-api` (a change in an `Api/`
-class), `framework-error-handling` 1d (the meaning of an existing bootstrap parameter is widened),
-`framework-design-and-briefs` 19 (a behaviour a 1.x application observes), `framework-dev-environment` E4,
-`framework-orientation` O2, `framework-pull-request` P1.
+Files of the fix range, read in full:
+- `packages/Ecotone/src/Modelling/Config/Routing/MissingHandlerMessage.php`: the unregistered-handler message now
+  names passing the instance. An aggregate or saga (`#[Aggregate]` with `IS_INSTANCEOF`, which `Saga` extends) keeps
+  `classesToResolve`. The no-handler message names both.
+- `packages/Ecotone/tests/Lite/Test/UnregisteredHandlerMessageTest.php`: two messages updated and a new aggregate case.
+- `packages/Ecotone/tests/Lite/Fixtures/UnregisteredHandler/ShippingDepot.php` (new): an aggregate fixture.
+- `packages/Ecotone/tests/Lite/Test/ServicePassedToBootstrapTest.php`: the test asserts the message.
+- `packages/PdoEventSourcing/tests/Integration/Tagging/DynamicConsistencyBoundaryDisabledDbalTest.php`: `strict: true`.
+- `upgrade-2.0.md`: the new auto-resolve entry, and the JMS converter entry adapted.
+- `api/skills/ecotone-testing/SKILL.md`: rule 1 rewritten.
+- `api/evals/ecotone-testing/ticket-lifecycle/graders/rule-1.md`
+- Nine `testing-patterns.md` / `usage-examples.md` / `creating-a-module.md` example hunks that drop the repeated class.
+
+Round-1 inventory (unchanged): `packages/Ecotone/Api/Lite/EcotoneLite.php` `withClassesOfProvidedServices()`, the
+new `ServicePassedToBootstrapTest`, three adapted PdoEventSourcing tagging tests, and the codemod (sampled).
+
+Skills whose requirements apply: `framework-testing`, `framework-service-design`, `framework-public-api`,
+`framework-error-handling` (the exception message changed), `framework-design-and-briefs` 19, `framework-agent-tooling`
+(a public skill rule and its grader changed), `framework-dev-environment` E4, `framework-orientation` O2,
+`framework-pull-request` P1.
 
 ## Decisions
 
-GL1 — missing — packages/Ecotone/tests/Lite/Test/ServicePassedToBootstrapTest.php:10,63 — the test imports and expects
-      `Ecotone\Messaging\Handler\DestinationResolutionException`, a `src/` class, so rewriting `src/` would break it —
-      instead, assert the error the user sees: drop the import and `expectException()`, and use
-      `$this->expectExceptionMessage('No Command Handler is registered for it in this Ecotone Lite bootstrap')`, which is
-      also the text the reporter got — skill: framework-testing 10
-GL15 — missing — packages/PdoEventSourcing/tests/Integration/Tagging/DynamicConsistencyBoundaryDisabledDbalTest.php:131 —
-      the added `in_array(HandlerInjectingRenamesForDisabledBoundaryDbalTest::class, $classesToResolve, true)` passes three
-      positional arguments — name the flag: `in_array(..., $classesToResolve, strict: true)` — skill:
-      framework-service-design 18. Deterministic-check candidate: a phpstan/regex rule could flag a positional `true` as
-      the third argument of `in_array` (rule A1). Existing code calls `in_array(..., true)` positionally 156 times in
-      `src`/`Api`; that is pre-existing and not counted here.
-GL43 — missing — upgrade-2.0.md — a 1.x application notices this change. Its test suites that pass a handler instance
-      without a key and do not list its class now get that handler registered, so its handlers, event handlers and
-      converters start running. The three adapted PdoEventSourcing tests are this exact case: they broke and had to be
-      changed. The entry near `:2241`/`:4541`, where the other Ecotone Lite bootstrap notes are, says nothing about it —
-      add an entry. Before: a service in `containerOrAvailableServices` was only a dependency until its class was also
-      listed in `classesToResolve`. Now: a service passed without a key, or under its own class name, is registered;
-      under another name it stays a dependency, and a `ContainerInterface` is not enumerated. How to adapt: pass a service
-      you do not want registered under another name, or only where it should be registered; the repeated
-      `classesToResolve` entries can be removed — skill: framework-design-and-briefs 19
-GL50 — missing — 19d745db2 — the subject `test: classes passed as services are no longer repeated in classesToResolve`
-      has no scope, but the requirement asks for `type(scope): ` — reword it to
-      `test(lite): classes passed as services are no longer repeated in classesToResolve` — skill:
-      framework-pull-request P1. Deterministic-check candidate (a subject regex in CI). Note: P1's own *Expected* regex
-      `(\(.+\))?` makes the scope optional, while P1's title and GL50 require it; I went with the requirement text.
+GL43 — missing — upgrade-2.0.md:4553-4560 — the earlier entry "A command or query sent to a handler that is not
+      registered in a flow test names the class to register" still quotes the message as `… Add
+      App\Shipping\ShippingSlotReservationHandler to the classesToResolve of EcotoneLite::bootstrapFlowTesting(), or
+      load its namespace …`. 39abb2456 changed that text: for a service handler, the message now says `Pass an
+      instance of … in the containerOrAvailableServices …`, so the upgrade note quotes a message a 2.0 user never sees.
+      Fix: update the quoted message in that entry, both the service text and the no-handler sentence ("says which
+      attribute to add"), and say that an aggregate or saga keeps the `classesToResolve` advice. The new auto-resolve
+      entry itself (`:4356-4366`) is covered: it has Before / Now / How to adapt — skill: framework-design-and-briefs 19
+GL46 — missing — api/skills/ecotone-testing/SKILL.md (rule 1) — rule 1 and its grader
+      `api/evals/ecotone-testing/ticket-lifecycle/graders/rule-1.md` were changed, but no eval run or score is
+      reported: neither commit message mentions one and the range has no result file — run
+      `bin/test-agent-skills ecotone-testing`, as rule A4 places it in the behaviour review session, and report the
+      scores — skill: framework-agent-tooling A4
 
-GL2 — covered — `ServicePassedToBootstrapTest::test_handler_passed_as_a_service_is_registered_without_listing_its_class`
-      (`bootstrapFlowTesting()`) and `::test_handler_passed_as_a_service_is_registered_outside_of_flow_testing`
-      (`bootstrap()`), the two entry points that reach `prepareConfiguration()`
-GL4 — covered — ServicePassedToBootstrapTest.php: snake_case names that describe the behaviour, no comments or assertion
-      messages, inline anonymous fixture `ticketDesk()` (`:68`); the adapted PdoEventSourcing tests add no comments
-GL9 — covered — EcotoneLite.php:299 `withClassesOfProvidedServices()` is a pure read: it returns a new list and changes
-      nothing (the array is passed by value)
-GL12 — covered — EcotoneLite.php:306-307 reads the service's class with `get_class()` on the instance and does no
-      `ReflectionClass`/`ReflectionMethod` lookup
-GL14 — covered — ServicePassedToBootstrapTest.php:3 `declare(strict_types=1)`, `:17` `final class`; no new class in
-      `src/` or `Api/`
-GL16 — covered — EcotoneLite.php:294-298 has only type docblocks (`string[]`, `ContainerInterface|object[]`), no prose
-      and no inline comments
-GL17 — covered — the concept "provided service" keeps the word already used by `providedServiceIds()`
-      (EcotoneLite.php:318): `withClassesOfProvidedServices()`; no synonym introduced
-GL20 — covered — no public signature of `EcotoneLite` changed; the new method is private, and no plumbing class is
-      added under `Api/`
-GL27 (unkeyed service) — covered — `test_handler_passed_as_a_service_is_registered_without_listing_its_class`
-GL27 (keyed under its own class name) — covered —
-      `test_handler_passed_as_a_service_under_its_own_class_name_is_registered_without_listing_its_class`
-GL27 (keyed under another name) — covered — `test_service_passed_under_another_name_is_only_a_dependency`
-GL27 (class also listed in classesToResolve, the repeated registration) — covered —
-      `packages/PdoEventSourcing/tests/Integration/CreateAggregateByEventSourcingAggregateTest.php:38-39` still lists
-      `EventsConverter::class` and passes `new EventsConverter()`; `array_unique` at EcotoneLite.php:311
-GL27 (ContainerInterface) — covered — the path is unchanged (early return at EcotoneLite.php:301-303), and
-      `MessagingTestSupportFrameworkTest::test_add_gateways_to_container` still boots a PSR container together with
-      `classesToResolve`. There is no test showing that a container's services are *not* registered, but that behaviour
-      is pre-existing.
+GL1 — covered — ServicePassedToBootstrapTest.php no longer imports a `src/` class. `:62` asserts the user-facing text
+      with `expectExceptionMessage(...)`. (`UnregisteredHandlerMessageTest`'s pre-existing `DestinationResolutionException`
+      expectations are untouched code, and so are not counted; the new aggregate case repeats that existing pattern.)
+GL4 — covered — the new methods are snake_case and have no comments. The new named fixture `ShippingDepot` sits in
+      `tests/Lite/Fixtures/UnregisteredHandler/`, which only `UnregisteredHandlerMessageTest` uses. The behaviour under
+      test forces a file: `UnregisteredHandlerFinder` (`UnregisteredHandlerFinder.php:44-75`) finds handlers by scanning
+      PSR-4 directories, which an inline anonymous class cannot satisfy.
+GL12 — covered — MissingHandlerMessage.php:30 reflects on a class that is by definition not registered, so
+      `InterfaceToCallRegistry` cannot answer for it. This runs on the same failure-only path where
+      `UnregisteredHandlerFinder` already reflects.
+GL14 — covered — ShippingDepot.php: `declare(strict_types=1)` and `final class`; it carries `licence Apache-2.0`
+GL15 — covered — DynamicConsistencyBoundaryDisabledDbalTest.php:131 `in_array(..., $classesToResolve, strict: true)`.
+      The other new call, `getAttributes(Aggregate::class, ReflectionAttribute::IS_INSTANCEOF)`, has two arguments.
+GL16 — covered — no comments or prose docblocks are added in MissingHandlerMessage.php or the tests
+GL17 — covered — the message uses the parameter names verbatim (`containerOrAvailableServices`, `classesToResolve`), as
+      `EcotoneLite` and the skills do
+GL23 — covered — each branch of MissingHandlerMessage says what is wrong (not registered, or no handler), why (this
+      Ecotone Lite bootstrap), and every way out:
+      - service handler: the instance, `classesToResolve` for a container-provided service, `namespaces`; asserted by
+        `UnregisteredHandlerMessageTest:27`
+      - aggregate: `classesToResolve` or `namespaces`; asserted by
+        `test_command_handled_by_an_aggregate_missing_from_the_bootstrap_names_the_class_to_resolve`
+      - no handler: the attribute and the instance, or `classesToResolve` for an aggregate, a saga or a container;
+        asserted by `test_command_without_any_handler_says_what_to_add` and
+        `ServicePassedToBootstrapTest::test_service_passed_under_another_name_is_only_a_dependency`
+GL45 — covered — the changed rule sits in `ecotone-testing` rule 1, the public skill whose *Applies when* covers how a
+      flow test boots
+GL44 — covered — the changed rule needs no deterministic check: repeating a passed class in `classesToResolve` is
+      allowed and harmless (the grader says so), so there is nothing to refuse
+GL47 — covered — `prompt.md` of `ticket-lifecycle` is unchanged; the grader is a PASS/FAIL rubric and quotes no rule
+GL49 — covered — `Ecotone\Api\Attribute\Aggregate`, `Identifier`, `CommandHandler` and `Saga extends Aggregate` exist;
+      the skill examples name only `EcotoneLite::bootstrapFlowTesting()` parameters that exist
+GL50 — covered — `feat(lite):`, `test(lite):`, `docs(reviews):`, `fix(lite):`, `docs(skills):`; every message names
+      the defect, its cause and the change
+GL51 — covered — MissingHandlerMessage.php:30 is a branch on the handler's class. It only picks the text of a refusal
+      that is thrown (`CommandBusRouteSelector`/`QueryBusRouteSelector`) and never selects how a message is handled.
+      The round-1 branches at EcotoneLite.php:301 and :306 read only the component's own input contract.
+GL2 — covered — `ServicePassedToBootstrapTest` proves both entry points, `bootstrapFlowTesting()` and `bootstrap()`
+GL9 — covered — `withClassesOfProvidedServices()` and `forFlowTesting()` only read and return
+GL20 — covered — no public signature changed and nothing was added under `Api/`
+GL27 (unkeyed, own class name, other name) — covered — the three `ServicePassedToBootstrapTest` cases
+GL27 (class also listed in classesToResolve) — covered — CreateAggregateByEventSourcingAggregateTest.php:38-39;
+      `array_unique` at EcotoneLite.php:311
+GL27 (ContainerInterface) — covered — the path is unchanged (EcotoneLite.php:301-303), and
+      `MessagingTestSupportFrameworkTest::test_add_gateways_to_container` still covers it
 GL48 — covered — no `phpstan-baseline.neon` changed in the range
-GL49 — covered — `Ecotone\Api\Attribute\CommandHandler`, `QueryHandler` and `Ecotone\Api\Lite\EcotoneLite` exist; the
-      parameter names `containerOrAvailableServices` and `classesToResolve` match the signature
-GL50 (d5bffa12b) — covered — `feat(lite): ` and a message that names the defect, its cause and the fix
-GL51 — covered — EcotoneLite.php:301 and :306, the two branches added to the bootstrap wiring. Both read only the
-      component's own input contract: whether the documented `ContainerInterface|array` parameter is a container, and
-      the key it was given (int, or the service's own class). Neither reads a scenario, a header or the runtime
-      situation. Both feed the existing `classesToResolve` path, so nothing gets a second implementation. This mirrors
-      `providedServiceIds()` at `:318-329`.
 
-GL3, GL5, GL6 — not-apply — the new and changed tests are synchronous: they have no consumer, no channel and no time
-      dependency
-GL7, GL8, GL10 — not-apply — no constructor dependency, no service property or static, no interface added
-GL11, GL13 — not-apply — no new configuration form; the existing `classesToResolve` argument is extended and the
-      `prepareConfiguration()` call keeps its shape
+GL3, GL5, GL6 — not-apply — the new and changed tests are synchronous and have no consumer, channel or time dependency
+GL7, GL8, GL10 — not-apply — no constructor dependency, service property, static or interface added
+GL11, GL13 — not-apply — no new configuration form; the existing `classesToResolve` argument is extended
 GL18, GL19 — not-apply — no `Api/` value class and no new class an application uses
 GL21, GL22 — not-apply — no console option and no message header
-GL23, GL24, GL25, GL26 — not-apply — no exception thrown or changed, no new way to configure something wrongly, no new
-      check or guard
-GL28 to GL36 — not-apply — the change reads and writes no storage and opens no connection or transaction
-GL37 — not-apply — no Enterprise behaviour and no new file under `src`/`Api/`; the new test still carries
-      `licence Apache-2.0` (ServicePassedToBootstrapTest.php:14)
+GL24, GL25, GL26 — not-apply — no new way to configure something wrongly, no new exception carrying build-time context
+      (the message text of an existing refusal changed), no new compile-time check
+GL28 to GL36 — not-apply — no storage, connection or transaction
+GL37 — not-apply — no Enterprise behaviour and no new file under `src`/`Api/`; the new test files carry
+      `licence Apache-2.0`
 GL38, GL39, GL40 — not-apply — no module or package added or tested
 GL41, GL42 — not-apply — no design or spec in the range
-GL44 to GL47 — not-apply — no rule, skill or eval case added or changed
 
 ## Not on the list
 
-- The codemod is incomplete. About 100 bootstrap calls still list a class whose instance they pass without a key, for
-  example `packages/Ecotone/tests/Modelling/Unit/MessageBusTest.php:277,280` and
-  `packages/PdoEventSourcing/tests/Integration/CreateAggregateByEventSourcingAggregateTest.php:38,71`. These lists
-  likely span lines or carry comments. It is harmless, because `array_unique` drops the duplicates, but the commit
-  message says the duplicated entries "are removed". Either finish the sweep (and keep one test with the class repeated
-  on purpose, for GL27) or narrow the message.
-- 185 rewritten calls now start with a positional empty `classesToResolve`, for example
-  `EcotoneLite::bootstrapFlowTesting([], [$orders], [$sharedChannel])`. They were positional before (pre-existing), but
-  a named `containerOrAvailableServices:` with the `[]` dropped would read better.
-- `MissingHandlerMessage` (`packages/Ecotone/src/Modelling/Config/Routing/MissingHandlerMessage.php:24,33`) still names
-  only `classesToResolve` and `namespaces` as ways out. Passing the handler instance is now a third way out, and the
-  message could name it (rule 1, `framework-error-handling`).
+- The codemod did not sweep test helper wrappers (`$this->bootstrapFlowTesting`) or lists that carry comments or are
+  built from constants, and the 185 positional `[]` placeholders stay. The coordinator states this is known and left as
+  is; it is harmless because `array_unique` drops the duplicates.
+- In `MissingHandlerMessage`, the aggregate check (`:30`) builds a fresh `ReflectionClass` of a class found by file
+  scan. If that class cannot be autoloaded, it throws inside the message builder, unlike the finder, which swallows
+  `Throwable`. The finder only returns classes it has already reflected, so this does not happen today.

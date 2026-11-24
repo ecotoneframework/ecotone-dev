@@ -125,7 +125,11 @@ final class DynamicConsistencyBoundaryDisabledDbalTest extends EventSourcingMess
     {
         return $this->bootstrapFlowTesting(
             classesToResolve: [...$classesToResolve, EventsConverterForDisabledBoundaryDbalTest::class],
-            containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDisabledBoundaryDbalTest(), new HandlerInjectingRenamesForDisabledBoundaryDbalTest()],
+            containerOrAvailableServices: [
+                self::getConnectionFactory(),
+                new EventsConverterForDisabledBoundaryDbalTest(),
+                ...(in_array(HandlerInjectingRenamesForDisabledBoundaryDbalTest::class, $classesToResolve, true) ? [new HandlerInjectingRenamesForDisabledBoundaryDbalTest()] : []),
+            ],
             extensionObjects: [DbalConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),

@@ -43,7 +43,6 @@ final class ConsoleCommandTransactionTest extends TestCase
         $recorder->connectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN'));
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$recorder::class],
             containerOrAvailableServices: [$recorder, DbalConnectionFactory::class => $recorder->connectionFactory],
             extensionObjects: [FlowTrackingConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],

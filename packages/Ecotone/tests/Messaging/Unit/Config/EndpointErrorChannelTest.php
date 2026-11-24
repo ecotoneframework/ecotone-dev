@@ -25,7 +25,7 @@ final class EndpointErrorChannelTest extends TestCase
     public function test_failed_message_falls_back_to_the_globally_configured_default_error_channel(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ThrowingHandler::class],
+            [],
             [new ThrowingHandler()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel(ThrowingHandler::CHANNEL),
@@ -44,7 +44,7 @@ final class EndpointErrorChannelTest extends TestCase
     public function test_disabling_the_error_channel_lets_the_exception_propagate(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ThrowingHandler::class],
+            [],
             [new ThrowingHandler()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel(ThrowingHandler::CHANNEL),

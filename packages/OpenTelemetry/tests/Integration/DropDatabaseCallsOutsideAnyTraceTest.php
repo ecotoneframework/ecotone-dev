@@ -38,7 +38,7 @@ final class DropDatabaseCallsOutsideAnyTraceTest extends TracingTestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, TracerProviderInterface::class => $tracerProvider],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )->sendCommandWithRouting('order.place');

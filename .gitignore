@@ -1,5 +1,5 @@
 .idea/
-docs/superpowers/
+/docs/
 vendor/
 tests/coverage
 !tests/coverage/.gitkeep

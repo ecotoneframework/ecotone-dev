@@ -67,7 +67,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class, $interceptor::class],
+            [],
             [$handler, $interceptor],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -110,7 +110,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class, $interceptor::class],
+            [],
             [$handler, $interceptor],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -159,7 +159,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class, $interceptor::class],
+            [],
             [$handler, $interceptor],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -205,7 +205,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class, $interceptor::class],
+            [],
             [$handler, $interceptor],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -230,7 +230,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
         };
 
         EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -258,7 +258,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class, $eventHandler::class],
+            [],
             [$handler, $eventHandler],
             extensionObjects: [
                 PollableChannelConfiguration::neverRetry('events')->withCollector(true),
@@ -300,7 +300,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class, $eventHandler::class],
+            [],
             [$handler, $eventHandler],
             extensionObjects: [
                 PollableChannelConfiguration::neverRetry('events')->withCollector(true),

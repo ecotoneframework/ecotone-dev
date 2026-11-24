@@ -51,7 +51,7 @@ final class MultiTenantLicensingTest extends TestCase
         $this->expectExceptionMessage('https://docs.ecotone.tech/enterprise');
 
         EcotoneLite::bootstrapFlowTesting(
-            [$service::class],
+            [],
             [$service],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );

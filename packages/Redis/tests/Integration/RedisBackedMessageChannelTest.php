@@ -64,7 +64,6 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
         $messagePayload = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [RedisAsyncConsumerExample::class],
             containerOrAvailableServices: [
                 new RedisAsyncConsumerExample(),
                 RedisConnectionFactory::class => $this->getConnectionFactory(),
@@ -94,7 +93,7 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
     {
         $loggerExample = StubLogger::create();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class],
+            [],
             containerOrAvailableServices: [
                 new OrderService(),
                 RedisConnectionFactory::class => new RedisConnectionFactory('redis://localhost:1000'),

@@ -38,7 +38,7 @@ final class MessagingSystemContainerLookupTest extends TestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$console::class], [$console], enabledModules: []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$console], enabledModules: []);
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('Console command `billing:close-year` is not registered. Registered console commands: `ecotone:run`, `ecotone:list`, ');

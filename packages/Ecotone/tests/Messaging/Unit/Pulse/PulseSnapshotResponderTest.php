@@ -222,7 +222,7 @@ final class PulseSnapshotResponderTest extends TestCase
         $channels = $this->channels();
         $orders = $this->orders();
         $orderService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$orders::class, SourcelessPulseRequest::class],
+            classesToResolve: [SourcelessPulseRequest::class],
             containerOrAvailableServices: [$orders],
             extensionObjects: [
                 ...$channels,
@@ -378,7 +378,6 @@ final class PulseSnapshotResponderTest extends TestCase
         );
         $pulseService = $this->pulseService($pulse, $channels);
         $billingService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$billing::class],
             containerOrAvailableServices: [$billing],
             extensionObjects: [...$channels, ServiceConfiguration::createWithDefaults()->withServiceName('billing')],
             enabledModules: [],
@@ -545,7 +544,6 @@ final class PulseSnapshotResponderTest extends TestCase
     private function orderService(object $handlers, array $channels, ?DistributedServiceMap $serviceMap = null): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handlers::class],
             containerOrAvailableServices: [$handlers],
             extensionObjects: [
                 ...$channels,
@@ -562,7 +560,6 @@ final class PulseSnapshotResponderTest extends TestCase
     private function orderServiceWithoutMap(object $handlers, array $channels, PulseConfiguration $pulseConfiguration, ?DistributedServiceMap $serviceMap = null): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handlers::class],
             containerOrAvailableServices: [$handlers],
             extensionObjects: [
                 ...$channels,
@@ -579,7 +576,6 @@ final class PulseSnapshotResponderTest extends TestCase
     private function pulseService(object $handlers, array $channels): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handlers::class],
             containerOrAvailableServices: [$handlers],
             extensionObjects: [
                 ...$channels,

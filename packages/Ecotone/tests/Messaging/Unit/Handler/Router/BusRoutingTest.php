@@ -20,7 +20,7 @@ final class BusRoutingTest extends TestCase
     {
         $handler = new RoutingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RoutingHandler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -37,7 +37,7 @@ final class BusRoutingTest extends TestCase
     {
         $handler = new RoutingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RoutingHandler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -52,7 +52,7 @@ final class BusRoutingTest extends TestCase
     {
         $handler = new RoutingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RoutingHandler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -66,7 +66,7 @@ final class BusRoutingTest extends TestCase
     {
         $handler = new RoutingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RoutingHandler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -81,7 +81,7 @@ final class BusRoutingTest extends TestCase
     {
         $handler = new RoutingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RoutingHandler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -95,7 +95,7 @@ final class BusRoutingTest extends TestCase
     {
         $handler = new CatchAllHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [CatchAllHandler::class],
+            [],
             [$handler],
             enabledModules: [],
         );

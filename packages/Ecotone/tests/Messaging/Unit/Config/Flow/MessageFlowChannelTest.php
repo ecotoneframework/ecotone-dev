@@ -64,7 +64,7 @@ final class MessageFlowChannelTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         foreach (['start' => 'first', 'first' => 'second', 'second' => 'route'] as $from => $to) {
             self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::OUTPUT, 'handler:' . $service::class . '::' . $from, 'channel:chain.' . $to));
@@ -96,7 +96,7 @@ final class MessageFlowChannelTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $splitter = 'handler:batch.splitter';
         self::assertTrue($graph->hasNode($splitter));
@@ -133,7 +133,7 @@ final class MessageFlowChannelTest extends TestCase
                 return $request;
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $orchestrator = 'handler:approval.orchestrator';
         self::assertTrue($graph->hasNode($orchestrator));
@@ -165,7 +165,7 @@ final class MessageFlowChannelTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $transformer = 'handler:order.transformer';
         self::assertTrue($graph->hasNode($transformer));
@@ -202,7 +202,7 @@ final class MessageFlowChannelTest extends TestCase
                 return $request;
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], [SimpleMessageChannelBuilder::createQueueChannel('reviews')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], [SimpleMessageChannelBuilder::createQueueChannel('reviews')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         foreach (['handler:' . $service::class . '::validate' => 'review', 'handler:approval.reviewing' => 'notify'] as $handler => $next) {
             self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::ROUTES_TO, $handler, 'channel:approval.' . $next));
@@ -220,7 +220,7 @@ final class MessageFlowChannelTest extends TestCase
                 return [];
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $id = 'handler:' . $service::class . '::route';
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:optional.route', $id));
@@ -236,7 +236,6 @@ final class MessageFlowChannelTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$service::class],
             containerOrAvailableServices: [$service],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('async.first'),
@@ -264,7 +263,6 @@ final class MessageFlowChannelTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$service::class],
             containerOrAvailableServices: [$service],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('async.first'),
@@ -292,7 +290,6 @@ final class MessageFlowChannelTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$service::class],
             containerOrAvailableServices: [$service],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('async.first'),
@@ -320,7 +317,6 @@ final class MessageFlowChannelTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$service::class],
             containerOrAvailableServices: [$service],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('async.first'),
@@ -354,7 +350,7 @@ final class MessageFlowChannelTest extends TestCase
                 return $payload;
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $scheduled = 'scheduled:scheduled.clock';
         self::assertTrue($graph->hasNode($scheduled));
@@ -379,7 +375,7 @@ final class MessageFlowChannelTest extends TestCase
                 $this->bus->publishWithRouting('scheduled.event', []);
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'scheduled:scheduled.publisher', 'message:scheduled.event'));
         self::assertSame(['inferred' => true, 'via' => 'publishWithRouting'], $edges[0]->attributes);
@@ -395,7 +391,6 @@ final class MessageFlowChannelTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$service::class],
             containerOrAvailableServices: [$service],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('external.delivery')],
             enabledModules: [],
@@ -415,7 +410,6 @@ final class MessageFlowChannelTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$service::class],
             containerOrAvailableServices: [$service],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('unused.queue')],
             enabledModules: [],

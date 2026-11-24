@@ -39,7 +39,7 @@ final class AsynchronousGatewayTest extends TestCase
     public function test_running_async_gateway(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AsyncTicketCreator::class, TicketService::class],
+            [AsyncTicketCreator::class],
             [new TicketService()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -67,7 +67,7 @@ final class AsynchronousGatewayTest extends TestCase
     public function test_running_async_gateway_inside_async_gateway(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AsyncTicketCreator::class, TicketService::class],
+            [AsyncTicketCreator::class],
             [new TicketService()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -93,7 +93,7 @@ final class AsynchronousGatewayTest extends TestCase
     public function test_extending_command_bus_with_async_functionality(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AsyncCommandBus::class, TicketService::class],
+            [AsyncCommandBus::class],
             [new TicketService()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -118,7 +118,7 @@ final class AsynchronousGatewayTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [AsyncTicketCreator::class, TicketService::class],
+            [AsyncTicketCreator::class],
             [new TicketService()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],

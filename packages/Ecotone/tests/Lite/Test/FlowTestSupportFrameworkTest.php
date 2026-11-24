@@ -24,7 +24,7 @@ final class FlowTestSupportFrameworkTest extends TestCase
     public function test_collecting_commands_routing(): void
     {
         $flowSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class],
+            [],
             [new OrderService()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: []

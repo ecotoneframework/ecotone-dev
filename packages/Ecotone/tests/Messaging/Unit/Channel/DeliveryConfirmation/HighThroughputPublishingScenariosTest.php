@@ -100,7 +100,7 @@ final class HighThroughputPublishingScenariosTest extends TestCase
     {
         $operationsLog = new OperationsLog();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
+            [FakeTransactionModule::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
             extensionObjects: [
                 GlobalPollableChannelConfiguration::createWithDefaults()->withErrorChannel('failure_channel'),
@@ -131,7 +131,7 @@ final class HighThroughputPublishingScenariosTest extends TestCase
     {
         $operationsLog = new OperationsLog();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
+            [FakeTransactionModule::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
             extensionObjects: [
                 GlobalPollableChannelConfiguration::createWithDefaults()->withErrorChannel('failure_channel'),
@@ -158,7 +158,7 @@ final class HighThroughputPublishingScenariosTest extends TestCase
     private function bootstrapEcotone(OperationsLog $operationsLog): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, AsyncOrderSubscriber::class, AsyncOrderForwarder::class, FakeTransactionModule::class],
+            [FakeTransactionModule::class],
             [
                 new OrderService($operationsLog),
                 new AsyncOrderSubscriber(),

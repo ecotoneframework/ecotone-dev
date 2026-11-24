@@ -78,7 +78,7 @@ final class ConsumerTimeLimitTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$registry::class],
+            [],
             [$registry, ClockInterface::class => $clock],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],

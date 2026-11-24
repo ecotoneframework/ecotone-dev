@@ -22,7 +22,7 @@ final class MessageFlowSyntaxTest extends TestCase
         $service = new class () {
             use HandlerTraitForFlow;
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . SyntaxEventForFlow::class));
     }
@@ -31,7 +31,7 @@ final class MessageFlowSyntaxTest extends TestCase
     {
         $service = new class () extends HandlerParentForFlow {
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . SyntaxEventForFlow::class));
     }
@@ -52,7 +52,7 @@ final class MessageFlowSyntaxTest extends TestCase
                 $bus->publish(new OtherSyntaxEventForFlow());
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$first::class, $second::class], [$first, $second], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$first, $second], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertSame(['message:' . SyntaxEventForFlow::class], array_column($graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $first::class . '::handle'), 'to'));
         self::assertSame(['message:' . OtherSyntaxEventForFlow::class], array_column($graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $second::class . '::handle'), 'to'));
@@ -71,7 +71,7 @@ final class MessageFlowSyntaxTest extends TestCase
                 $publish();
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle'));
         self::assertSame('message:' . SyntaxEventForFlow::class, $edges[0]->to);
@@ -87,7 +87,7 @@ final class MessageFlowSyntaxTest extends TestCase
                 $bus->publish(new SyntaxEventForFlow(str_replace('(', ')', 'new -> (')));
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle'));
         self::assertSame('message:' . SyntaxEventForFlow::class, $edges[0]->to);
@@ -97,7 +97,7 @@ final class MessageFlowSyntaxTest extends TestCase
     {
         $service = new class () extends SelfEventForFlow {
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertEqualsCanonicalizing(['message:' . SelfEventForFlow::class, 'message:' . $service::class], array_column($graph->edgesOfKind(FlowEdgeKind::EMITS), 'to'));
     }

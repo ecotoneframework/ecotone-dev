@@ -156,7 +156,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class, CoroutineOrderGateway::class],
+            [CoroutineOrderGateway::class],
             [$handler, DbalConnectionFactory::class => $factory],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), SimpleMessageChannelBuilder::createQueueChannel('senders'), DbalConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -199,7 +199,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), PollingMetadata::create('async')->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -248,7 +248,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf($database))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), PollingMetadata::create('async')->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -285,7 +285,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), PollingMetadata::create('async')->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -323,7 +323,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), PollingMetadata::create('async')->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -353,7 +353,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -399,7 +399,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
             extensionObjects: [
                 CoroutineMessageChannelBuilder::create('async'),
@@ -445,7 +445,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $beforeTheDeployment = EcotoneLite::bootstrapFlowTesting(
-            [$storing::class],
+            [],
             [$storing, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -454,7 +454,7 @@ final class CoroutineMessageChannelTest extends TestCase
         $beforeTheDeployment->getGateway(DeadLetterGateway::class)->deleteAll();
         CoroutineTesting::runAtOnce(static fn () => $beforeTheDeployment->sendCommandWithRouting('handle', 'payload'));
         $deadLetter = EcotoneLite::bootstrapFlowTesting(
-            [$retrying::class],
+            [],
             [$retrying, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -488,7 +488,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false), ErrorHandlerConfiguration::createWithDeadLetterChannel('retried', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1), DbalDeadLetterBuilder::STORE_CHANNEL)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -542,7 +542,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => $factory],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(2), DbalConfiguration::createWithDefaults(), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -600,7 +600,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => $factory],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -653,7 +653,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => $factory],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults(), InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(false)],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -694,7 +694,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1), DbalConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -728,7 +728,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, 'tenant_a_connection' => $a, 'tenant_b_connection' => $b],
             extensionObjects: [CoroutineMessageChannelBuilder::create('async'), DbalConfiguration::createWithDefaults()->withDeduplication(false), MultiTenantConfiguration::create(tenantHeaderName: 'tenant', tenantToConnectionMapping: ['a' => 'tenant_a_connection', 'b' => 'tenant_b_connection'])],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],

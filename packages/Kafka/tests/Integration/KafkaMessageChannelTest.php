@@ -163,7 +163,7 @@ final class KafkaMessageChannelTest extends TestCase
         $channelName = 'async';
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [KafkaAsyncCommandHandler::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
                     'wronghost:9092',
@@ -329,7 +329,7 @@ final class KafkaMessageChannelTest extends TestCase
     public function prepareAsyncCommandHandler(string $channelName, ?string $topicName = null): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [KafkaAsyncCommandHandler::class, Calendar::class, MeetingHistory::class],
+            [Calendar::class],
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
                     getenv('KAFKA_DSN') ?? 'localhost:9094',
@@ -347,7 +347,7 @@ final class KafkaMessageChannelTest extends TestCase
     public function prepareAsyncEventHandler(string $channelName): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [KafkaAsyncEventHandler::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new KafkaAsyncEventHandler(),
             ],
@@ -395,7 +395,7 @@ final class KafkaMessageChannelTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler1::class, $handler2::class],
+            [],
             [
                 $handler1,
                 $handler2,
@@ -567,7 +567,7 @@ final class KafkaMessageChannelTest extends TestCase
 
         // Publisher service
         $publisherService = EcotoneLite::bootstrapFlowTesting(
-            [$publisher::class],
+            [],
             [
                 $publisher,
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
@@ -583,7 +583,7 @@ final class KafkaMessageChannelTest extends TestCase
 
         // Consumer service 1
         $consumerService1 = EcotoneLite::bootstrapFlowTesting(
-            [$consumer1::class],
+            [],
             [
                 $consumer1,
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
@@ -598,7 +598,7 @@ final class KafkaMessageChannelTest extends TestCase
 
         // Consumer service 2
         $consumerService2 = EcotoneLite::bootstrapFlowTesting(
-            [$consumer2::class],
+            [],
             [
                 $consumer2,
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),

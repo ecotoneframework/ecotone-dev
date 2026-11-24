@@ -73,7 +73,7 @@ final class BlueGreenStreamingProjectionTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$v1::class, $v2::class, BlueGreenUserCreated::class],
+            [BlueGreenUserCreated::class],
             [$v1, $v2, ConsumerPositionTracker::class => $positionTracker],
             extensionObjects: [SimpleMessageChannelBuilder::createStreamingChannel('streaming_channel', conversionMediaType:MediaType::createApplicationXPHP())],
             enabledModules: [],

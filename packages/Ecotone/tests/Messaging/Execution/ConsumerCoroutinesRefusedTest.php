@@ -284,7 +284,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
             }
         };
 
-        return EcotoneLite::bootstrapFlowTesting([$reports::class], [$reports], extensionObjects: array_values(array_filter([$pollingMetadata])));
+        return EcotoneLite::bootstrapFlowTesting([], [$reports], extensionObjects: array_values(array_filter([$pollingMetadata])));
     }
 
     private function requireNoCoroutineRuntime(): void
@@ -326,7 +326,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$shipments::class],
+            [],
             [$shipments],
             extensionObjects: array_values(array_filter([
                 $dynamicChannel ?? DynamicMessageChannelBuilder::createRoundRobin('shipments', ['shipments_of_tenant']),
@@ -358,7 +358,7 @@ final class ConsumerCoroutinesRefusedTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$shipments::class],
+            [],
             [$shipments],
             extensionObjects: array_values(array_filter([$channel ?? SimpleMessageChannelBuilder::createQueueChannel('shipments'), $pollingMetadata])),
         );

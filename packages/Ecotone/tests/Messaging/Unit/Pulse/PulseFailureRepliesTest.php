@@ -178,7 +178,6 @@ final class PulseFailureRepliesTest extends TestCase
     private function service(object $handlers, array $extensionObjects, string $serviceName): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handlers::class],
             containerOrAvailableServices: [$handlers],
             extensionObjects: [...$extensionObjects, ServiceConfiguration::createWithDefaults()->withServiceName($serviceName)],
             enabledModules: [],

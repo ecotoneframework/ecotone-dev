@@ -159,7 +159,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
         $receiver = $this->newReceiver();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [TenantClosurePoller::class, $receiver::class],
+            [],
             [$poller, $receiver, 'tenant_a_connection' => new FakeConnectionFactory()],
             extensionObjects: [
                 PollingMetadata::create('externalEventPoller')->withExecutionAmountLimit(1)->withHandledMessageLimit(1),

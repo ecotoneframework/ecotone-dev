@@ -41,7 +41,7 @@ final class InterfaceTypedPayloadTest extends TestCase
                 $this->received[] = $event;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$listener::class], [$listener], [$this->serialisingAsyncChannel()], [ModulePackageList::JMS_CONVERTER_PACKAGE]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$listener], [$this->serialisingAsyncChannel()], [ModulePackageList::JMS_CONVERTER_PACKAGE]);
 
         $ecotone
             ->publishEvent(new ProductAddedToBasket('basket-1', 'product-1'))
@@ -101,7 +101,7 @@ final class InterfaceTypedPayloadTest extends TestCase
                 $this->received[] = $event;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([EventSourcedBasket::class, $projection::class], [$projection]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([EventSourcedBasket::class], [$projection]);
 
         $ecotone->sendCommandWithRouting('eventSourcedBasket.addProduct', ['basketId' => 'basket-1', 'productId' => 'product-1']);
 
@@ -117,7 +117,7 @@ final class InterfaceTypedPayloadTest extends TestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$listener::class], [$listener], [$this->serialisingAsyncChannel()], [ModulePackageList::JMS_CONVERTER_PACKAGE]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$listener], [$this->serialisingAsyncChannel()], [ModulePackageList::JMS_CONVERTER_PACKAGE]);
         $ecotone->publishEventWithRouting('basket.changed', ['basketId' => 'basket-1', 'productId' => 'product-1']);
 
         $this->expectException(MethodInvocationException::class);

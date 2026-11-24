@@ -40,7 +40,7 @@ final class DecisionModelArrayTagTest extends TestCase
         $handler = new ReserveSeatHandlerForArrayTagTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, SeatReservationForArrayTagTest::class, SeatsReservedForArrayTagTest::class],
+            classesToResolve: [SeatReservationForArrayTagTest::class, SeatsReservedForArrayTagTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],

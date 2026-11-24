@@ -172,7 +172,6 @@ final class GatheredPartOutcomeRecordingTest extends DbalMessagingTestCase
             }
         };
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, ...($dbal ? [DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))] : [])],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),

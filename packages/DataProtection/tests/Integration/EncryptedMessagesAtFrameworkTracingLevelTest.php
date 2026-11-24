@@ -42,7 +42,7 @@ final class EncryptedMessagesAtFrameworkTracingLevelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class, OrderWithCardNumber::class],
+            [OrderWithCardNumber::class],
             [$orders],
             [
                 DataProtectionConfiguration::create('primary', Key::createNewRandomKey()),

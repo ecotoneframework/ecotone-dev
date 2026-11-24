@@ -24,7 +24,7 @@ final class AsynchronousChannelsInFlowTestsTest extends TestCase
     {
         $handler = $this->notificationHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -50,7 +50,7 @@ final class AsynchronousChannelsInFlowTestsTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -77,7 +77,7 @@ final class AsynchronousChannelsInFlowTestsTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async', delayable:false)],
             enabledModules: [],
@@ -96,7 +96,7 @@ final class AsynchronousChannelsInFlowTestsTest extends TestCase
         $this->expectExceptionMessage('Registered asynchronous endpoint `notifyAboutOrder`, however channel configuration for `notifications` was not provided.');
 
         EcotoneLite::bootstrap(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );

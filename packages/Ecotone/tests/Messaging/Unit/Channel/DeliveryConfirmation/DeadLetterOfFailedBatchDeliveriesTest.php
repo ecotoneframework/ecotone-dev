@@ -50,7 +50,7 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
     {
         $operationsLog = new OperationsLog();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, AsyncOrderSubscriber::class],
+            [],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
             extensionObjects: [
                 PollableChannelConfiguration::create('async_orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build())->withErrorChannel('dead_letters'),
@@ -78,7 +78,7 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
         $operationsLog = new OperationsLog();
 
         return EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class],
+            [],
             [new OrderService($operationsLog), OperationsLog::class => $operationsLog],
             extensionObjects: [
                 PollableChannelConfiguration::create('async_orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build())->withErrorChannel('dead_letters'),

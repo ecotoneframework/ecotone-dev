@@ -38,7 +38,7 @@ final class MessageFlowDecisionTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$service::class, DecisionEventForFlow::class],
+            classesToResolve: [DecisionEventForFlow::class],
             containerOrAvailableServices: [$service],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -59,7 +59,7 @@ final class MessageFlowDecisionTest extends TestCase
             }
         };
         $graph = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$service::class, DecisionStateForFlow::class, DecisionEventForFlow::class],
+            classesToResolve: [DecisionStateForFlow::class, DecisionEventForFlow::class],
             containerOrAvailableServices: [$service],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],

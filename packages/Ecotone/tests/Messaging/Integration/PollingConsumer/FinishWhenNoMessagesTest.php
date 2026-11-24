@@ -190,7 +190,7 @@ final class FinishWhenNoMessagesTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$scheduler::class],
+            [],
             [$scheduler],
             enabledModules: [],
             initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
@@ -225,7 +225,7 @@ final class FinishWhenNoMessagesTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
+            [],
             [$projection],
             enabledModules: [],
             initialTime: new DateTimeImmutable('2026-01-01 00:00:00'),
@@ -276,7 +276,7 @@ final class FinishWhenNoMessagesTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$consumer::class],
+            [],
             [$consumer],
             extensionObjects: array_filter([SimpleMessageChannelBuilder::createQueueChannel('async'), $pollingMetadata]),
             enabledModules: [],

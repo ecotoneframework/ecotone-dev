@@ -71,7 +71,6 @@ class HeaderConversionTest extends TestCase
         $playground = new Playground();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [Playground::class],
             containerOrAvailableServices: [$playground],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),

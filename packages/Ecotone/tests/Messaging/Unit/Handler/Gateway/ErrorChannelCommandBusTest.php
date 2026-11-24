@@ -55,7 +55,7 @@ final class ErrorChannelCommandBusTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [TicketService::class, ErrorChannelCommandBus::class],
+            [ErrorChannelCommandBus::class],
             [new TicketService()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
@@ -68,7 +68,7 @@ final class ErrorChannelCommandBusTest extends TestCase
     public function test_using_custom_error_channel_on_gateway(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [TicketService::class, ErrorChannelCommandBus::class],
+            [ErrorChannelCommandBus::class],
             [new TicketService()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
@@ -108,7 +108,7 @@ final class ErrorChannelCommandBusTest extends TestCase
     public function test_using_custom_error_channel_with_reply_channel(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [TicketService::class, ErrorChannelWithAsyncChannel::class],
+            [ErrorChannelWithAsyncChannel::class],
             [new TicketService()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
@@ -156,7 +156,7 @@ final class ErrorChannelCommandBusTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$service::class],
+            [],
             [$service],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('handlerLevelErrorChannel')],
             enabledModules: [],
@@ -193,7 +193,7 @@ final class ErrorChannelCommandBusTest extends TestCase
         $this->expectExceptionMessage('#[DelayedRetry]');
 
         EcotoneLite::bootstrapFlowTesting(
-            [TicketService::class, DelayedRetryCommandBus::class],
+            [DelayedRetryCommandBus::class],
             [new TicketService()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
@@ -209,7 +209,7 @@ final class ErrorChannelCommandBusTest extends TestCase
         $generatedRetryChannel = DelayedRetry::generateGatewayChannelName(DelayedRetryCommandBus::class);
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [TicketService::class, DelayedRetryCommandBus::class],
+            [DelayedRetryCommandBus::class],
             [new TicketService()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),

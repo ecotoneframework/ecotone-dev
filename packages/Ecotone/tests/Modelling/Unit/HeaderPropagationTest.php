@@ -27,7 +27,7 @@ final class HeaderPropagationTest extends TestCase
     public function test_will_provide_propagate_correlation_id_header()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class],
+            [],
             [new OrderService()],
             enabledModules: [],
         );
@@ -52,7 +52,7 @@ final class HeaderPropagationTest extends TestCase
     public function test_will_provide_message_parent_id_if_message_id_have_changed()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class],
+            [],
             [new OrderService()],
             enabledModules: [],
         );
@@ -74,7 +74,7 @@ final class HeaderPropagationTest extends TestCase
     public function test_will_not_provide_message_parent_id_if_message_id_is_same()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class],
+            [],
             [new OrderService()],
             enabledModules: [],
         );
@@ -96,7 +96,7 @@ final class HeaderPropagationTest extends TestCase
     public function test_will_propagate_custom_message_gateway()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, PropagatingGateway::class, PropagatingOrderService::class],
+            [PropagatingGateway::class],
             [new OrderService(), new PropagatingOrderService()],
             enabledModules: [],
         );
@@ -113,7 +113,7 @@ final class HeaderPropagationTest extends TestCase
     public function test_will_not_propagate_when_propagation_of_message_gateway_is_disabled()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, PropagatingGateway::class, PropagatingOrderService::class],
+            [PropagatingGateway::class],
             [new OrderService(), new PropagatingOrderService()],
             enabledModules: [],
         );
@@ -130,7 +130,7 @@ final class HeaderPropagationTest extends TestCase
     public function test_interceptors_which_do_not_propagate_do_not_affect_event_bus_propagation()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, FakeLoggingService::class, FakeLoggingGateway::class, PropagatingGateway::class],
+            [FakeLoggingGateway::class, PropagatingGateway::class],
             [new OrderService(), new FakeLoggingService()],
             enabledModules: [],
         );

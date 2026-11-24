@@ -144,7 +144,6 @@ final class PulseChannelDepthTest extends ConnectionTestCase
         };
         $channels = [SimpleMessageChannelBuilder::createQueueChannel('order_channel'), SimpleMessageChannelBuilder::createQueueChannel('pulse_channel')];
         $this->orderService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$orders::class],
             containerOrAvailableServices: [self::getConnection(), $orders],
             extensionObjects: [
                 ...$channels,

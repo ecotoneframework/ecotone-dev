@@ -42,7 +42,7 @@ final class ServiceActivatorAttributeTest extends TestCase
     public function test_around_interceptor_chain_wraps_the_endpoint_by_ascending_precedence(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [MathHandler::class, MathInterceptors::class],
+            [],
             [new MathHandler(), new MathInterceptors(2)],
             enabledModules: [],
         );

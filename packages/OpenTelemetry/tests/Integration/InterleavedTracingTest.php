@@ -108,7 +108,7 @@ final class InterleavedTracingTest extends TracingTestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$handlers::class],
+            [],
             [$handlers, TracerProviderInterface::class => self::prepareTracer($exporter)],
             extensionObjects: [OpenTelemetryConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],

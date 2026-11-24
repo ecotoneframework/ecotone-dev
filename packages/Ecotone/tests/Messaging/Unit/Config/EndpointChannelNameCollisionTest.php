@@ -22,7 +22,7 @@ final class EndpointChannelNameCollisionTest extends TestCase
         $this->expectException(ConfigurationException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [CollidingEndpointIdHandler::class],
+            [],
             [new CollidingEndpointIdHandler()],
             extensionObjects: [SimpleMessageChannelBuilder::createDirectMessageChannel(CollidingEndpointIdHandler::ENDPOINT_ID)],
             enabledModules: [],
@@ -34,7 +34,7 @@ final class EndpointChannelNameCollisionTest extends TestCase
         $this->expectException(ConfigurationException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [SameChannelAndEndpointIdHandler::class],
+            [],
             [new SameChannelAndEndpointIdHandler()],
             enabledModules: [],
         );

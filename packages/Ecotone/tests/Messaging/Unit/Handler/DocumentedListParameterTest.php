@@ -25,7 +25,7 @@ final class DocumentedListParameterTest extends TestCase
     {
         $handler = $this->listRecordingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -39,7 +39,7 @@ final class DocumentedListParameterTest extends TestCase
     {
         $handler = $this->listRecordingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -53,7 +53,7 @@ final class DocumentedListParameterTest extends TestCase
     {
         $handler = $this->listRecordingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -67,7 +67,7 @@ final class DocumentedListParameterTest extends TestCase
     {
         $handler = $this->listRecordingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -93,7 +93,7 @@ final class DocumentedListParameterTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class, OrderTagging::class],
+            [OrderTagging::class],
             [$handler],
             enabledModules: [],
         );
@@ -119,7 +119,7 @@ final class DocumentedListParameterTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
@@ -139,7 +139,7 @@ final class DocumentedListParameterTest extends TestCase
     {
         $handler = new DocumentedListElementRecorder();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -154,7 +154,7 @@ final class DocumentedListParameterTest extends TestCase
         $handler = new DocumentedListElementRecorder();
         $converter = $this->elementConverter();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class, $converter::class],
+            [],
             [$handler, $converter],
             enabledModules: [],
         );
@@ -169,7 +169,7 @@ final class DocumentedListParameterTest extends TestCase
         $handler = new DocumentedListElementRecorder();
         $converter = $this->elementConverter();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class, $converter::class],
+            [],
             [$handler, $converter],
             enabledModules: [],
         );

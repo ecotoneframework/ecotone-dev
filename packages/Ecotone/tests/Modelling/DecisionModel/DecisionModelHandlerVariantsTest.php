@@ -47,7 +47,7 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $handler = new HandlerWithReferenceForVariantsTest($counter);
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [HandlerWithReferenceForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
+            classesToResolve: [CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
             containerOrAvailableServices: [$handler, $counter],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -67,7 +67,7 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $handler = new HandlerWithReferenceForVariantsTest($counter);
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [HandlerWithReferenceForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
+            classesToResolve: [CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
             containerOrAvailableServices: [$handler, $counter],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -84,7 +84,7 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $handler = new AsyncHandlerForVariantsTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [AsyncHandlerForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
+            classesToResolve: [CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -105,7 +105,7 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $handler = new EventHandlerWithModelForVariantsTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class, CourseOpenedForVariantsTest::class],
+            classesToResolve: [CourseForVariantsTest::class, ItemAddedForVariantsTest::class, CourseOpenedForVariantsTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -124,7 +124,7 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $handler = new QueryHandlerForVariantsTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [QueryHandlerForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class, GetItemCountForVariantsTest::class],
+            classesToResolve: [CourseForVariantsTest::class, ItemAddedForVariantsTest::class, GetItemCountForVariantsTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -144,7 +144,7 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $handler = new OutputChannelHandlerForVariantsTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [OutputChannelHandlerForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
+            classesToResolve: [CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [
                 DynamicConsistencyBoundaryConfiguration::createWithDefaults(),

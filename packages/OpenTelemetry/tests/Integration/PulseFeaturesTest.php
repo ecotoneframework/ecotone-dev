@@ -84,7 +84,6 @@ final class PulseFeaturesTest extends TestCase
         };
         $channels = [SimpleMessageChannelBuilder::createQueueChannel('order_channel'), SimpleMessageChannelBuilder::createQueueChannel('pulse_channel')];
         $orderService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handlers::class],
             containerOrAvailableServices: [$handlers, ...$services],
             extensionObjects: [
                 ...$channels,
@@ -98,7 +97,6 @@ final class PulseFeaturesTest extends TestCase
             initialTime: new DateTimeImmutable('2026-11-22 10:00:00'),
         );
         $pulseService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$pulse::class],
             containerOrAvailableServices: [$pulse],
             extensionObjects: [
                 ...$channels,

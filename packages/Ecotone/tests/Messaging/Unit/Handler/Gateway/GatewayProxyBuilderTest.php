@@ -70,7 +70,7 @@ class GatewayProxyBuilderTest extends MessagingTestCase
     public function test_running_gateway(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [TicketCreator::class, TicketService::class],
+            [TicketCreator::class],
             [new TicketService()],
             enabledModules: [],
         );

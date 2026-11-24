@@ -83,7 +83,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = [$payload, Coroutine::getCid(), getmypid()];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
         $sender = 0;
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone, &$sender): void {
@@ -109,7 +109,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
 
@@ -134,7 +134,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
 
         $refusal = null;
         try {
@@ -160,7 +160,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handledOn[] = Coroutine::getCid();
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
         $sender = 0;
         $handledWhenTheSendReturned = [];
 
@@ -202,7 +202,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
 
         $failure = null;
         CoroutineTesting::runAtOnce(static function () use ($ecotone, &$failure): void {
@@ -253,7 +253,7 @@ final class CoroutineMessageChannelTest extends TestCase
         $default = CoroutineMessageChannelBuilder::create('async');
         $default->withCoroutines(1);
         $limited = $limit === CoroutineMessageChannelBuilder::DEFAULT_COROUTINES ? $default : $default->withCoroutines($limit);
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [$limited], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [$limited], licenceKey: LicenceTesting::VALID_LICENCE);
         $saturation = [];
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone, $handler, $limit, $messages, &$saturation): void {
@@ -309,7 +309,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, 'logger' => $logger], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler, 'logger' => $logger], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
             $ecotone->sendCommandWithRouting('handle', 'failed', metadata: ['tenant' => 'failed-tenant']);
@@ -345,7 +345,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 }
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, 'logger' => $logger], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler, 'logger' => $logger], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
             $ecotone->sendCommandWithRouting('handle', 'rejected');
@@ -401,7 +401,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = [$payload, $clock->now()->format('Y-m-d H:i:s.u')];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-03-01 12:00:00'));
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-03-01 12:00:00'));
         $waitsBeforeHandling = [];
         $ecotone->whenWaiting(static function (DateTimeImmutable $now) use ($ecotone, $handler, &$waitsBeforeHandling): void {
             if ($handler->handled === []) {
@@ -433,7 +433,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = [$payload, $clock->now()->format('Y-m-d H:i:s.u')];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-03-01 12:00:00'));
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-03-01 12:00:00'));
         $ecotone->whenWaiting(static function (DateTimeImmutable $now) use ($ecotone): void {
             $ecotone->changeTimeTo($now);
         });
@@ -456,7 +456,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->steps[] = 'handled';
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone, $handler): void {
             $ecotone->sendCommandWithRouting('handle', 'payload');
@@ -485,7 +485,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $command = new CoroutineChannelCommand(static fn () => 'not serializable');
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommand($command));
 
@@ -514,7 +514,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class, CoroutineChannelGateway::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([CoroutineChannelGateway::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
         $failure = null;
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone, $handler, &$failure): void {
@@ -548,7 +548,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 1)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(true, 1)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
 
@@ -574,7 +574,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->failures[] = [$payload, $exception, $tenant];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload', metadata: ['tenant' => 'failed-tenant']));
 
@@ -599,7 +599,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->failures[] = [$payload, $exception, $tenant];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), PollingMetadata::create('async')->withErrorChannelName('failures'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), PollingMetadata::create('async')->withErrorChannelName('failures'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload', metadata: ['tenant' => 'failed-tenant']));
 
@@ -628,7 +628,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $clock->now()->format('Y-m-d H:i:s.u');
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-03-01 12:00:00'));
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-03-01 12:00:00'));
         $ecotone->whenWaiting(static function (DateTimeImmutable $now) use ($ecotone): void {
             $ecotone->changeTimeTo($now);
         });
@@ -666,7 +666,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 1)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 1)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('send', 'payload'));
 
@@ -706,7 +706,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 1)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 1)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('outer', 'payload'));
 
@@ -734,7 +734,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
         $failure = null;
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone, &$failure): void {
@@ -772,7 +772,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $flow = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $flow = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $flow->runConsoleCommand('send.coroutine'));
 
@@ -801,7 +801,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, ClockInterface::class => $clock], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler, ClockInterface::class => $clock], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
         $warnings = [];
         set_error_handler(static function (int $level, string $warning) use (&$warnings): bool {
             $warnings[] = $warning;
@@ -845,7 +845,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, ClockInterface::class => $clock], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler, ClockInterface::class => $clock], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnceWithHooks(
             0,
@@ -882,7 +882,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = [$payload, $sleep];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, SleepInterface::class => $sleep], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler, SleepInterface::class => $sleep], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 'payload'));
 
@@ -909,7 +909,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->stops++;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(2)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(2)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
             $ecotone->sendCommandWithRouting('handle', 'first');
@@ -944,7 +944,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->stopped[] = $endpointId;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), SimpleMessageChannelBuilder::createQueueChannel('queue')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), SimpleMessageChannelBuilder::createQueueChannel('queue')], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
             $ecotone->sendCommandWithRouting('handle', 'payload');
@@ -975,7 +975,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), SimpleMessageChannelBuilder::createQueueChannel('senders'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), SimpleMessageChannelBuilder::createQueueChannel('senders'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
         $ecotone->sendCommandWithRouting('send', 'payload');
 
         $failure = null;
@@ -1080,7 +1080,7 @@ final class CoroutineMessageChannelTest extends TestCase
         $class = $handler::class;
         $this->expectExceptionMessage("Coroutine message channel `async` cannot be chained with other channels in #[Asynchronous([{$chain}])] on handler `{$class}::handle` (endpoint `handle.endpoint`): it hands the message over inside the sending process, without the serialisation and acknowledgement a chain of channels relies on. List only `async` in #[Asynchronous], or use channels consumed with ecotone:run for the whole chain.");
 
-        EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), SimpleMessageChannelBuilder::createQueueChannel('queue')], licenceKey: LicenceTesting::VALID_LICENCE);
+        EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), SimpleMessageChannelBuilder::createQueueChannel('queue')], licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
     public static function channel_chains(): array
@@ -1118,7 +1118,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[] = $payload;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
         $signalsReceivedByTheApplication = 0;
         $asyncSignalsBefore = pcntl_async_signals(true);
         $handlerBefore = pcntl_signal_get_handler(SIGTERM);
@@ -1152,7 +1152,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 }
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(1)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('handle', 1));
 
@@ -1201,7 +1201,7 @@ final class CoroutineMessageChannelTest extends TestCase
         $class = $handler::class;
         $this->expectExceptionMessage("Coroutine message channel `async` does not support #[{$attribute}] on handler `{$class}::handle` (endpoint `handle.endpoint`): {$reason} Remove #[{$attribute}] from this handler, or use a channel that honours it.");
 
-        EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
+        EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async')], licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
     public static function unsupported_delivery_attributes(): array
@@ -1281,7 +1281,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 throw new RuntimeException('second failed');
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler, 'logger' => $logger], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(2), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler, 'logger' => $logger], extensionObjects: [CoroutineMessageChannelBuilder::create('async')->withCoroutines(2), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone): void {
             $ecotone->sendCommandWithRouting('first', 'payload', metadata: ['tenant' => 'a']);
@@ -1700,7 +1700,7 @@ final class CoroutineMessageChannelTest extends TestCase
             {
             }
         };
-        return EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), ...$extensions], licenceKey: LicenceTesting::VALID_LICENCE);
+        return EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('async'), ...$extensions], licenceKey: LicenceTesting::VALID_LICENCE);
     }
 }
 

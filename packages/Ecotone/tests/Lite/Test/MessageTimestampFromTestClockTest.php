@@ -37,7 +37,7 @@ final class MessageTimestampFromTestClockTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$service::class], [$service]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$service]);
         $ecotone->changeTimeTo(new DateTimeImmutable('2026-03-01 13:00:00'));
 
         $ecotone->run('tick', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 0));
@@ -57,7 +57,7 @@ final class MessageTimestampFromTestClockTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$service::class], [$service]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$service]);
         $ecotone->changeTimeTo(new DateTimeImmutable('2026-03-01 13:00:00'));
 
         $ecotone->sendDirectToChannel('handle', 'payload');

@@ -52,7 +52,6 @@ final class GatheringTimeoutTest extends TestCase
 
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, 'queue' => new QueueManager(new Container())],
             extensionObjects: [LaravelQueueMessageChannelBuilder::create('summaries', connectionName: 'testing')],
             enabledModules: [],

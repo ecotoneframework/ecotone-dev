@@ -34,7 +34,6 @@ use Ecotone\Api\Lite\EcotoneLite;
 
 // Standard testing
 $ecotone = EcotoneLite::bootstrapFlowTesting(
-    classesToResolve: [MyHandler::class],
     containerOrAvailableServices: [new MyHandler()],
 );
 
@@ -67,7 +66,6 @@ public function test_handling_command(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class],
         containerOrAvailableServices: [$handler],
     );
 
@@ -127,7 +125,6 @@ different one (e.g. `SimpleMessageChannelBuilder::createQueueChannel('x', delaya
 public function test_async_handler(): void
 {
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [NotificationHandler::class],
         containerOrAvailableServices: [new NotificationHandler()],
     );
 
@@ -259,7 +256,6 @@ public function test_with_service_dependency(): void
     $mailer = new InMemoryMailer();
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [OrderHandler::class],
         containerOrAvailableServices: [
             new OrderHandler($mailer),
             OrderRepository::class => new InMemoryOrderRepository(),
@@ -275,7 +271,7 @@ public function test_with_service_dependency(): void
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| "It is handled by X::y(), which is not registered in this Ecotone Lite bootstrap" | Handler class not in `classesToResolve` | Add the named class, or `ServiceConfiguration::withNamespaces([...])` |
+| "It is handled by X::y(), which is not registered in this Ecotone Lite bootstrap" | Handler not passed to the bootstrap | Pass its instance in `containerOrAvailableServices` (an aggregate: add its class to `classesToResolve`), or `ServiceConfiguration::withNamespaces([...])` |
 | "No Command Handler is registered for it in this Ecotone Lite bootstrap" | No handler exists | Add the attribute the message names |
 | "Service not found in container" | Missing dependency | Add to `containerOrAvailableServices` |
 | Message not processed | Async handler not run, or delay not reached | Call `$ecotone->run('channelName')`; move time with `advanceTimeBy()` first |
@@ -289,10 +285,12 @@ public function test_with_service_dependency(): void
 ## Rules
 
 ### 1. Boot the application with `EcotoneLite::bootstrapFlowTesting()`
-List the classes under test in `classesToResolve` and pass their instances, with any test doubles they depend on, in
-`containerOrAvailableServices`; drive them through `sendCommand()`, `publishEvent()` and `sendQuery()`.
-- **Expected:** the test calls `EcotoneLite::bootstrapFlowTesting()` with the handler or aggregate class in
-  `classesToResolve` and the handler instance (holding its stubbed dependency) in `containerOrAvailableServices`, and
+Pass the services under test as instances, with any test doubles they depend on, in `containerOrAvailableServices`:
+a service passed there without a key is registered with its handlers, so its class is not repeated. List in
+`classesToResolve` only the classes you have no instance of: aggregates, sagas and interfaces. A service passed under
+a name (`'mailer' => $mailer`) is a plain dependency and its attributes are not read. Drive them through `sendCommand()`, `publishEvent()` and `sendQuery()`.
+- **Expected:** the test calls `EcotoneLite::bootstrapFlowTesting()` with the handler instance (holding its stubbed
+  dependency) in `containerOrAvailableServices` and any aggregate class in `classesToResolve`, and
   sends messages through the returned support object instead of calling handler methods directly.
 - **Verified by:** `eval:ticket-lifecycle`
 

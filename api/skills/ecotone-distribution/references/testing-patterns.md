@@ -23,7 +23,6 @@ public function test_distributed_command_handling(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class],
         containerOrAvailableServices: [$handler],
     );
 
@@ -51,7 +50,6 @@ public function test_distributed_event_publishing(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$listener::class],
         containerOrAvailableServices: [$listener],
     );
 

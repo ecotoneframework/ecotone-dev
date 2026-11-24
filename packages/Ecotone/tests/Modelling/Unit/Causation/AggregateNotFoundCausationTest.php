@@ -55,7 +55,7 @@ final class AggregateNotFoundCausationTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$order::class, $walletCharging::class, $wallet::class],
+            [$order::class, $wallet::class],
             [$walletCharging],
             enabledModules: [],
         );

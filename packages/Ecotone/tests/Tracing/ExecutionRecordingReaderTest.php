@@ -45,7 +45,7 @@ final class ExecutionRecordingReaderTest extends TracingTestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$ordering::class],
+            [],
             [$ordering],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)],
             enabledModules: [],

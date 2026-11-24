@@ -90,7 +90,7 @@ final class WaitingOnTestClockTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
             testConfiguration: $testConfiguration,

@@ -92,11 +92,6 @@ class ConversionServiceTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [
-                $converterOne::class,
-                $converterTwo::class,
-                $converterThree::class,
-            ],
             containerOrAvailableServices: [
                 $converterOne,
                 $converterTwo,

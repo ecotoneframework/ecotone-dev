@@ -25,7 +25,7 @@ final class InMemoryEventStoreRegistrationTest extends TestCase
         $eventSourcingConfiguration = \Ecotone\Api\EventSourcing\EventSourcingConfiguration::createInMemory();
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [TestEventConverter::class],
+            [],
             [new TestEventConverter()],
             extensionObjects: [$eventSourcingConfiguration],
             enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::TEST_PACKAGE],

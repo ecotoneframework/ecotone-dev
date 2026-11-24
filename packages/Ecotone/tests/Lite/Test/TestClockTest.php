@@ -155,7 +155,7 @@ final class TestClockTest extends TestCase
     private function bootstrap(object $handler, ClockInterface $clock): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, ClockInterface::class => $clock],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],

@@ -43,7 +43,7 @@ public function test_projection(): void
     $projection = new TicketListProjection();
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [TicketListProjection::class, Ticket::class],
+        classesToResolve: [Ticket::class],
         containerOrAvailableServices: [$projection],
     );
 
@@ -81,7 +81,6 @@ public function test_projection_with_direct_events(): void
     $projection = new TicketListProjection();
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [TicketListProjection::class],
         containerOrAvailableServices: [$projection],
     );
 

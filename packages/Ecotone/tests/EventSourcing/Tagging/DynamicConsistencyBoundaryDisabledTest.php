@@ -60,7 +60,7 @@ final class DynamicConsistencyBoundaryDisabledTest extends TestCase
         $this->expectExceptionMessage(self::DISABLED_MESSAGE);
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, RenamesForDisabledBoundaryTest::class, RenamedForDisabledBoundaryTest::class],
+            classesToResolve: [RenamesForDisabledBoundaryTest::class, RenamedForDisabledBoundaryTest::class],
             containerOrAvailableServices: [$handler],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -99,7 +99,7 @@ final class DynamicConsistencyBoundaryDisabledTest extends TestCase
         $this->expectExceptionMessage(self::DISABLED_MESSAGE);
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, RenamedForDisabledBoundaryTest::class],
+            classesToResolve: [RenamedForDisabledBoundaryTest::class],
             containerOrAvailableServices: [$handler],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,

@@ -24,7 +24,7 @@ services:
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 
 $ecotone = EcotoneLite::bootstrapFlowTesting(
-    classesToResolve: [ProductRepository::class, ProductConverter::class],
+    classesToResolve: [ProductRepository::class],
     containerOrAvailableServices: [
         DbalConnectionReference::DEFAULT => $connectionFactory,
         new ProductConverter(),

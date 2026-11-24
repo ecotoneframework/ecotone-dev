@@ -25,6 +25,8 @@ use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * licence Apache-2.0
@@ -48,6 +50,11 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
     public function runConsoleCommand(string $commandName, array $parameters): mixed
     {
         return $this->configuredMessagingSystem->runConsoleCommand($commandName, $parameters);
+    }
+
+    public function console(?InputInterface $input = null, ?OutputInterface $output = null): int
+    {
+        return $this->configuredMessagingSystem->console($input, $output);
     }
 
     public function getCommandBus(): CommandBus

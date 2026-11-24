@@ -1238,7 +1238,7 @@ final class MessagingSystemConfiguration implements Configuration
             ]));
         }
 
-        $messagingBuilder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $messagingBuilder->getPollingEndpoints(), $gatewayListReferences, array_map(fn (ConsoleCommandConfiguration $consoleCommandConfiguration) => $consoleCommandConfiguration->getName(), $this->consoleCommands)]));
+        $messagingBuilder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $messagingBuilder->getPollingEndpoints(), $gatewayListReferences, array_values($this->consoleCommands)]));
         (new RegisterSingletonMessagingServices($this->bootstrapConfiguration))->process($builder);
         foreach ($this->compilerPasses as $compilerPass) {
             $compilerPass->process($builder);

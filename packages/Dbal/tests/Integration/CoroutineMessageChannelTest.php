@@ -788,7 +788,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf($database))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('rows'), CoroutineMessageChannelBuilder::create('summaries'), DbalConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -835,7 +835,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('imports'), CoroutineMessageChannelBuilder::create('summaries')->withCoroutines(1), DbalConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -878,7 +878,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf($database))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('search'), DbalConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -923,7 +923,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('rows'), CoroutineMessageChannelBuilder::create('summaries'), DbalConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -958,7 +958,7 @@ final class CoroutineMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::dsnOf('mysql'))],
             extensionObjects: [CoroutineMessageChannelBuilder::create('search'), DbalConfiguration::createWithDefaults()],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],

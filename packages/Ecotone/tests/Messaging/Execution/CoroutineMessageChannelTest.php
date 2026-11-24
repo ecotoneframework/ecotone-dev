@@ -1311,7 +1311,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[$row] = Coroutine::getCid();
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('rows')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('rows')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
         $sender = 0;
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone, &$sender): void {
@@ -1346,7 +1346,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->handled[$row] = Coroutine::getCid();
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('imports')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('imports')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
         $sender = 0;
 
         CoroutineTesting::runAtOnce(static function () use ($ecotone, &$sender): void {
@@ -1390,7 +1390,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->gathered[] = [$parts->results, $parts->originalPayload, $parts->releaseReason, Coroutine::getCid()];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('rows'), CoroutineMessageChannelBuilder::create('summaries')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('rows'), CoroutineMessageChannelBuilder::create('summaries')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('import', [1, 2, 3]));
 
@@ -1431,7 +1431,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->gathered[] = $parts->results;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('imports'), CoroutineMessageChannelBuilder::create('summaries')->withCoroutines(1)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('imports'), CoroutineMessageChannelBuilder::create('summaries')->withCoroutines(1)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(
             static fn () => $ecotone->sendCommandWithRouting('import', [1, 2, 3]),
@@ -1468,7 +1468,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->gathered[] = [$parts->size, $parts->results];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('rows'), CoroutineMessageChannelBuilder::create('summaries')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('rows'), CoroutineMessageChannelBuilder::create('summaries')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('import', []));
 
@@ -1506,7 +1506,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->gathered[] = [$parts->results, $parts->missingPartNumbers, $parts->releaseReason];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('rows'), CoroutineMessageChannelBuilder::create('summaries'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('rows'), CoroutineMessageChannelBuilder::create('summaries'), InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(static fn () => $ecotone->sendCommandWithRouting('import', [1, 2, 3]));
 
@@ -1536,7 +1536,7 @@ final class CoroutineMessageChannelTest extends TestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(...array_fill(0, 3, static fn () => $ecotone->sendCommandWithRouting('archive')));
 
@@ -1571,7 +1571,7 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage("Coroutine message channel `summaries` is registered with withCoroutines({$coroutines}), which #[Gathered] handler `" . $handler::class . "::summarize` (endpoint `import.summary.handler`) cannot be consumed with: parts finishing together would be recorded in their group at the same time, all but one would lose the group's optimistic write on every attempt until the instant retries run out, and a group missing those parts is never gathered. Leave withCoroutines() out of CoroutineMessageChannelBuilder::create('summaries'), the channel of a gathered handler then handles one message at a time, and keep the handlers doing the work of the parts on another channel; or move the gathered handler to a channel consumed with ecotone:run without its coroutines option.");
 
-        EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [$channel], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [$channel], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
     public static function channels_registered_with_several_coroutines(): array
@@ -1595,7 +1595,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->batches[] = [array_column($changes->messages, 'payload'), $changes->releaseReason, Coroutine::getCid()];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
         $senders = [];
 
         CoroutineTesting::runAtOnce(...array_map(static fn (int $product) => static function () use ($ecotone, $product, &$senders): void {
@@ -1622,7 +1622,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->batches[] = [array_column($changes->messages, 'payload'), $changes->releaseReason];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-03-01 12:00:00'));
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-03-01 12:00:00'));
         $ecotone->whenWaiting(static function (DateTimeImmutable $now) use ($ecotone): void {
             $ecotone->changeTimeTo($now);
         });
@@ -1648,7 +1648,7 @@ final class CoroutineMessageChannelTest extends TestCase
                 $this->batches[$changes->groupKey] = array_column($changes->messages, 'payload');
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         CoroutineTesting::runAtOnce(
             static fn () => $ecotone->sendCommandWithRouting('product.index', 1, metadata: ['tenant' => 'a']),
@@ -1674,7 +1674,7 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('Coroutine message channel `search` is registered with withCoroutines(3), which #[Collected] handler `' . $handler::class . "::index` (endpoint `product.index.handler`) cannot be consumed with: messages arriving together would be recorded in their batch at the same time, all but one would lose the batch's optimistic write on every attempt until the instant retries run out, and those messages are missing from the batch. Leave withCoroutines() out of CoroutineMessageChannelBuilder::create('search'), the channel of a collected handler then handles one message at a time, and keep handlers that should run at once on another channel; or move the collected handler to a channel consumed with ecotone:run without its coroutines option.");
 
-        EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')->withCoroutines(3)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+        EcotoneLite::bootstrapFlowTesting([], [$handler], extensionObjects: [CoroutineMessageChannelBuilder::create('search')->withCoroutines(3)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
     public function test_a_sender_on_a_fiber_outside_a_coroutine_is_refused(): void

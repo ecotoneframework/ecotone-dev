@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -65,6 +66,9 @@ final class AsynchronousModule implements AnnotationModule
                 if ($asynchronousClass === $endpoint->getClassName()) {
                     /** @var EndpointAnnotation $annotationForMethod */
                     $annotationForMethod = $endpoint->getAnnotationForMethod();
+                    if ($annotationForMethod instanceof Splitter && SplitterModule::isStacked($endpoint)) {
+                        continue;
+                    }
                     if ($annotationForMethod instanceof QueryHandler) {
                         continue;
                     }
@@ -92,6 +96,9 @@ final class AsynchronousModule implements AnnotationModule
                 if (($endpoint->getClassName() === $asynchronousMethod->getClassName()) && ($endpoint->getMethodName() === $asynchronousMethod->getMethodName())) {
                     /** @var EndpointAnnotation $annotationForMethod */
                     $annotationForMethod = $endpoint->getAnnotationForMethod();
+                    if ($annotationForMethod instanceof Splitter && SplitterModule::isStacked($endpoint)) {
+                        continue;
+                    }
                     if ($annotationForMethod instanceof QueryHandler) {
                         continue;
                     }

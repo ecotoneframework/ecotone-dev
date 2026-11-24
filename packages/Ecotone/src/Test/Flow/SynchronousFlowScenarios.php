@@ -30,6 +30,7 @@ final class SynchronousFlowScenarios
             self::outputChannelChain(),
             self::commandSentFromCommandHandler(),
             self::splitter(),
+            self::splitterOnHandler(),
             self::router(),
         ];
     }
@@ -171,6 +172,41 @@ final class SynchronousFlowScenarios
                 )
                 ->withNoOtherSpans(),
         ]);
+    }
+
+    private static function splitterOnHandler(): FlowScenario
+    {
+        $imports = new class () {
+            #[CommandHandler('batch.import', outputChannelName: 'item.handle', endpointId: 'batch.importing')]
+            #[Splitter]
+            public function import(array $items): array
+            {
+                return $items;
+            }
+
+            #[InternalHandler('item.handle', endpointId: 'item.handling')]
+            public function handle(string $item): void
+            {
+            }
+        };
+
+        return new FlowScenario(
+            name: 'splitter on a command handler fans its result out into one handler per item',
+            classesToResolve: [$imports::class],
+            services: [$imports],
+            extensionObjects: [],
+            stages: [
+                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('batch.import', ['a', 'b'], metadata: $metadata))
+                    ->expect(
+                        ExpectedSpan::named('send command')->containing(
+                            ExpectedSpan::named('process class@anonymous::import')->withAttributes([SpanAttribute::ENDPOINT_ID => 'batch.importing']),
+                            ExpectedSpan::named('process class@anonymous::handle')->withAttributes([SpanAttribute::ENDPOINT_ID => 'item.handling']),
+                            ExpectedSpan::named('process class@anonymous::handle')->withAttributes([SpanAttribute::ENDPOINT_ID => 'item.handling']),
+                        ),
+                    )
+                    ->withNoOtherSpans(),
+            ],
+        );
     }
 
     private static function router(): FlowScenario

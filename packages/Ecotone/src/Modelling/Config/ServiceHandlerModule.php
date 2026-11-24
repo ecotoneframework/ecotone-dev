@@ -14,6 +14,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -75,10 +76,11 @@ final class ServiceHandlerModule implements AnnotationModule, RoutingEventHandle
             ? TransformerBuilder::create(AnnotatedDefinitionReference::getReferenceFor($registration), $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName()))
             : MessageProcessorActivatorBuilder::createForMethod(AnnotatedDefinitionReference::getReferenceFor($registration), $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName()));
 
+        SplitterModule::registerHiddenSplitterOf($registration, $event->getBusRoutingMapBuilder()->getMessagingConfiguration());
         $event->getBusRoutingMapBuilder()->getMessagingConfiguration()->registerMessageHandler(
             $handler
                 ->withInputChannelName($event->getDestinationChannel())
-                ->withOutputMessageChannel($methodAnnotation->getOutputChannelName())
+                ->withOutputMessageChannel(SplitterModule::outputChannelOf($registration))
                 ->withEndpointId($methodAnnotation->getEndpointId())
                 ->withMethodParameterConverters($parameterConverters)
                 ->withRequiredInterceptorNames($methodAnnotation->getRequiredInterceptorNames())

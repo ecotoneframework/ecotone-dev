@@ -67,6 +67,7 @@ use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut;
 use Ecotone\Messaging\Handler\Type;
@@ -331,6 +332,9 @@ final class MessageFlowDiscovery
     private function discoverSplitters(): void
     {
         foreach ($this->applicationMethods(Splitter::class) as $registration) {
+            if (SplitterModule::isStacked($registration)) {
+                continue;
+            }
             /** @var Splitter $annotation */
             $annotation = $registration->getAnnotationForMethod();
             $handlerId = $this->registerHandler($registration, FlowNodeKind::SPLITTER, ['inputChannel' => $annotation->getInputChannelName()]);
@@ -477,6 +481,9 @@ final class MessageFlowDiscovery
     {
         /** @var EndpointAnnotation $annotation */
         $annotation = $registration->getAnnotationForMethod();
+        if ($registration->hasMethodAnnotation(Splitter::class) && SplitterModule::isStacked($registration)) {
+            $attributes['splitting'] = true;
+        }
         $id = $this->endpointNodeId($registration, $annotation, 'handler');
         if ($annotation->isEndpointIdGenerated() && isset($this->nodes[$id]) && $this->nodes[$id]->kind !== $kind) {
             $id .= ':' . $kind->value;
@@ -484,7 +491,7 @@ final class MessageFlowDiscovery
         if (isset($this->nodes[$id]->attributes['routingKeys'], $attributes['routingKeys'])) {
             $attributes['routingKeys'] = array_values(array_unique([...$this->nodes[$id]->attributes['routingKeys'], ...$attributes['routingKeys']]));
         }
-        $this->nodes[$id] = new FlowNode($id, $kind, $this->shortName($registration->getClassName()) . '::' . $registration->getMethodName(), array_merge([
+        $this->nodes[$id] = new FlowNode($id, $kind, $this->shortName($registration->getClassName()) . '::' . $registration->getMethodName() . (($attributes['splitting'] ?? false) ? ' (splitting)' : ''), array_merge([
             'class' => $registration->getClassName(),
             'method' => $registration->getMethodName(),
             'endpointId' => $annotation->isEndpointIdGenerated() ? null : $annotation->getEndpointId(),

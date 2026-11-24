@@ -24,12 +24,22 @@ class SplitterHandler implements MessageHandler
         private MessageProcessor $messageProcessor,
         private ChannelResolver  $channelResolver,
         private MessageBuilder   $messageBuilder,
-        private string           $name = '',
+        private string           $name,
+        private bool             $normalizeIterablePayload,
     ) {
     }
 
     public function handle(Message $message): void
     {
+        if ($this->normalizeIterablePayload) {
+            $payload = $message->getPayload();
+            $payload = is_array($payload) ? array_values($payload) : iterator_to_array($payload, false);
+            $message = $this->messageBuilder->fromMessage($message)
+                ->setPayload($payload)
+                ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(Type::createFromVariable($payload)->toString()))
+                ->removeHeader(MessageHeaders::TYPE_ID)
+                ->build();
+        }
         $replyMessage = $this->messageProcessor->process($message);
 
         if (! $replyMessage) {

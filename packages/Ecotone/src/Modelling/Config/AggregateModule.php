@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\RelatedAggregate;
 use Ecotone\Api\Attribute\Repository;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Modelling\EventSourcedRepository;
@@ -24,6 +25,7 @@ use Ecotone\Messaging\Attribute\EndpointId;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
@@ -585,10 +587,11 @@ final class AggregateModule implements AnnotationModule, RoutingEventHandler
         ;
         $messagingConfiguration->registerMessageHandler($aggregateIdentifierHandlerPreCheck);
 
+        SplitterModule::registerHiddenSplitterOf($registration, $messagingConfiguration);
         $serviceActivatorHandler = MessageProcessorActivatorBuilder::create()
             ->withEndpointId($endpointId)
             ->withInputChannelName($connectionChannel)
-            ->withOutputMessageChannel($annotation->getOutputChannelName())
+            ->withOutputMessageChannel(SplitterModule::outputChannelOf($registration))
             ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames())
             ->chain(TransformerProcessorBuilder::create(
                 TransformerBuilder::createHeaderEnricher([
@@ -618,6 +621,15 @@ final class AggregateModule implements AnnotationModule, RoutingEventHandler
 
     public function registerRoutedFactoryHandler(AnnotatedFinding $factoryRegistration, AnnotatedFinding $actionRegistration, string $destinationChannel, Configuration $messagingConfiguration): void
     {
+        foreach ([$factoryRegistration, $actionRegistration] as $registration) {
+            if ($registration->hasMethodAnnotation(Splitter::class)) {
+                $name = $registration->getClassName() . '::' . $registration->getMethodName();
+                if ($registration === $factoryRegistration) {
+                    throw ConfigurationException::create("Split handler {$name} is an aggregate or saga factory whose output contains saved identifiers. Split from an action method, use a separate splitter handler receiving the factory output, or remove #[Splitter].");
+                }
+                throw ConfigurationException::create("Split handler {$name} shares a route with a factory, so its result cannot be split independently. Give the action its own routingKey or listenTo, move the split to a separate handler, or remove #[Splitter].");
+            }
+        }
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
 
         $aggregateClassDefinition = $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($factoryRegistration->getClassName()));

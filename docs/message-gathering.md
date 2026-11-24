@@ -36,6 +36,7 @@ public function summarize(GatheredParts $parts): array
 
 These methods belong to your application handler. Route the original request to `import.split` through your
 existing handler, configure both asynchronous channels, and handle the final result on `import.results`.
+[Gather a handler's split output](#gather-a-handlers-split-output) shows the shorter form without a dedicated splitter method.
 The gathered handler's consumer must run even when all work happens synchronously or the split is empty.
 
 ```mermaid
@@ -62,6 +63,32 @@ The released message restores application headers and correlation/tracing contex
 handler's output flow. It does not resume the split request's routing slip or answer its synchronous caller.
 Sending another command or publishing an event starts a separate flow, without the current group headers.
 A nested splitter must name its own gather channel; its gathered result becomes the outer part's result.
+
+## Gather a handler's split output
+
+A handler can open the group directly by stacking `#[Splitter]`. Give each handler attribute an explicit stable
+`endpointId`, set its `outputChannelName` to the part handler, and put only `gatherChannelName` on the splitter:
+
+```php
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Splitter;
+
+#[CommandHandler('import.file', endpointId: 'import.file.handler', outputChannelName: 'import.work')]
+#[Splitter(gatherChannelName: 'import.summary')]
+public function import(ImportFile $command): array
+{
+    return $this->rows($command->path);
+}
+```
+
+The `work()` and `summarize()` methods above work unchanged. Group identity uses the incoming message id and
+`import.file.handler.splitter`, so replaying the same input rejoins the same group. The original payload recorded
+for gathering is the handler's result normalized to a list in iteration order before the group opens. Empty output still invokes the
+asynchronous gathered handler with zero parts. A failed part follows the normal dead-letter and replay flow.
+
+`#[Asynchronous]` belongs to the ordinary handler. Splitting and group creation happen after it returns in the
+same consumer transaction. [Splitting a handler's output](message-splitting.md) describes supported handlers,
+aggregate and saga actions, interceptor configuration and bootstrap refusals.
 
 ## Failure, timeout and storage
 

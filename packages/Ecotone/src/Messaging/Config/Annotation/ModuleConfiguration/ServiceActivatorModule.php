@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Configuration;
@@ -32,6 +33,7 @@ class ServiceActivatorModule extends MessageHandlerRegisterConfiguration
      * @var AnnotatedFinding[]
      */
     private array $changingHeadersFindings = [];
+    private array $splitterFindings = [];
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
@@ -40,6 +42,9 @@ class ServiceActivatorModule extends MessageHandlerRegisterConfiguration
         foreach ($annotationRegistrationService->findAnnotatedMethods(static::getMessageHandlerAnnotation()) as $annotationRegistration) {
             /** @var InternalHandler $annotation */
             $annotation = $annotationRegistration->getAnnotationForMethod();
+            if ($annotationRegistration->hasMethodAnnotation(Splitter::class)) {
+                $instance->splitterFindings[] = $annotationRegistration;
+            }
             if ($annotation->changingHeaders) {
                 $instance->changingHeadersFindings[] = $annotationRegistration;
             }
@@ -53,6 +58,10 @@ class ServiceActivatorModule extends MessageHandlerRegisterConfiguration
         if ($this->changingHeadersFindings && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             $firstFinding = $this->changingHeadersFindings[0];
             throw LicensingException::create("{$firstFinding->getClassName()}::{$firstFinding->getMethodName()} is using changingHeaders, which is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.");
+        }
+
+        foreach ($this->splitterFindings as $registration) {
+            SplitterModule::registerHiddenSplitterOf($registration, $messagingConfiguration);
         }
 
         parent::prepare($messagingConfiguration, $extensionObjects, $moduleReferenceSearchService, $interfaceToCallRegistry);
@@ -78,7 +87,7 @@ class ServiceActivatorModule extends MessageHandlerRegisterConfiguration
         )
             ->withEndpointId($annotation->getEndpointId())
             ->withRequiredReply($annotation->requiresReply)
-            ->withOutputMessageChannel($annotation->getOutputChannelName())
+            ->withOutputMessageChannel(SplitterModule::outputChannelOf($annotationRegistration))
             ->withInputChannelName($annotation->getInputChannelName())
             ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames());
     }

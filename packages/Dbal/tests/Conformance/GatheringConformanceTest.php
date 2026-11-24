@@ -53,6 +53,7 @@ use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Scheduling\Duration;
+use Generator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -746,6 +747,219 @@ final class GatheringConformanceTest extends TestCase
 
         self::assertCount(1, $handler->gathered);
         self::assertSame(1, $handler->summaryDeliveries);
+    }
+
+    public function test_failed_part_of_a_gathering_split_handler_is_replayed_from_the_dead_letter(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+            public bool $fail = true;
+
+            #[CommandHandler('split', endpointId: 'stacked.split', outputChannelName: 'work')]
+            #[Splitter(gatherChannelName: 'timeout.summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[Asynchronous('replay_workers')]
+            #[InternalHandler('work', endpointId: 'timeout.work')]
+            public function work(int $part): int
+            {
+                if ($part === 20 && $this->fail) {
+                    throw new RuntimeException('Part needs repair');
+                }
+
+                return $part * 2;
+            }
+
+            #[Gathered]
+            #[Asynchronous('summaries')]
+            #[InternalHandler('timeout.summary', endpointId: 'timeout.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: [
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'),
+                DbalBackedMessageChannelBuilder::create('replay_workers'),
+                SimpleMessageChannelBuilder::createQueueChannel('summaries'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+
+        $before = $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler');
+        $deadLetters = $ecotone->getGateway(DeadLetterGateway::class);
+        $previousFailures = array_map(static fn ($failure): string => $failure->getMessageId(), $deadLetters->list(1000, 0));
+        $ecotone->sendCommandWithRouting('split', [10, 20]);
+        $ecotone->run('replay_workers', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+        $ecotone->run('summaries');
+        self::assertSame([], $handler->gathered);
+        $groups = array_values(array_filter($ecotone->getGateway(GatheredGroups::class)->listOpenGroups('timeout.summary.handler'), static fn (array $group): bool => ! in_array($group['groupId'], array_column($before, 'groupId'), true)));
+        self::assertCount(1, $groups);
+        self::assertSame(1, $groups[0]['recorded']);
+        self::assertSame([2], $groups[0]['missingPartNumbers']);
+        $ecotone->advanceTimeBy(new Duration(days: 30));
+        $ecotone->run('summaries');
+        self::assertSame([], $handler->gathered);
+        $failures = array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previousFailures, true)));
+        self::assertCount(1, $failures);
+        $handler->fail = false;
+        $deadLetters->replay($failures[0]->getMessageId());
+        $ecotone->run('replay_workers');
+        $ecotone->run('summaries');
+
+        self::assertCount(1, $handler->gathered);
+        self::assertSame([1 => 20, 2 => 40], $handler->gathered[0]->results);
+        self::assertSame([], $handler->gathered[0]->missingPartNumbers);
+        self::assertSame(GatheredReleaseReason::ALL_PARTS_ACCOUNTED_FOR, $handler->gathered[0]->releaseReason);
+    }
+
+    public function test_asynchronous_split_handler_on_a_dbal_channel_gathers_every_part(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[Asynchronous('stacked_gather_workers')]
+            #[CommandHandler('split.gather', endpointId: 'split.gather.handler', outputChannelName: 'gather.parts')]
+            #[Splitter(gatherChannelName: 'gather.summary')]
+            public function split(array $parts): array
+            {
+                return $parts;
+            }
+
+            #[InternalHandler('gather.parts')]
+            public function work(int $part): int
+            {
+                return $part * 2;
+            }
+
+            #[Gathered]
+            #[Asynchronous('stacked_gather_summaries')]
+            #[InternalHandler('gather.summary', endpointId: 'gather.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts->results;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create('stacked_gather_workers'),
+                DbalBackedMessageChannelBuilder::create('stacked_gather_summaries'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $ecotone->sendCommandWithRouting('split.gather', [10, 20]);
+        self::assertSame([], $handler->gathered);
+        $ecotone->run('stacked_gather_workers');
+        self::assertSame([], $handler->gathered);
+        $ecotone->run('stacked_gather_summaries');
+        self::assertSame([[1 => 20, 2 => 40]], $handler->gathered);
+    }
+
+    public function test_generator_result_of_a_gathering_split_handler_gathers_every_part(): void
+    {
+        $handler = new class () {
+            public array $gathered = [];
+
+            #[Asynchronous('generator_gather_workers')]
+            #[CommandHandler('generator.gather', endpointId: 'generator.gather.handler', outputChannelName: 'generator.parts')]
+            #[Splitter(gatherChannelName: 'generator.summary')]
+            public function split(): Generator
+            {
+                yield 'second' => 20;
+                yield 'first' => 10;
+            }
+
+            #[InternalHandler('generator.parts')]
+            public function work(int $part): int
+            {
+                return $part * 2;
+            }
+
+            #[Gathered]
+            #[Asynchronous('generator_gather_summaries')]
+            #[InternalHandler('generator.summary', endpointId: 'generator.summary.handler')]
+            public function summarize(GatheredParts $parts): void
+            {
+                $this->gathered[] = $parts;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create('generator_gather_workers'),
+                DbalBackedMessageChannelBuilder::create('generator_gather_summaries'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: self::ENTERPRISE_LICENCE,
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $ecotone->sendCommandWithRouting('generator.gather');
+        self::assertSame([], $handler->gathered);
+        $ecotone->run('generator_gather_workers');
+        self::assertSame([], $handler->gathered);
+        $ecotone->run('generator_gather_summaries');
+        self::assertCount(1, $handler->gathered);
+        self::assertSame([1 => 40, 2 => 20], $handler->gathered[0]->results);
+        self::assertSame([20, 10], $handler->gathered[0]->originalPayload);
+    }
+
+    public function test_asynchronous_split_handler_and_its_parts_share_the_consumer_transaction(): void
+    {
+        $handler = new class () {
+            #[Asynchronous('stacked_transaction_workers')]
+            #[CommandHandler('split.transaction', endpointId: 'split.transaction.handler', outputChannelName: 'transaction.parts')]
+            #[Splitter]
+            public function split(string $id, #[Reference] DocumentStore $documents): array
+            {
+                $documents->addDocument('split_transaction', $id, '{"handled":true}');
+                return [[$id, 1], [$id, 2]];
+            }
+
+            #[InternalHandler('transaction.parts')]
+            public function work(array $part, #[Reference] DocumentStore $documents): void
+            {
+                if ($part[1] === 2) {
+                    throw new RuntimeException('Roll back the handler and its first part');
+                }
+                $documents->addDocument('split_transaction_parts', $part[0], '{"part":1}');
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN'))],
+            extensionObjects: [
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'),
+                DbalBackedMessageChannelBuilder::create('stacked_transaction_workers'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            testConfiguration: TestConfiguration::createWithDefaults()->withDefaultInstantRetries(false),
+            initialTime: new DateTimeImmutable('2026-01-01 12:00:00 UTC'),
+        );
+        $id = $ecotone->now()->format('Y-m-d') . '.split.transaction';
+        $deadLetters = $ecotone->getGateway(DeadLetterGateway::class);
+        $previousFailures = array_map(static fn ($failure): string => $failure->getMessageId(), $deadLetters->list(1000, 0));
+        $ecotone->sendCommandWithRouting('split.transaction', $id);
+        $ecotone->run('stacked_transaction_workers', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+        $failures = array_values(array_filter($deadLetters->list(1000, 0), static fn ($failure): bool => ! in_array($failure->getMessageId(), $previousFailures, true)));
+        self::assertCount(1, $failures);
+        self::assertSame('Roll back the handler and its first part', $failures[0]->getMessage());
+        self::assertNull($ecotone->getGateway(DocumentStore::class)->findDocument('split_transaction', $id));
+        self::assertNull($ecotone->getGateway(DocumentStore::class)->findDocument('split_transaction_parts', $id));
     }
 
     public function test_replayed_failed_part_completes_group_without_timeout(): void

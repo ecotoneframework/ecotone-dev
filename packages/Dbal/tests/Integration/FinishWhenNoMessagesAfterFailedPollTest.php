@@ -52,7 +52,7 @@ final class FinishWhenNoMessagesAfterFailedPollTest extends DbalMessagingTestCas
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders, DbalConnectionFactory::class => $connectionFactory],
             [
                 DbalBackedMessageChannelBuilder::create('orders')->withReceiveTimeout(100),
@@ -97,7 +97,7 @@ final class FinishWhenNoMessagesAfterFailedPollTest extends DbalMessagingTestCas
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders, DbalConnectionFactory::class => $unreachable],
             [
                 DbalBackedMessageChannelBuilder::create('orders')->withReceiveTimeout(100),

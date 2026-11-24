@@ -136,7 +136,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     {
         $messageChannelName = 'async_channel';
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [SuccessServiceActivator::class],
+            [],
             [new SuccessServiceActivator()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel($messageChannelName)],
             enabledModules: [],
@@ -159,7 +159,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
         $errorChannelName = 'errorChannelName';
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [ExampleFailureCommandHandler::class],
+            [],
             [new ExampleFailureCommandHandler(), 'logger' => $logger = StubLogger::create()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel($asyncChannelName),
@@ -183,7 +183,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
         $asyncChannelName = 'async';
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [ExampleFailureCommandHandler::class, FailureErrorHandler::class],
+            [],
             [new ExampleFailureCommandHandler(), $failureHandler = new FailureErrorHandler()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel($asyncChannelName),
@@ -209,7 +209,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
         $errorChannelName = 'errorChannelName';
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [ExampleFailureCommandHandler::class],
+            [],
             [new ExampleFailureCommandHandler(), 'logger' => $logger = StubLogger::create()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel($asyncChannelName),
@@ -234,7 +234,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     {
         $inputChannelName = 'async_channel';
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [SuccessServiceActivator::class],
+            [],
             [new SuccessServiceActivator()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel($inputChannelName)],
             enabledModules: [],
@@ -257,7 +257,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     {
         $inputChannelName = 'async_channel';
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [SuccessServiceActivator::class],
+            [],
             [new SuccessServiceActivator()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel($inputChannelName)],
             enabledModules: [],

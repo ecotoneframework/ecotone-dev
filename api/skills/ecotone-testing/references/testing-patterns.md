@@ -20,7 +20,6 @@ public function test_async_event_processing(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class],
         containerOrAvailableServices: [$handler],
     );
 
@@ -43,7 +42,7 @@ public function test_async_event_processing(): void
 public function test_projection_builds_read_model(): void
 {
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [TicketListProjection::class, Ticket::class],
+        classesToResolve: [Ticket::class],
         containerOrAvailableServices: [new TicketListProjection()],
     );
 
@@ -88,9 +87,9 @@ public function test_with_dbal_module(): void
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| "No handler found for message" | Handler class not in `classesToResolve` | Add class to first argument |
+| "No handler found for message" | Handler not passed to the bootstrap | Pass its instance in `containerOrAvailableServices`; add an aggregate's class to `classesToResolve` |
 | "Service not found in container" | Missing dependency | Add to `containerOrAvailableServices` |
-| "It is handled by X::y(), which is not registered in this Ecotone Lite bootstrap" | Handler class not in `classesToResolve` | Add the named class or load its namespace |
+| "It is handled by X::y(), which is not registered in this Ecotone Lite bootstrap" | Handler not passed to the bootstrap | Pass its instance in `containerOrAvailableServices` (an aggregate: add its class to `classesToResolve`), or load its namespace |
 | "Cannot move time backwards" | `changeTimeTo()` earlier than the test clock | Use a later time or `advanceTimeBy()` |
 | Message not processed | Async handler not run | Call `$ecotone->run('channelName')` |
 | "Module not found" | Wrong `ModulePackageList` config | Check `enabledModules: [...]` lists the needed packages |

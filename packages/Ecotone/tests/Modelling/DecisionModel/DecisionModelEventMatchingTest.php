@@ -60,7 +60,7 @@ final class DecisionModelEventMatchingTest extends TestCase
         $counter = new CourseEventCounterForMatchingTest();
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$counter::class, ParentEventCountForMatchingTest::class, NamedEventCountForMatchingTest::class, CourseEventForMatchingTest::class, SpecialCourseEventForMatchingTest::class, NamedCourseEventForMatchingTest::class],
+            classesToResolve: [ParentEventCountForMatchingTest::class, NamedEventCountForMatchingTest::class, CourseEventForMatchingTest::class, SpecialCourseEventForMatchingTest::class, NamedCourseEventForMatchingTest::class],
             containerOrAvailableServices: [$counter],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],

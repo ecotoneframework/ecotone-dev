@@ -24,7 +24,7 @@ class EcotoneLiteTest extends TestCase
     public function test_it_can_run_console_command(): void
     {
         $ecotone = EcotoneLite::bootstrap(
-            [OrderService::class, ChannelConfiguration::class],
+            [ChannelConfiguration::class],
             [new OrderService()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
@@ -78,7 +78,7 @@ class EcotoneLiteTest extends TestCase
     public function test_handling_closure_configuration_variables(): void
     {
         $ecotone = EcotoneLite::bootstrap(
-            [OrderService::class, ChannelConfiguration::class],
+            [ChannelConfiguration::class],
             [new OrderService()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],

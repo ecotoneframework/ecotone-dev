@@ -64,7 +64,6 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
         $messagePayload = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [SqsAsyncConsumerExample::class],
             containerOrAvailableServices: [
                 new SqsAsyncConsumerExample(),
                 SqsConnectionFactory::class => $this->getConnectionFactory(),
@@ -92,7 +91,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
     {
         $loggerExample = StubLogger::create();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class],
+            [],
             containerOrAvailableServices: [
                 new OrderService(),
                 SqsConnectionFactory::class => new SqsConnectionFactory('sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:1000&version=latest'),

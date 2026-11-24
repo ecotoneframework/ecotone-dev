@@ -157,7 +157,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         $channel = SimpleMessageChannelBuilder::createQueueChannel('distributed_tickets');
         $recorder = new InMemorySpanRecorder();
         $users = EcotoneLite::bootstrapFlowTesting([], self::recordingSpansInto($recorder), [$channel, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_tickets'), ServiceConfiguration::createWithDefaults()->withServiceName('user_service'), self::tracingConfiguration()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
-        $ticketService = EcotoneLite::bootstrapFlowTesting([$tickets::class], [$tickets, ...self::recordingSpansInto($recorder)], [$channel, ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), self::tracingConfiguration()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
+        $ticketService = EcotoneLite::bootstrapFlowTesting([], [$tickets, ...self::recordingSpansInto($recorder)], [$channel, ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), self::tracingConfiguration()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
         $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
@@ -189,8 +189,8 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
         };
         $channel = SimpleMessageChannelBuilder::createQueueChannel('distributed_tickets');
         $recorder = new InMemorySpanRecorder();
-        $users = EcotoneLite::bootstrapFlowTesting([$registration::class], [$registration, ...self::recordingSpansInto($recorder)], [$channel, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_tickets'), ServiceConfiguration::createWithDefaults()->withServiceName('user_service'), self::tracingConfiguration()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
-        $ticketService = EcotoneLite::bootstrapFlowTesting([$tickets::class], [$tickets, ...self::recordingSpansInto($recorder)], [$channel, ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), self::tracingConfiguration()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
+        $users = EcotoneLite::bootstrapFlowTesting([], [$registration, ...self::recordingSpansInto($recorder)], [$channel, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_tickets'), ServiceConfiguration::createWithDefaults()->withServiceName('user_service'), self::tracingConfiguration()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
+        $ticketService = EcotoneLite::bootstrapFlowTesting([], [$tickets, ...self::recordingSpansInto($recorder)], [$channel, ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), self::tracingConfiguration()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         $users->sendCommandWithRouting('user.register', 'user-1');
         $users->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
@@ -303,7 +303,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
     public function test_a_distributed_command_sent_and_consumed_inside_one_application_is_a_sub_flow_of_its_send_with_no_application_named(): void
     {
         $tickets = self::ticketCreation();
-        $ticketService = EcotoneLite::bootstrapFlowTesting([$tickets::class], [$tickets], [SimpleMessageChannelBuilder::createQueueChannel('distributed_tickets'), DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_tickets'), ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
+        $ticketService = EcotoneLite::bootstrapFlowTesting([], [$tickets], [SimpleMessageChannelBuilder::createQueueChannel('distributed_tickets'), DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_tickets'), ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
 
         $ticketService->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
         $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
@@ -317,7 +317,7 @@ final class ExecutionRecordingSubFlowTest extends TracingTestCase
     {
         $tickets = self::ticketCreation();
         $channel = SimpleMessageChannelBuilder::createQueueChannel('distributed_tickets');
-        $ticketService = EcotoneLite::bootstrapFlowTesting([$tickets::class], [$tickets], [$channel, ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
+        $ticketService = EcotoneLite::bootstrapFlowTesting([], [$tickets], [$channel, ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'), TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE, initialTime: new DateTimeImmutable('2026-11-22 10:00:00'));
         $send($channel);
         $ticketService->run('distributed_tickets', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 

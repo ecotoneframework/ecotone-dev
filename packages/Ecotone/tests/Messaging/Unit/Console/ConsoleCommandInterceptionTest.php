@@ -47,7 +47,6 @@ final class ConsoleCommandInterceptionTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
         );

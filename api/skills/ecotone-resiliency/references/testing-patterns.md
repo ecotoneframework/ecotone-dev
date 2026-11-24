@@ -32,7 +32,6 @@ public function test_retry_on_failure(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class, $errorConfig::class],
         containerOrAvailableServices: [$handler, $errorConfig],
         extensionObjects: [
             ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel'),
@@ -78,7 +77,6 @@ public function test_error_handler_routes_to_dead_letter(): void
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class, $errorConfig::class],
         containerOrAvailableServices: [$handler, $errorConfig],
         extensionObjects: [
             ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel'),

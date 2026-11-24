@@ -135,7 +135,7 @@ final class RequiredExistingDestinationTest extends ConnectionTestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler::class => $handler, KafkaBrokerConfiguration::class => $broker ?? self::getConnection()],
             extensionObjects: [$builder],
             enabledModules: [ModulePackageList::KAFKA_PACKAGE],

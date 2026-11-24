@@ -130,7 +130,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             }
         };
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [$commandHandler::class],
+            [],
             [SqsConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
             extensionObjects: [
                 SqsMessagePublisherConfiguration::create(queueName:$queueName)->withHighThroughputPublishing(confirmationTimeoutInMilliseconds:10000),
@@ -231,7 +231,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
     private function bootstrapEcotoneWithChannel(object $orderService, ?string $licenceKey): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [$orderService::class],
+            [],
             [SqsConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             extensionObjects: [SqsBackedMessageChannelBuilder::create('asyncOrdersChannel')->withHighThroughputPublishing()],
             enabledModules: [ModulePackageList::SQS_PACKAGE],

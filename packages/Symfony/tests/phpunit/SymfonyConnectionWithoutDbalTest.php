@@ -54,7 +54,7 @@ final class SymfonyConnectionWithoutDbalTest extends TestCase
         $this->expectExceptionMessage(self::refusalFor("SymfonyConnectionReference::defaultConnection('default')"));
 
         EcotoneLite::bootstrapFlowTesting(
-            [$configuration::class],
+            [],
             [$configuration],
             enabledModules: [ModulePackageList::SYMFONY_PACKAGE],
         );
@@ -74,7 +74,7 @@ final class SymfonyConnectionWithoutDbalTest extends TestCase
         $this->expectExceptionMessage(self::refusalFor("SymfonyConnectionReference::defaultManagerRegistry('default')"));
 
         EcotoneLite::bootstrapFlowTesting(
-            [$configuration::class],
+            [],
             [$configuration],
             enabledModules: [ModulePackageList::SYMFONY_PACKAGE],
         );

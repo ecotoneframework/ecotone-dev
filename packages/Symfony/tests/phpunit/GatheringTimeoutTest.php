@@ -51,7 +51,6 @@ final class GatheringTimeoutTest extends TestCase
 
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, 'messenger.transport.summaries' => new InMemoryTransport()],
             extensionObjects: [SymfonyMessengerMessageChannelBuilder::create('summaries')],
             enabledModules: [],

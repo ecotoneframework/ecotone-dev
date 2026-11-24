@@ -433,7 +433,7 @@ final class ExecutionRecordingStateLeakTest extends TracingTestCase
         $tracing = TracingConfiguration::createWithDefaults()->withLevel(TracingLevel::Framework);
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$handlers::class],
+            [],
             [$handlers, ...($recorder === null ? [] : self::recordingSpansInto($recorder))],
             [SimpleMessageChannelBuilder::createQueueChannel('orders'), ...$extensionObjects, $recorder === null ? $tracing : $tracing->withSpanRecorder(InMemorySpanRecorder::class)],
             enabledModules: [],

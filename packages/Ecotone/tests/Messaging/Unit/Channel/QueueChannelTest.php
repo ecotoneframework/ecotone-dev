@@ -59,7 +59,7 @@ class QueueChannelTest extends TestCase
         $failureService = $this->getFailureService();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$failureService::class],
+            [],
             [$failureService],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -81,7 +81,7 @@ class QueueChannelTest extends TestCase
         $failureService = $this->getFailureService();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$failureService::class],
+            [],
             [$failureService],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -103,7 +103,7 @@ class QueueChannelTest extends TestCase
         $failureService = $this->getFailureService();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$failureService::class],
+            [],
             [$failureService],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -125,7 +125,7 @@ class QueueChannelTest extends TestCase
         $failureService = $this->getFailureService();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$failureService::class],
+            [],
             [$failureService],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -166,7 +166,7 @@ class QueueChannelTest extends TestCase
         };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$failureService::class],
+            [],
             [$failureService],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),

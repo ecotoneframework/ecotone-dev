@@ -104,7 +104,7 @@ final class ExpressionFailureContextTest extends TestCase
         $mapper = new ExpressionFailureMapper();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ExpressionFailureService::class],
+            [],
             ['expressionFailureMapper' => $mapper, ExpressionFailureService::class => new ExpressionFailureService()],
             enabledModules: [],
         );
@@ -116,7 +116,7 @@ final class ExpressionFailureContextTest extends TestCase
     private function bootstrap(): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [ExpressionFailureService::class],
+            [],
             ['expressionFailureMapper' => new ExpressionFailureMapper(), ExpressionFailureService::class => new ExpressionFailureService()],
             enabledModules: [],
         );

@@ -150,7 +150,6 @@ final class GatheredFlowExecutionRecordingTest extends DbalMessagingTestCase
         };
         $tracing = TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class);
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $connectionFactory ?? new DbalConnectionFactory(getenv('DATABASE_DSN')), InMemorySpanRecorder::class => new InMemorySpanRecorder()],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('workers'),

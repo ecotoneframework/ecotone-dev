@@ -175,7 +175,7 @@ final class EcotoneLite
             $bootstrapConfiguration->cacheDirectoryPath,
             self::shouldUseAutomaticCache($useCachedVersion, $pathToRootCatalog),
             configurationVariables: $configurationVariables,
-            classesToResolve: $classesToResolve,
+            classesToResolve: self::withClassesOfProvidedServices($classesToResolve, $containerOrAvailableServices),
             enableTesting: $enableTesting,
             providedServiceIds: $enableTesting ? self::providedServiceIds($containerOrAvailableServices) : [],
         );
@@ -289,6 +289,26 @@ final class EcotoneLite
                 fn (string $moduleClassName): bool => class_exists($moduleClassName),
             ) !== [],
         ));
+    }
+
+    /**
+     * @param string[] $classesToResolve
+     * @param ContainerInterface|object[] $containerOrAvailableServices
+     * @return string[]
+     */
+    private static function withClassesOfProvidedServices(array $classesToResolve, ContainerInterface|array $containerOrAvailableServices): array
+    {
+        if ($containerOrAvailableServices instanceof ContainerInterface) {
+            return $classesToResolve;
+        }
+
+        foreach ($containerOrAvailableServices as $referenceName => $service) {
+            if (is_object($service) && (is_int($referenceName) || $referenceName === get_class($service))) {
+                $classesToResolve[] = get_class($service);
+            }
+        }
+
+        return array_values(array_unique($classesToResolve));
     }
 
     /**

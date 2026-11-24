@@ -33,7 +33,7 @@ final class DurationOnMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -61,7 +61,7 @@ final class DurationOnMessageChannelTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async', true)],
             enabledModules: [],

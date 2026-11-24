@@ -63,7 +63,7 @@ class FetchAggregateTest extends TestCase
         $orderService = new OrderService();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [User::class, OrderService::class, UserRepository::class],
+            [User::class],
             [
                 UserRepository::class => $userRepository,
                 OrderService::class => $orderService,
@@ -91,7 +91,7 @@ class FetchAggregateTest extends TestCase
         $orderService = new OrderService();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [User::class, OrderService::class, UserRepository::class],
+            [User::class],
             [
                 UserRepository::class => $userRepository,
                 OrderService::class => $orderService,
@@ -119,7 +119,7 @@ class FetchAggregateTest extends TestCase
         $orderService = new OrderService();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [User::class, OrderService::class, UserRepository::class],
+            [User::class],
             [
                 UserRepository::class => $userRepository,
                 OrderService::class => $orderService,
@@ -142,7 +142,7 @@ class FetchAggregateTest extends TestCase
         $orderService = new OrderService();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [User::class, OrderService::class, UserRepository::class],
+            [User::class],
             [
                 UserRepository::class => $userRepository,
                 OrderService::class => $orderService,
@@ -167,7 +167,7 @@ class FetchAggregateTest extends TestCase
         $complexService = new ComplexService();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [User::class, ComplexService::class, UserRepository::class],
+            [User::class],
             [
                 UserRepository::class => $userRepository,
                 ComplexService::class => $complexService,
@@ -194,7 +194,7 @@ class FetchAggregateTest extends TestCase
         $complexService = new ComplexService();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [User::class, ComplexService::class, UserRepository::class],
+            [User::class],
             [
                 UserRepository::class => $userRepository,
                 ComplexService::class => $complexService,
@@ -219,7 +219,7 @@ class FetchAggregateTest extends TestCase
         $complexService = new ComplexService();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [User::class, ComplexService::class, UserRepository::class],
+            [User::class],
             [
                 UserRepository::class => $userRepository,
                 ComplexService::class => $complexService,
@@ -251,7 +251,7 @@ class FetchAggregateTest extends TestCase
         $complexService = new ComplexService();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [User::class, ComplexService::class, UserRepository::class],
+            [User::class],
             [
                 UserRepository::class => $userRepository,
                 ComplexService::class => $complexService,
@@ -282,7 +282,7 @@ class FetchAggregateTest extends TestCase
         $this->expectFetchRefusalIn(ComplexService::class . '::handleComplexCommand');
 
         EcotoneLite::bootstrapFlowTesting(
-            [User::class, ComplexService::class, UserRepository::class],
+            [User::class],
             [
                 UserRepository::class => new UserRepository([]),
                 ComplexService::class => new ComplexService(),
@@ -306,7 +306,7 @@ class FetchAggregateTest extends TestCase
         $this->expectFetchRefusalIn($handler::class . '::place');
 
         EcotoneLite::bootstrapFlowTesting(
-            [User::class, $handler::class],
+            [User::class],
             [$handler],
             enabledModules: [],
         );
@@ -324,7 +324,7 @@ class FetchAggregateTest extends TestCase
         $this->expectFetchRefusalIn($handler::class . '::whenOrderPlaced');
 
         EcotoneLite::bootstrapFlowTesting(
-            [User::class, $handler::class],
+            [User::class],
             [$handler],
             enabledModules: [],
         );
@@ -343,7 +343,7 @@ class FetchAggregateTest extends TestCase
         $this->expectFetchRefusalIn($handler::class . '::notifyUser');
 
         EcotoneLite::bootstrapFlowTesting(
-            [User::class, $handler::class],
+            [User::class],
             [$handler],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             enabledModules: [],
@@ -363,7 +363,7 @@ class FetchAggregateTest extends TestCase
         $this->expectFetchRefusalIn($handler::class . '::userName');
 
         EcotoneLite::bootstrapFlowTesting(
-            [User::class, $handler::class],
+            [User::class],
             [$handler],
             enabledModules: [],
         );
@@ -425,7 +425,7 @@ class FetchAggregateTest extends TestCase
         $this->expectFetchRefusalIn($interceptor::class . '::verifyUser');
 
         EcotoneLite::bootstrapFlowTesting(
-            [User::class, $handler::class, $interceptor::class],
+            [User::class],
             [$handler, $interceptor],
             enabledModules: [],
         );
@@ -450,7 +450,7 @@ class FetchAggregateTest extends TestCase
         $this->expectFetchRefusalIn($interceptor::class . '::verifyUser');
 
         EcotoneLite::bootstrapFlowTesting(
-            [User::class, $handler::class, $interceptor::class],
+            [User::class],
             [$handler, $interceptor],
             enabledModules: [],
         );
@@ -468,7 +468,7 @@ class FetchAggregateTest extends TestCase
         $this->expectFetchRefusalIn($command::class . '::show');
 
         EcotoneLite::bootstrapFlowTesting(
-            [User::class, $command::class],
+            [User::class],
             [$command],
             enabledModules: [],
         );
@@ -479,7 +479,7 @@ class FetchAggregateTest extends TestCase
         $this->expectException(ConfigurationException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [User::class, IncorrectService::class, UserRepository::class],
+            [User::class],
             [
                 UserRepository::class => new UserRepository([]),
                 IncorrectService::class => new IncorrectService(),

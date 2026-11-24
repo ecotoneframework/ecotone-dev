@@ -173,7 +173,6 @@ final class CurrentConnectionTest extends DbalMessagingTestCase
         );
 
         EcotoneLite::bootstrap(
-            classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory(self::databaseDsn())],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',

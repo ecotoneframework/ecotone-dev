@@ -36,7 +36,7 @@ final class FinalFailureStrategyTest extends TestCase
         $handler = new SingleMessageHandler();
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [SingleMessageHandler::class],
+            [],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             extensionObjects: [
                 KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName)->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)->withReceiveTimeout(3000),
@@ -78,7 +78,7 @@ final class FinalFailureStrategyTest extends TestCase
         $handler = new ThreeMessageHandler();
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [ThreeMessageHandler::class],
+            [],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             extensionObjects: [
                 KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName)->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)->withReceiveTimeout(10000),
@@ -115,7 +115,7 @@ final class FinalFailureStrategyTest extends TestCase
         $handler = new ThreeMessageHandler();
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [ThreeMessageHandler::class],
+            [],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             extensionObjects: [
                 KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName)->withFinalFailureStrategy(FinalFailureStrategy::RESEND)->withReceiveTimeout(10000),
@@ -153,7 +153,7 @@ final class FinalFailureStrategyTest extends TestCase
 
         // First application - fails with execution limit 1
         $ecotoneApp = EcotoneLite::bootstrapFlowTesting(
-            [TwoApplicationHandler::class],
+            [],
             [$handler1, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             extensionObjects: [
                 KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName)->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)->withReceiveTimeout(10000),
@@ -197,7 +197,7 @@ final class FinalFailureStrategyTest extends TestCase
 
         // Single application that will process multiple messages
         $ecotoneApp = EcotoneLite::bootstrapFlowTesting(
-            [IgnoreTestHandler::class],
+            [],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             extensionObjects: [
                 KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName, messageGroupId:$sharedGroupId)->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)->withReceiveTimeout(10000),
@@ -246,7 +246,7 @@ final class FinalFailureStrategyTest extends TestCase
 
         // Single application that will process multiple messages
         $ecotoneApp = EcotoneLite::bootstrapFlowTesting(
-            [IgnoreTestHandler::class],
+            [],
             [$handler1, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             extensionObjects: [
                 KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName, messageGroupId:Uuid::v7()->toRfc4122())->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)->withReceiveTimeout(10000),
@@ -277,7 +277,7 @@ final class FinalFailureStrategyTest extends TestCase
 
         // Single application that will process multiple messages
         $ecotoneApp = EcotoneLite::bootstrapFlowTesting(
-            [IgnoreTestHandler::class],
+            [],
             [$handler2, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             extensionObjects: [
                 KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName, messageGroupId:Uuid::v7()->toRfc4122())->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)->withReceiveTimeout(10000),

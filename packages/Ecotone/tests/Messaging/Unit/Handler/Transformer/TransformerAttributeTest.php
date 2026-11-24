@@ -40,7 +40,7 @@ final class TransformerAttributeTest extends TestCase
         $this->expectException(\Ecotone\Messaging\Support\InvalidArgumentException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [VoidTransformerHandler::class],
+            [],
             [new VoidTransformerHandler()],
             enabledModules: [],
         );
@@ -98,7 +98,7 @@ final class TransformerAttributeTest extends TestCase
     private function bootstrap()
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [TransformerHandler::class],
+            [],
             [new TransformerHandler()],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel(TransformerHandler::NULL_OUTPUT_CHANNEL)],
             enabledModules: [],

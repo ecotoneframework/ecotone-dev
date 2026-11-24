@@ -32,7 +32,7 @@ final class FinalFailureStrategyTest extends TestCase
     public function test_reject_failure_strategy_rejects_message_on_exception()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [FailingService::class],
+            [],
             [$service = new FailingService()],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -53,7 +53,7 @@ final class FinalFailureStrategyTest extends TestCase
     public function test_requeue_failure_strategy_requeues_message_on_exception()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [FailingService::class],
+            [],
             [$service = new FailingService()],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -74,7 +74,7 @@ final class FinalFailureStrategyTest extends TestCase
     public function test_stop_failure_strategy_stops_consumer_on_exception()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [FailingService::class],
+            [],
             [$service = new FailingService()],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -93,7 +93,7 @@ final class FinalFailureStrategyTest extends TestCase
     public function test_successful_processing_always_acknowledges_message()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [SuccessService::class],
+            [],
             [$service = new SuccessService()],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -114,7 +114,7 @@ final class FinalFailureStrategyTest extends TestCase
     public function test_reject_message_exception_triggers_reject_strategy()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [RejectingService::class],
+            [],
             [$service = new RejectingService()],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -135,7 +135,7 @@ final class FinalFailureStrategyTest extends TestCase
     public function test_setting_execution_metadata_to_stop_on_error()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [RejectingService::class],
+            [],
             [$service = new RejectingService()],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -156,7 +156,7 @@ final class FinalFailureStrategyTest extends TestCase
     public function test_manual_ack_service_acknowledges_message_manually()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [ManualAckService::class],
+            [],
             [$service = new ManualAckService()],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -177,7 +177,7 @@ final class FinalFailureStrategyTest extends TestCase
     public function test_auto_ack_disabled_and_fails()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [FailingService::class],
+            [],
             [$service = new FailingService()],
             extensionObjects: [
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),

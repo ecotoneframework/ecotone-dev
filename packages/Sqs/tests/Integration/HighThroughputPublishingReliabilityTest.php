@@ -69,7 +69,7 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
             }
         };
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [$commandHandler::class],
+            [],
             [SqsConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
             extensionObjects: [SqsMessagePublisherConfiguration::create(queueName:Uuid::v7()->toRfc4122())->withHighThroughputPublishing(confirmationTimeoutInMilliseconds:10000)],
             enabledModules: [ModulePackageList::SQS_PACKAGE],

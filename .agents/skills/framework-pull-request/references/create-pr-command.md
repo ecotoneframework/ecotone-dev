@@ -85,7 +85,7 @@ sub-sessions of [framework-pull-request rule P3](../SKILL.md#p3-four-independent
 Orca worker sessions in the current workspace when the session runs inside Orca, subagents only when Orca is not
 available, on Claude Opus 5.5 either way ([rule P3b](../SKILL.md#p3b-a-review-sub-session-is-an-orca-session-a-subagent-only-where-orca-is-not-available)).
 Each decides every requirement of its section of the [review list](review-list.md) as `not-apply`, `covered` or
-`missing`. Wait for all four reports, commit the decided lists, and cover every `missing` requirement (or get the
+`missing`. Wait for all four reports, save the decided lists to files under `docs/reviews/`, and cover every `missing` requirement (or get the
 maintainer's decision on it). Then resume the sub-sessions with the fix commits
 ([rule P3a](../SKILL.md#p3a-a-fix-is-re-verified-by-resuming-the-review-sub-sessions)), and continue only when no
 requirement is `missing`.

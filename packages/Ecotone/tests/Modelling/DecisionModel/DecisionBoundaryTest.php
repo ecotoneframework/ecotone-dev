@@ -54,7 +54,7 @@ final class DecisionBoundaryTest extends TestCase
         $handler = new RatingHandlerForBoundaryTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, CourseRatedForBoundaryTest::class],
+            classesToResolve: [CourseRatedForBoundaryTest::class],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -123,7 +123,7 @@ final class DecisionBoundaryTest extends TestCase
     private function bootstrapWithRegionAsFilterOnly(object $handler, array $eventClasses): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, ...$eventClasses],
+            classesToResolve: [...$eventClasses],
             containerOrAvailableServices: [$handler],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['region'])],
             enabledModules: [],
@@ -222,7 +222,7 @@ final class DecisionBoundaryTest extends TestCase
         $handler = new TenantScopedRatingHandlerForBoundaryTest();
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, TenantCourseRatedForBoundaryTest::class, CompetingWriteInjectorForBoundaryTest::class],
+            classesToResolve: [TenantCourseRatedForBoundaryTest::class],
             containerOrAvailableServices: [$handler, new CompetingWriteInjectorForBoundaryTest()],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -235,7 +235,7 @@ final class DecisionBoundaryTest extends TestCase
         $handler = new ServiceMappedRatingHandlerForBoundaryTest();
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, CourseRatedForBoundaryTest::class, CourseTagMapperForBoundaryTest::class, CompetingWriteInjectorForBoundaryTest::class],
+            classesToResolve: [CourseRatedForBoundaryTest::class],
             containerOrAvailableServices: [$handler, new CourseTagMapperForBoundaryTest(), new CompetingWriteInjectorForBoundaryTest()],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -248,7 +248,7 @@ final class DecisionBoundaryTest extends TestCase
         $handler = new MixedParameterRatingHandlerForBoundaryTest();
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, TenantCourseRatedForBoundaryTest::class, RegionAuditedForBoundaryTest::class, CourseTagMapperForBoundaryTest::class, CompetingWriteInjectorForBoundaryTest::class],
+            classesToResolve: [TenantCourseRatedForBoundaryTest::class, RegionAuditedForBoundaryTest::class],
             containerOrAvailableServices: [$handler, new CourseTagMapperForBoundaryTest(), new CompetingWriteInjectorForBoundaryTest()],
             extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             enabledModules: [],
@@ -279,7 +279,7 @@ final class DecisionBoundaryTest extends TestCase
     {
         try {
             EcotoneLite::bootstrapFlowTesting(
-                classesToResolve: [$handler::class, CourseRatedForBoundaryTest::class],
+                classesToResolve: [CourseRatedForBoundaryTest::class],
                 containerOrAvailableServices: [$handler],
                 extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
                 enabledModules: [],

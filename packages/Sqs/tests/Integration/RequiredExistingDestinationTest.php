@@ -128,7 +128,7 @@ final class RequiredExistingDestinationTest extends ConnectionTestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler::class => $handler, SqsConnectionFactory::class => $this->getConnectionFactory()],
             extensionObjects: [$builder],
             enabledModules: [ModulePackageList::SQS_PACKAGE],

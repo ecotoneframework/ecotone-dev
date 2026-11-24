@@ -179,7 +179,7 @@ final class ExecutionRecordingInterleavingTest extends TracingTestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$orders::class],
+            [],
             [$orders, ...($recorder === null ? [] : self::recordingSpansInto($recorder))],
             [SimpleMessageChannelBuilder::createQueueChannel('shipments'), ($recorder === null ? TracingConfiguration::createWithDefaults() : self::tracingConfiguration())->withLevel(TracingLevel::Framework)],
             enabledModules: [],

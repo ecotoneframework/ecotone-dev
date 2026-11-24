@@ -140,7 +140,6 @@ public function test_a_handler_marked_with_the_attribute_is_reachable_through_th
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class],
         containerOrAvailableServices: [$handler],
     );
 

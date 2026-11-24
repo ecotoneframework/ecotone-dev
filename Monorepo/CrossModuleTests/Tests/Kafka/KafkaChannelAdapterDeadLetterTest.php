@@ -78,7 +78,7 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
         $this->cleanDeadLetterTable($dbalConnectionFactory);
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$consumer::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 DbalConnectionFactory::class => $dbalConnectionFactory,
@@ -151,7 +151,7 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
         $this->cleanDeadLetterTable($dbalConnectionFactory);
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 DbalConnectionFactory::class => $dbalConnectionFactory,

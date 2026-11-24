@@ -33,7 +33,7 @@ final class DynamicChannelRetryTest extends TestCase
         $handler = new DynamicChannelRetryHandler();
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [DynamicChannelRetryHandler::class],
+            [],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             extensionObjects: [
                 KafkaMessageChannelBuilder::create(channelName:'async_tenant_a', topicName:$topicTenantA, )->withFinalFailureStrategy(FinalFailureStrategy::RESEND)->withReceiveTimeout(3000),

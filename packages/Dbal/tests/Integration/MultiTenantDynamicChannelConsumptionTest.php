@@ -58,7 +58,7 @@ final class MultiTenantDynamicChannelConsumptionTest extends DbalMessagingTestCa
         $tenantBChannel = 'owner_creation_tenant_b_' . $suffix;
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, DbalConnectionFactory::class => $this->getConnectionFactory()],
             extensionObjects: [
                 DbalBackedMessageChannelBuilder::create($tenantAChannel),

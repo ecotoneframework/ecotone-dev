@@ -93,7 +93,7 @@ final class NonDefaultConnectionQueueSetupTest extends DbalMessagingTestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [
                 $handler,
                 DbalConnectionFactory::class => $this->getConnectionFactory(),

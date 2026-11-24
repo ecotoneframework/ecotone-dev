@@ -55,7 +55,7 @@ final class FlowTestingEventSourcedAggregateTest extends EventSourcingMessagingT
             }
         };
         $flowTest = fn () => EcotoneLite::bootstrapFlowTesting(
-            [FlowTestingOrder::class, $converter::class],
+            [FlowTestingOrder::class],
             [$converter, DbalConnectionFactory::class => self::getConnectionFactory()],
         );
 

@@ -64,7 +64,6 @@ final class PulseReplyChannelTest extends ConnectionTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $pulseService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$pulse::class],
             containerOrAvailableServices: [...$services, $pulse],
             extensionObjects: [
                 SqsBackedMessageChannelBuilder::create('order_service', 'pulse_connection'),
@@ -127,7 +126,6 @@ final class PulseReplyChannelTest extends ConnectionTestCase
         }
 
         $pulseService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$pulse::class],
             containerOrAvailableServices: [...$services, $pulse],
             extensionObjects: [
                 SqsBackedMessageChannelBuilder::create('order_service', 'pulse_connection'),

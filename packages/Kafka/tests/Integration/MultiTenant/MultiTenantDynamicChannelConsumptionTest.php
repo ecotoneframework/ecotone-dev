@@ -58,7 +58,7 @@ final class MultiTenantDynamicChannelConsumptionTest extends TestCase
 
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             extensionObjects: [
                 KafkaMessageChannelBuilder::create(channelName:'channel_owner_creation_tenant_a', topicName:'owner_creation_tenant_a_'.Uuid::v7()->toRfc4122(), ),

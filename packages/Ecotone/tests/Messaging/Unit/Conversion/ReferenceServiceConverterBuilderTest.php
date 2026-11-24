@@ -28,7 +28,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
     {
         $handler = new StdClassArrayHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ExampleConverterService::class, StdClassArrayHandler::class],
+            [ExampleConverterService::class],
             ['exampleConverterService' => new ExampleConverterService(), StdClassArrayHandler::class => $handler],
             enabledModules: [],
         );
@@ -43,7 +43,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [ExampleIncorrectConverterService::class, StdClassArrayHandler::class],
+            [],
             [new ExampleIncorrectConverterService(), new StdClassArrayHandler()],
             enabledModules: [],
         );
@@ -52,7 +52,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
     public function test_not_throwing_exception_if_converter_containing_source_union_source_type()
     {
         EcotoneLite::bootstrapFlowTesting(
-            [ExampleIncorrectUnionSourceTypeConverterService::class, StdClassArrayHandler::class],
+            [],
             [new ExampleIncorrectUnionSourceTypeConverterService(), new StdClassArrayHandler()],
             enabledModules: [],
         );
@@ -65,7 +65,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [ExampleIncorrectUnionReturnTypeConverterService::class, StdClassArrayHandler::class],
+            [],
             [new ExampleIncorrectUnionReturnTypeConverterService(), new StdClassArrayHandler()],
             enabledModules: [],
         );
@@ -92,7 +92,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
 
         $handler = new StdClassArrayHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$staticConverter::class, StdClassArrayHandler::class],
+            [$staticConverter::class],
             [$handler],
             enabledModules: [],
         );
@@ -129,7 +129,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$staticConverter::class, $handler::class],
+            [$staticConverter::class],
             [$handler],
             enabledModules: [],
         );

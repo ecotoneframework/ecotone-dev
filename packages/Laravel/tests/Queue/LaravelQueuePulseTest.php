@@ -89,7 +89,6 @@ final class LaravelQueuePulseTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $pulseService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$pulse::class],
             containerOrAvailableServices: [$pulse],
             extensionObjects: [
                 ...$channels,

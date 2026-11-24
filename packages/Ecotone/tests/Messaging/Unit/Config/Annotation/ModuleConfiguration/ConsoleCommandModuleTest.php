@@ -29,7 +29,7 @@ final class ConsoleCommandModuleTest extends AnnotationConfigurationTestCase
         $this->expectException(InvalidArgumentException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [OneTimeWithIncorrectResultSet::class],
+            [],
             [new OneTimeWithIncorrectResultSet()],
             enabledModules: [],
         );
@@ -39,7 +39,7 @@ final class ConsoleCommandModuleTest extends AnnotationConfigurationTestCase
     {
         $consoleCommand = new ConsoleCommandWithArrayOptions();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ConsoleCommandWithArrayOptions::class],
+            [],
             [$consoleCommand],
             enabledModules: [],
         );
@@ -58,7 +58,7 @@ final class ConsoleCommandModuleTest extends AnnotationConfigurationTestCase
     {
         $consoleCommand = new ConsoleCommandWithArrayOptions();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ConsoleCommandWithArrayOptions::class],
+            [],
             [$consoleCommand],
             enabledModules: [],
         );
@@ -79,7 +79,7 @@ final class ConsoleCommandModuleTest extends AnnotationConfigurationTestCase
         $consoleCommand = new ConsoleCommandWithMessageHeaders();
         $stdClassConverter = new StdClassConverter();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ConsoleCommandWithMessageHeaders::class, StdClassConverter::class],
+            [],
             [$consoleCommand, $stdClassConverter],
             enabledModules: [],
         );
@@ -100,7 +100,7 @@ final class ConsoleCommandModuleTest extends AnnotationConfigurationTestCase
         $consoleCommand = new ConsoleCommandWithMessageHeaders();
         $stdClassConverter = new StdClassConverter();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ConsoleCommandWithMessageHeaders::class, StdClassConverter::class],
+            [],
             [$consoleCommand, $stdClassConverter],
             enabledModules: [],
         );
@@ -121,7 +121,7 @@ final class ConsoleCommandModuleTest extends AnnotationConfigurationTestCase
         $consoleCommand = new ConsoleCommandWithMessageHeaders();
         $stdClassConverter = new StdClassConverter();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ConsoleCommandWithMessageHeaders::class, StdClassConverter::class],
+            [],
             [$consoleCommand, $stdClassConverter],
             enabledModules: [],
         );

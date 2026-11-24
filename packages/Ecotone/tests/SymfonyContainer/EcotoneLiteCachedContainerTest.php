@@ -25,7 +25,7 @@ class EcotoneLiteCachedContainerTest extends TestCase
         $handler = new CachedCommandHandlerService();
 
         $messagingSystem = EcotoneLite::bootstrap(
-            [CachedCommandHandlerService::class],
+            [],
             [CachedCommandHandlerService::class => $handler],
             enabledModules: [],
             useCachedVersion: true,
@@ -36,7 +36,7 @@ class EcotoneLiteCachedContainerTest extends TestCase
         self::assertNotEmpty(glob($cacheDirectory . '/ecotone/*/ecotone_container.php'));
 
         $warmBootedMessagingSystem = EcotoneLite::bootstrap(
-            [CachedCommandHandlerService::class],
+            [],
             [CachedCommandHandlerService::class => $handler],
             enabledModules: [],
             useCachedVersion: true,
@@ -50,7 +50,7 @@ class EcotoneLiteCachedContainerTest extends TestCase
     public function test_registered_console_commands_are_available_as_container_parameter(): void
     {
         $messagingSystem = EcotoneLite::bootstrap(
-            [OneTimeWithResultExample::class],
+            [],
             [OneTimeWithResultExample::class => new OneTimeWithResultExample()],
             enabledModules: [],
         );
@@ -64,7 +64,7 @@ class EcotoneLiteCachedContainerTest extends TestCase
     public function test_gateway_bridges_can_be_registered_into_framework_container(): void
     {
         $messagingSystem = EcotoneLite::bootstrap(
-            [CachedCommandHandlerService::class],
+            [],
             [CachedCommandHandlerService::class => new CachedCommandHandlerService()],
             enabledModules: [],
         );

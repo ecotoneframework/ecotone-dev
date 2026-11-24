@@ -58,7 +58,7 @@ final class MultiTenantDynamicChannelConsumptionTest extends ConnectionTestCase
         $tenantBChannel = 'owner_creation_tenant_b_' . $suffix;
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler, RedisConnectionFactory::class => $this->getConnectionFactory()],
             extensionObjects: [
                 RedisBackedMessageChannelBuilder::create($tenantAChannel),

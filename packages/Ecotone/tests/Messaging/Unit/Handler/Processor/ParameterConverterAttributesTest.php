@@ -27,7 +27,7 @@ final class ParameterConverterAttributesTest extends TestCase
     public function test_payload_converter_passes_the_full_message_payload(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RecordingParameterConverterHandler::class],
+            [],
             [new RecordingParameterConverterHandler()],
             enabledModules: [],
         );
@@ -40,7 +40,7 @@ final class ParameterConverterAttributesTest extends TestCase
     public function test_payload_expression_converter_evaluates_expression_against_the_payload(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RecordingParameterConverterHandler::class],
+            [],
             [new RecordingParameterConverterHandler()],
             enabledModules: [],
         );
@@ -53,7 +53,7 @@ final class ParameterConverterAttributesTest extends TestCase
     public function test_header_converter_extracts_the_named_header(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RecordingParameterConverterHandler::class],
+            [],
             [new RecordingParameterConverterHandler()],
             enabledModules: [],
         );
@@ -66,7 +66,7 @@ final class ParameterConverterAttributesTest extends TestCase
     public function test_required_header_converter_throws_when_header_is_missing(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RecordingParameterConverterHandler::class],
+            [],
             [new RecordingParameterConverterHandler()],
             enabledModules: [],
         );
@@ -79,7 +79,7 @@ final class ParameterConverterAttributesTest extends TestCase
     public function test_optional_header_converter_is_null_when_header_is_missing(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RecordingParameterConverterHandler::class],
+            [],
             [new RecordingParameterConverterHandler()],
             enabledModules: [],
         );
@@ -92,7 +92,7 @@ final class ParameterConverterAttributesTest extends TestCase
     public function test_header_expression_converter_evaluates_expression_against_the_header_value(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RecordingParameterConverterHandler::class],
+            [],
             [new RecordingParameterConverterHandler()],
             enabledModules: [],
         );
@@ -105,7 +105,7 @@ final class ParameterConverterAttributesTest extends TestCase
     public function test_headers_converter_returns_all_message_headers(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RecordingParameterConverterHandler::class],
+            [],
             [new RecordingParameterConverterHandler()],
             enabledModules: [],
         );
@@ -120,7 +120,7 @@ final class ParameterConverterAttributesTest extends TestCase
     {
         $referencedService = new stdClass();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RecordingParameterConverterHandler::class],
+            [],
             [new RecordingParameterConverterHandler(), 'referencedService' => $referencedService],
             enabledModules: [],
         );
@@ -134,7 +134,7 @@ final class ParameterConverterAttributesTest extends TestCase
     {
         $referencedService = new NamedReferenceService('someName');
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RecordingParameterConverterHandler::class],
+            [],
             [new RecordingParameterConverterHandler(), 'referencedService' => $referencedService],
             enabledModules: [],
         );
@@ -147,7 +147,7 @@ final class ParameterConverterAttributesTest extends TestCase
     public function test_configuration_variable_converter_retrieves_value_by_explicit_name(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RecordingParameterConverterHandler::class],
+            [],
             [new RecordingParameterConverterHandler()],
             enabledModules: [],
             configurationVariables: ['appName' => 'ecotone-app'],
@@ -161,7 +161,7 @@ final class ParameterConverterAttributesTest extends TestCase
     public function test_configuration_variable_converter_falls_back_to_the_parameter_default_when_missing(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RecordingParameterConverterHandler::class],
+            [],
             [new RecordingParameterConverterHandler()],
             enabledModules: [],
         );
@@ -174,7 +174,7 @@ final class ParameterConverterAttributesTest extends TestCase
     public function test_configuration_variable_converter_throws_when_required_variable_is_missing(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [RequiredMissingConfigurationVariableHandler::class],
+            [],
             [new RequiredMissingConfigurationVariableHandler()],
             enabledModules: [],
         );

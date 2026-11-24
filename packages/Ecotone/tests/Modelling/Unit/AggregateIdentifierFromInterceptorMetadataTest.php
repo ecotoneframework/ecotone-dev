@@ -28,7 +28,6 @@ final class AggregateIdentifierFromInterceptorMetadataTest extends BaseEcotoneTe
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
                 OrderFulfilment::class,
-                BeforeFinishOrder::class,
             ],
             containerOrAvailableServices: [
                 new BeforeFinishOrder(),
@@ -47,7 +46,6 @@ final class AggregateIdentifierFromInterceptorMetadataTest extends BaseEcotoneTe
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
                 AsynchronousOrderFulfilment::class,
-                BeforeFinishOrder::class,
             ],
             containerOrAvailableServices: [
                 new BeforeFinishOrder(),
@@ -68,7 +66,6 @@ final class AggregateIdentifierFromInterceptorMetadataTest extends BaseEcotoneTe
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
                 OrderFulfilment::class,
-                PresendFinishOrder::class,
             ],
             containerOrAvailableServices: [
                 new PresendFinishOrder(),
@@ -87,7 +84,6 @@ final class AggregateIdentifierFromInterceptorMetadataTest extends BaseEcotoneTe
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
                 AsynchronousOrderFulfilment::class,
-                PresendFinishOrder::class,
             ],
             containerOrAvailableServices: [
                 new PresendFinishOrder(),

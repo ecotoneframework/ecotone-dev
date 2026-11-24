@@ -25,7 +25,7 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
     {
         $handler = new DirectlyConsumedHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [DirectlyConsumedHandler::class],
+            [],
             [$handler],
             enabledModules: [],
         );
@@ -65,7 +65,7 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
         $this->expectException(ConfigurationException::class);
 
         EcotoneLite::bootstrap(
-            [UnregisteredAsyncChannelHandler::class],
+            [],
             [new UnregisteredAsyncChannelHandler()],
             enabledModules: [],
         );
@@ -75,7 +75,7 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
     {
         $handler = new TwoHopAsyncHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [TwoHopAsyncHandler::class],
+            [],
             [$handler],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel(TwoHopAsyncHandler::CHANNEL_ONE),
@@ -97,7 +97,7 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
     {
         $handler = new ThreeHopAsyncHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [ThreeHopAsyncHandler::class],
+            [],
             [$handler],
             extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel(ThreeHopAsyncHandler::CHANNEL_ONE),

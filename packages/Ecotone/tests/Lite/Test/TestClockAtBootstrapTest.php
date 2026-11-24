@@ -40,7 +40,7 @@ final class TestClockAtBootstrapTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$service::class],
+            [],
             [$service],
             testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2024-03-01 10:00:00')),
         );
@@ -69,7 +69,7 @@ final class TestClockAtBootstrapTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$service::class],
+            [],
             [$service, SleepInterface::class => $sleep],
             initialTime: new DateTimeImmutable('2024-03-01 10:00:00'),
         );
@@ -128,7 +128,7 @@ final class TestClockAtBootstrapTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$service::class],
+            [],
             [$service],
             initialTime: new DateTimeImmutable('2024-03-01 10:00:00'),
         );
@@ -161,7 +161,7 @@ final class TestClockAtBootstrapTest extends TestCase
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$service::class],
+            [],
             [$service],
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),

@@ -150,7 +150,7 @@ final class RequiredExistingDestinationTest extends AmqpMessagingTestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler::class => $handler, ...$this->getConnectionFactoryReferences()],
             extensionObjects: [$builder],
             enabledModules: [ModulePackageList::AMQP_PACKAGE],

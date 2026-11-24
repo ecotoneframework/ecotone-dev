@@ -54,7 +54,7 @@ final class TempestConnectionWithoutDbalTest extends TestCase
         $this->expectExceptionMessage(self::refusalFor('TempestConnectionReference::defaultConnection()'));
 
         EcotoneLite::bootstrapFlowTesting(
-            [$configuration::class],
+            [],
             [$configuration],
             enabledModules: [ModulePackageList::TEMPEST_PACKAGE],
         );

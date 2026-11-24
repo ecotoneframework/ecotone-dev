@@ -33,7 +33,7 @@ final class DelayedAttributeDurationTest extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
+            [],
             [$handler],
             enabledModules: [],
         );

@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Recoverability\DeclaresReplayChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Tracing\ChannelSendingAfterItsSenderFinished;
 use Psr\Container\ContainerInterface;
 
 /**
@@ -22,7 +23,7 @@ use Psr\Container\ContainerInterface;
  *
  * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
-final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, DelayedMessageChannelBuilder, DeclaresReplayChannel
+final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, DelayedMessageChannelBuilder, DeclaresReplayChannel, ChannelSendingAfterItsSenderFinished
 {
     public const DEFAULT_COROUTINES = 10;
 

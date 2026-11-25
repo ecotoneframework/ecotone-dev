@@ -59,9 +59,11 @@ by the failing statement (`MissingTableFailure`), never by asking the schema fir
 ### 16a. No database write after the transaction
 Whatever a feature stores about a message is written inside that message's transaction, or not at all. Telemetry
 to an external collector is exempt, and so is the failure of a consumed message stored once the error channel took
-it, in its own short transaction like the dead letter.
+it, in its own short transaction like the dead letter, and the release of the next message of a
+partition key held in the dead letter, which runs once the replayed message's transaction committed.
 - **Expected:** the feature's write happens inside the message's transaction, never after commit or rollback; the
-  one database write outside it records a failure the error channel already took, in its own transaction.
+  only database writes outside it record a failure the error channel already took, or release the next message
+  of a partition key held in the dead letter.
 - **Verified by:** `eval:store-feature-state`
 
 ### 16d. Framework code opens no transaction; the boundaries do

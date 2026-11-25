@@ -1,0 +1,4 @@
+---
+type: llm
+---
+PASS if the plan says it first looks for the review sub-sessions this worktree already has (for example the dispatch ids recorded in `docs/reviews/sessions.md`) and resumes those for this push, starting a new session only for a review that has none recorded or whose session cannot be reached, and that the sessions stay open afterwards (not stopped or released after the push). A plan that cannot read the file passes when it states this order: check for the existing review sessions first, resume them, start new ones only where there is none. FAIL if the plan starts four new review sessions without first checking for existing ones, treats resuming and starting new sessions as an equal choice, or stops, releases or closes the review sessions after they report or after the push.

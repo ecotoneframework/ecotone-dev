@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\EventBus;
+use Fiber;
 use Illuminate\Support\Facades\DB;
 use PDO;
 use RuntimeException;
@@ -40,6 +41,14 @@ final class CustomerService
         if ($shouldThrowException) {
             throw new RuntimeException('Throwing an execption to test error handling.');
         }
+    }
+
+    #[CommandHandler('customer.register_after_being_suspended')]
+    public function registerAfterBeingSuspended(RegisterCustomer $command): void
+    {
+        Fiber::suspend();
+
+        Customer::register($command)->save();
     }
 
     #[CommandHandler('customer.register_with_business_interface')]

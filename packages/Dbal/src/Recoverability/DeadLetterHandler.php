@@ -30,6 +30,7 @@ final class DeadLetterHandler
         private FlowTrackingScope $flowTracking,
         private ChannelResolver $channelResolver,
         private ReplayChannels $replayChannels,
+        private DeadLetterReplayOrder $replayOrder,
     ) {
     }
 
@@ -80,9 +81,18 @@ final class DeadLetterHandler
     {
         $this->assertTargetChannelExists($targetChannel);
 
-        foreach ($this->storedMessageIds() as $messageId) {
+        foreach ($this->replayOrder->replayableOf($this->storedMessageIds()) as $messageId) {
             $this->replayMessage($messageId, $messagingEntrypoint, $targetChannel);
         }
+    }
+
+    /**
+     * @param list<string> $messageIds
+     * @return list<string>
+     */
+    public function replayableOf(array $messageIds): array
+    {
+        return $this->replayOrder->replayableOf($messageIds);
     }
 
     /**
@@ -132,7 +142,7 @@ final class DeadLetterHandler
 
     private function replayMessage(string $messageId, MessagingEntrypointService $messagingEntrypoint, ?string $targetChannel): void
     {
-        $message = $this->show($messageId);
+        $message = $this->replayOrder->releasing($messageId, $this->show($messageId));
         $hasPolledChannel = $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME);
         $hasInboundRequestChannel = $message->getHeaders()->containsKey(MessageHeaders::INBOUND_REQUEST_CHANNEL);
         $hasRoutingSlip = $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP);

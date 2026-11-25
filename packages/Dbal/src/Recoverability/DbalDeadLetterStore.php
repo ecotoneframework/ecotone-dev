@@ -45,21 +45,24 @@ final class DbalDeadLetterStore implements DeadLetterStore
     ) {
     }
 
-    public function store(Message $message): void
+    public function store(Message $message): string
     {
         $retryStrategy = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(10, 3, 1000)
             ->maxRetries(3)
             ->build();
 
-        $this->retryRunner->runWithRetry(function () use ($message) {
+        $deadLetterId = '';
+        $this->retryRunner->runWithRetry(function () use ($message, &$deadLetterId) {
             try {
-                $this->onTable(fn () => $this->insertHandledMessage($message->getPayload(), $message->getHeaders()->headers()));
+                $deadLetterId = $this->onTable(fn (): string => $this->insertHandledMessage($message->getPayload(), $message->getHeaders()->headers()));
             } catch (\Exception $exception) {
                 $this->getConnection()->close();
 
                 throw $exception;
             }
         }, $retryStrategy, $message, \Exception::class, 'Storing Error Message in dead letter failed. Trying to self-heal and retry.');
+
+        return $deadLetterId;
     }
 
     public function list(int $limit, int $offset): array
@@ -123,17 +126,21 @@ final class DbalDeadLetterStore implements DeadLetterStore
             ->executeStatement());
     }
 
-    private function insertHandledMessage(string $payload, array $headers): void
+    private function insertHandledMessage(string $payload, array $headers): string
     {
+        $deadLetterId = (string) $headers[MessageHeaders::MESSAGE_ID];
         try {
-            $rowsAffected = $this->storeInDatabase($headers[MessageHeaders::MESSAGE_ID], $headers, $payload);
+            $rowsAffected = $this->storeInDatabase($deadLetterId, $headers, $payload);
         } catch (UniqueConstraintViolationException) {
-            $rowsAffected = $this->storeInDatabase(Uuid::v7()->toRfc4122(), $headers, $payload);
+            $deadLetterId = Uuid::v7()->toRfc4122();
+            $rowsAffected = $this->storeInDatabase($deadLetterId, $headers, $payload);
         }
 
         if (1 !== $rowsAffected) {
             throw new Exception('There was a problem inserting exceptional message. Dbal did not confirm that the record is inserted.');
         }
+
+        return $deadLetterId;
     }
 
     private function storeInDatabase(mixed $messageId, array $headers, string $payload): string|int

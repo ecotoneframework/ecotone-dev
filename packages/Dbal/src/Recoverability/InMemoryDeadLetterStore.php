@@ -42,7 +42,7 @@ final class InMemoryDeadLetterStore implements DeadLetterStore
     ) {
     }
 
-    public function store(Message $message): void
+    public function store(Message $message): string
     {
         $headers = $message->getHeaders()->headers();
         $messageId = (string) $headers[MessageHeaders::MESSAGE_ID];
@@ -55,6 +55,8 @@ final class InMemoryDeadLetterStore implements DeadLetterStore
             'headers' => json_decode(json_encode($this->headerMapper->mapFromMessageHeaders($headers, $this->conversionService), JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_IGNORE), true, 512, JSON_THROW_ON_ERROR),
             'failedAt' => (int) $headers[MessageHeaders::TIMESTAMP],
         ];
+
+        return $messageId;
     }
 
     public function list(int $limit, int $offset): array

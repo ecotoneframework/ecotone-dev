@@ -31,6 +31,7 @@ final class DeadLetterOverview
                 'configured' => $configured,
                 'total' => $configured ? (int) ($deadLetters['total'] ?? 0) : 0,
                 'groups' => array_map(static fn (array $group): array => $group + ['entries' => self::entriesOf($group, $entries)], $groups),
+                'heldPartitions' => $configured ? self::heldPartitionsOf($snapshot) : [],
             ];
         }
 
@@ -89,6 +90,50 @@ final class DeadLetterOverview
         $names = self::withoutServicesSharingAnEarlierStore($snapshots, array_map(static fn (ServiceSnapshot $snapshot) => $snapshot->scope(), $snapshots));
 
         return array_sum(array_map(static fn (ServiceSnapshot $snapshot) => in_array($snapshot->scope(), $names, true) ? (int) $snapshot->failureCount() : 0, $snapshots));
+    }
+
+    /**
+     * @param list<ServiceSnapshot> $snapshots
+     * @return array{trackingName: string, partitionKey: string, waitingMessages: int, releasedMessages: int, oldestMessageId: string, messageIds: list<string>}|null
+     */
+    public static function heldPartition(array $snapshots, string $service, string $trackingName, string $partitionKey): ?array
+    {
+        foreach ($snapshots as $snapshot) {
+            if ($snapshot->scope() !== $service) {
+                continue;
+            }
+            foreach (self::heldPartitionsOf($snapshot) as $heldPartition) {
+                if ($heldPartition['trackingName'] === $trackingName && $heldPartition['partitionKey'] === $partitionKey) {
+                    return $heldPartition;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<array{trackingName: string, partitionKey: string, waitingMessages: int, releasedMessages: int, oldestMessageId: string, messageIds: list<string>}>
+     */
+    private static function heldPartitionsOf(ServiceSnapshot $snapshot): array
+    {
+        $partitions = $snapshot->snapshot['deadLetterPartitions']['partitions'] ?? [];
+        $heldPartitions = [];
+        foreach (is_array($partitions) ? $partitions : [] as $partition) {
+            if (! is_array($partition) || ! is_string($partition['trackingName'] ?? null) || ! is_string($partition['partitionKey'] ?? null) || ! is_string($partition['oldestMessageId'] ?? null)) {
+                continue;
+            }
+            $heldPartitions[] = [
+                'trackingName' => $partition['trackingName'],
+                'partitionKey' => $partition['partitionKey'],
+                'waitingMessages' => (int) ($partition['waitingMessages'] ?? 0),
+                'releasedMessages' => (int) ($partition['releasedMessages'] ?? 0),
+                'oldestMessageId' => $partition['oldestMessageId'],
+                'messageIds' => array_values(array_filter(is_array($partition['messageIds'] ?? null) ? $partition['messageIds'] : [], is_string(...))),
+            ];
+        }
+
+        return $heldPartitions;
     }
 
     /**

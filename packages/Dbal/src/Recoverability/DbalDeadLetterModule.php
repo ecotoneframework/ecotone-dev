@@ -13,8 +13,10 @@ use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
+use Ecotone\Dbal\Database\DeadLetterPartitionsTableManager;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Dbal\Recoverability\Partition\PartitionDeadLetterRegistration;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetterActions;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetters;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLettersNotConfigured;
@@ -61,12 +63,16 @@ final class DbalDeadLetterModule implements AnnotationModule
     private const PULSE_REPLAY_CHANNEL = 'ecotone.pulse.dead_letter.replay';
     private const PULSE_DELETE_CHANNEL = 'ecotone.pulse.dead_letter.delete';
 
+    private function __construct(private AnnotationFinder $annotationFinder)
+    {
+    }
+
     /**
      * @inheritDoc
      */
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self();
+        return new self($annotationRegistrationService);
     }
 
     /**
@@ -90,6 +96,16 @@ final class DbalDeadLetterModule implements AnnotationModule
                 $connectionFactoryReference,
             ])
         );
+
+        PartitionDeadLetterRegistration::register(
+            configuration: $messagingConfiguration,
+            annotationFinder: $this->annotationFinder,
+            interfaceToCallRegistry: $interfaceToCallRegistry,
+            extensionObjects: $extensionObjects,
+            dbalConfiguration: $dbalConfiguration,
+            consoleInvocationPrefix: $consoleInvocationPrefix,
+        );
+        $holdsPartitions = PartitionDeadLetterRegistration::isConfiguredBy($this->annotationFinder, $extensionObjects);
 
         if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) !== []) {
             $this->registerPulseActions($messagingConfiguration, $interfaceToCallRegistry, $isDeadLetterEnabled, $serviceConfiguration->serviceName);
@@ -122,10 +138,10 @@ final class DbalDeadLetterModule implements AnnotationModule
             );
         }
 
-        $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, DbalDeadLetterBuilder::STORE_CHANNEL, $dbalConfiguration->deadLetterInMemory, $messagingConfiguration);
+        $this->registerGateway(referenceName: DeadLetterGateway::class, connectionFactoryReference: $connectionFactoryReference, storeChannelName: DbalDeadLetterBuilder::STORE_CHANNEL, isInMemory: $dbalConfiguration->deadLetterInMemory, configuration: $messagingConfiguration, holdsPartitions: $holdsPartitions);
         foreach ($customDeadLetterGateways as $customDeadLetterGateway) {
             $referenceName = $customDeadLetterGateway->getGatewayReferenceName();
-            $this->registerGateway($referenceName, $customDeadLetterGateway->getConnectionReferenceName(), DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::STORE_CHANNEL), $dbalConfiguration->deadLetterInMemory, $messagingConfiguration);
+            $this->registerGateway(referenceName: $referenceName, connectionFactoryReference: $customDeadLetterGateway->getConnectionReferenceName(), storeChannelName: DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::STORE_CHANNEL), isInMemory: $dbalConfiguration->deadLetterInMemory, configuration: $messagingConfiguration, holdsPartitions: false);
         }
     }
 
@@ -145,6 +161,7 @@ final class DbalDeadLetterModule implements AnnotationModule
             fn (string $connectionReference): DbalTableManagerReference => new DbalTableManagerReference(DeadLetterTableManager::class, $connectionReference),
             array_values(array_unique($connectionReferences)),
         );
+        $extensions[] = new DbalTableManagerReference(DeadLetterPartitionsTableManager::class, $dbalConfiguration->getDeadLetterConnectionReference());
         $extensions = [...$extensions, ...DbalDeadLetterPulseFeatures::reportedFor($serviceExtensions, $dbalConfiguration)];
         if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
             $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetter', serviceReference: PulseDeadLetterStatus::class, tenantScoped: false);
@@ -153,7 +170,7 @@ final class DbalDeadLetterModule implements AnnotationModule
             }
         }
 
-        return $extensions;
+        return [...$extensions, ...PartitionDeadLetterRegistration::pulseSections(annotationFinder: $this->annotationFinder, extensionObjects: $serviceExtensions, dbalConfiguration: $dbalConfiguration)];
     }
 
     private function registerPulseActions(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, bool $isDeadLetterEnabled, string $serviceName): void
@@ -205,24 +222,26 @@ final class DbalDeadLetterModule implements AnnotationModule
         return ModulePackageList::DBAL_PACKAGE;
     }
 
-    private function registerGateway(string $referenceName, string $connectionFactoryReference, string $storeChannelName, bool $isInMemory, Configuration $configuration): void
+    private function registerGateway(string $referenceName, string $connectionFactoryReference, string $storeChannelName, bool $isInMemory, Configuration $configuration, bool $holdsPartitions): void
     {
+        $storeReference = DbalDeadLetterBuilder::storeReferenceFor($referenceName);
+        $deadLetterStore = $isInMemory
+            ? new Definition(InMemoryDeadLetterStore::class, [
+                DefaultHeaderMapper::createAllHeadersMapping(),
+                Reference::to(ConversionService::REFERENCE_NAME),
+                Reference::to(MessageBuilder::class),
+            ])
+            : new Definition(DbalDeadLetterStore::class, [
+                CachedConnectionFactory::registerIn($configuration, $connectionFactoryReference, DbalReconnectableConnectionFactory::definitionFor($connectionFactoryReference)),
+                DefaultHeaderMapper::createAllHeadersMapping(),
+                Reference::to(ConversionService::REFERENCE_NAME),
+                Reference::to(RetryRunner::class),
+                Reference::to(DeadLetterTableManager::class),
+                Reference::to(MessageBuilder::class),
+            ]);
         $configuration->registerServiceDefinition(
-            DbalDeadLetterBuilder::storeReferenceFor($referenceName),
-            $isInMemory
-                ? new Definition(InMemoryDeadLetterStore::class, [
-                    DefaultHeaderMapper::createAllHeadersMapping(),
-                    Reference::to(ConversionService::REFERENCE_NAME),
-                    Reference::to(MessageBuilder::class),
-                ])
-                : new Definition(DbalDeadLetterStore::class, [
-                    CachedConnectionFactory::registerIn($configuration, $connectionFactoryReference, DbalReconnectableConnectionFactory::definitionFor($connectionFactoryReference)),
-                    DefaultHeaderMapper::createAllHeadersMapping(),
-                    Reference::to(ConversionService::REFERENCE_NAME),
-                    Reference::to(RetryRunner::class),
-                    Reference::to(DeadLetterTableManager::class),
-                    Reference::to(MessageBuilder::class),
-                ])
+            $storeReference,
+            $holdsPartitions ? PartitionDeadLetterRegistration::dividing($deadLetterStore, $storeReference, $configuration) : $deadLetterStore
         );
 
         $configuration

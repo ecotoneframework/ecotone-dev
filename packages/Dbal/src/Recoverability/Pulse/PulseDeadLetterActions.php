@@ -48,7 +48,7 @@ final class PulseDeadLetterActions
 
         $this->deadLetterHandler->assertTargetChannelExists($selection->targetChannel);
         $affected = 0;
-        foreach ($this->existing($selection) as $messageId) {
+        foreach ($this->existing($selection, replayable: true) as $messageId) {
             $this->deadLetterHandler->replay($messageId, $messagingEntrypoint, $selection->targetChannel);
             $affected++;
         }
@@ -77,9 +77,10 @@ final class PulseDeadLetterActions
     /**
      * @return iterable<string>
      */
-    private function existing(PulseDeadLetterSelection $selection): iterable
+    private function existing(PulseDeadLetterSelection $selection, bool $replayable = false): iterable
     {
-        foreach ($selection->messageIds($this->store) as $messageId) {
+        $messageIds = $selection->messageIds($this->store);
+        foreach ($replayable && $selection->selectsByFilter() ? $this->deadLetterHandler->replayableOf($messageIds) : $messageIds as $messageId) {
             if ($selection->selectsByFilter() && $this->store->find($messageId) === null) {
                 continue;
             }

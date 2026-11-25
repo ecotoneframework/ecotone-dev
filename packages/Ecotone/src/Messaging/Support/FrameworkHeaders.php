@@ -174,6 +174,7 @@ final class FrameworkHeaders
             MessageHeaders::TRACEPARENT,
             MessageHeaders::TRACESTATE,
             MessageHeaders::TRACING_DELIVERY,
+            MessageHeaders::DEAD_LETTER_PARTITION_RELEASE,
         ];
     }
 }

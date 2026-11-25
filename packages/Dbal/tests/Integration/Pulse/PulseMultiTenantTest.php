@@ -16,6 +16,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\PartitionDeadLetter;
 use Ecotone\Api\Dbal\DbalConnection;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
@@ -208,6 +209,28 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         self::assertEqualsCanonicalizing([['bread', 'tenant_b'], ['eggs', 'tenant_b']], $this->orders->replayed);
         self::assertSame(0, $snapshot['deadLetters']['total']);
         self::assertSame(1, $this->requestSnapshot('tenant_a')['deadLetters']['total']);
+    }
+
+    public function test_a_partition_key_is_held_and_replayed_in_order_in_the_tenant_whose_message_failed(): void
+    {
+        $this->bootstrap();
+        $this->orderService->sendCommandWithRouting('order.place', 'milk', metadata: ['tenant' => 'tenant_a', 'orderId' => '1']);
+        $this->consumeAsync(1);
+        $this->orders->failing = false;
+        $this->orderService->sendCommandWithRouting('order.place', 'eggs', metadata: ['tenant' => 'tenant_a', 'orderId' => '1']);
+        $this->orderService->sendCommandWithRouting('order.place', 'bread', metadata: ['tenant' => 'tenant_b', 'orderId' => '1']);
+        $this->consumeAsync(2);
+        $heldInTenantA = $this->requestSnapshot('tenant_a')['deadLetterPartitions'];
+
+        self::assertSame([['bread', 'tenant_b']], $this->orders->replayed);
+        self::assertSame([1, 2], [$heldInTenantA['total'], $heldInTenantA['partitions'][0]['waitingMessages']]);
+        self::assertSame(0, $this->requestSnapshot('tenant_b')['deadLetterPartitions']['total']);
+
+        $this->ask('ecotone.pulse.dead_letter.replay', json_encode(['messageIds' => [$heldInTenantA['partitions'][0]['oldestMessageId']]]), 'tenant_a');
+        $this->consumeAsync(2);
+
+        self::assertSame([['bread', 'tenant_b'], ['milk', 'tenant_a'], ['eggs', 'tenant_a']], $this->orders->replayed);
+        self::assertSame(0, $this->requestSnapshot('tenant_a')['deadLetterPartitions']['total']);
     }
 
     public function test_deleting_dead_letters_deletes_them_from_the_tenant_that_was_asked(): void
@@ -530,6 +553,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
             public array $replayed = [];
             public bool $failing = true;
 
+            #[PartitionDeadLetter(partitionHeaderName: 'orderId')]
             #[Asynchronous('async')]
             #[CommandHandler('order.place', endpointId: 'order.placing')]
             public function place(string $order, #[Header('tenant')] string $tenant): void

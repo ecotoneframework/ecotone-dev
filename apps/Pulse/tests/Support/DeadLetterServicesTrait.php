@@ -44,7 +44,10 @@ trait DeadLetterServicesTrait
      */
     private array $services = [];
 
-    private function serviceWithDeadLetters(string $service, bool $deadLettersEnabled = true): FlowTestSupport
+    /**
+     * @param list<object> $additionalHandlers
+     */
+    private function serviceWithDeadLetters(string $service, bool $deadLettersEnabled = true, array $additionalHandlers = []): FlowTestSupport
     {
         $work = new class () {
             public bool $failing = true;
@@ -109,8 +112,8 @@ trait DeadLetterServicesTrait
         }
 
         $application = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$work::class],
-            containerOrAvailableServices: [$work, DbalConnectionFactory::class => OpenedConnections::factory($_SERVER['PULSE_TRANSPORT_DSN'])],
+            classesToResolve: [$work::class, ...array_map(static fn (object $handler): string => $handler::class, $additionalHandlers)],
+            containerOrAvailableServices: [$work, ...$additionalHandlers, DbalConnectionFactory::class => OpenedConnections::factory($_SERVER['PULSE_TRANSPORT_DSN'])],
             extensionObjects: [
                 DbalBackedMessageChannelBuilder::create($this->serviceChannels[$service])->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create(self::WORK_CHANNEL)->withReceiveTimeout(1),

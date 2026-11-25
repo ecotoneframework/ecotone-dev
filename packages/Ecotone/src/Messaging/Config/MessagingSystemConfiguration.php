@@ -9,6 +9,7 @@ use function array_map;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\AsynchronousEndpointAttribute;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
@@ -151,6 +152,10 @@ final class MessagingSystemConfiguration implements Configuration
     private array $asynchronousEndpoints = [];
     /** @var array<string, list<array{reason: string, wayToHandleMoreAtOnce: string}>> */
     private array $handlersHandlingOneMessageAtATime = [];
+    /**
+     * @var array<string, AsynchronousEndpointAttribute[]>
+     */
+    private array $asynchronousExecutionAttributes = [];
     /**
      * @var array<string, bool>
      */
@@ -547,7 +552,7 @@ final class MessagingSystemConfiguration implements Configuration
                         }
                     }
 
-                    $contextAnnotations = $endpointAnnotations;
+                    $contextAnnotations = [...$endpointAnnotations, ...($this->asynchronousExecutionAttributes[$targetEndpointId] ?? [])];
                     if ($hasDelayedRetry) {
                         $contextAnnotations[] = new AsynchronousRunningEndpoint($targetEndpointId);
                     }
@@ -922,6 +927,13 @@ final class MessagingSystemConfiguration implements Configuration
     public function registerHandlerHandlingOneMessageAtATime(string $consumerEndpointId, string $reason, string $wayToHandleMoreAtOnce): Configuration
     {
         $this->handlersHandlingOneMessageAtATime[$consumerEndpointId][] = ['reason' => $reason, 'wayToHandleMoreAtOnce' => $wayToHandleMoreAtOnce];
+
+        return $this;
+    }
+
+    public function registerAsynchronousExecutionAttribute(string $handlerEndpointId, AsynchronousEndpointAttribute $attribute): Configuration
+    {
+        $this->asynchronousExecutionAttributes[$handlerEndpointId][] = $attribute;
 
         return $this;
     }

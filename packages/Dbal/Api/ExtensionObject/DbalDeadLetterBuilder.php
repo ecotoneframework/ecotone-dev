@@ -4,6 +4,7 @@ namespace Ecotone\Api\Dbal\ExtensionObject;
 
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Recoverability\DeadLetterHandler;
+use Ecotone\Dbal\Recoverability\DeadLetterReplayOrder;
 use Ecotone\Dbal\Recoverability\DeadLetterStore;
 use Ecotone\Dbal\Tracing\FlowTrackingScope;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -170,6 +171,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
                 Reference::to(FlowTrackingScope::class),
                 Reference::to(ChannelResolver::class),
                 Reference::to(ReplayChannels::class),
+                Reference::to(DeadLetterReplayOrder::class),
             ]));
         }
 

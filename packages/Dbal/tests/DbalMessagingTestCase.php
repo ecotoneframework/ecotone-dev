@@ -89,6 +89,7 @@ abstract class DbalMessagingTestCase extends TestCase
         self::deleteTable('enqueue', $connection);
         self::deleteTable(OrderService::ORDER_TABLE, $connection);
         self::deleteTable(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE, $connection);
+        self::deleteTable(\Ecotone\Dbal\Database\DeadLetterPartitionsTableManager::DEFAULT_TABLE, $connection);
         self::deleteTable(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
         self::deleteTable(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, $connection);
         self::deleteTable(\Ecotone\Dbal\Database\SpansTableManager::DEFAULT_TABLE, $connection);

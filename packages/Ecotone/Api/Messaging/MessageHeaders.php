@@ -67,6 +67,7 @@ final class MessageHeaders
     public const CONSUMER_POLLING_METADATA = 'ecotone_messaging_consumer_polling_metadata';
     public const REPLY_CONTENT_TYPE = 'ecotone_messaging_reply_content_type';
     public const REVISION = 'revision';
+    public const DEAD_LETTER_PARTITION_RELEASE = 'ecotone_dbal_deadletter_partition_release';
 
     public const TRACING_ID = 'tracingId';
     public const TRACEPARENT = 'traceparent';

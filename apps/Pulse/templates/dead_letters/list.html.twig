@@ -84,6 +84,32 @@
                         </select>
                     </label>
                 </div>
+                {% if service.heldPartitions %}
+                <details class="group-messages held-partitions" data-held-partitions data-disclosure="dead-letters.{{ service.service }}.held-partitions" open>
+                    <summary>{{ page.plural(service.heldPartitions|length, 'partition key', 'partition keys') }} held · new messages of a held key wait here, and a replay handles its messages in the order they failed</summary>
+                    <table>
+                        <thead><tr><th scope="col">Partition key</th><th scope="col">Tracking name</th><th scope="col">Messages</th><th scope="col">Actions</th></tr></thead>
+                        <tbody>
+                        {% for held in service.heldPartitions %}
+                            {% set partitionValue = [service.service, held.trackingName, held.partitionKey]|json_encode %}
+                            <tr data-held-partition data-service="{{ service.service }}" data-partition-key="{{ held.partitionKey }}" data-partition-tracking-name="{{ held.trackingName }}">
+                                <td><code>{{ held.partitionKey }}</code></td>
+                                <td><code>{{ held.trackingName }}</code></td>
+                                <td data-held-messages>{{ held.waitingMessages }} waiting{% if held.releasedMessages %}, {{ held.releasedMessages }} being replayed{% endif %}</td>
+                                <td>
+                                    {% if held.waitingMessages %}
+                                        <button type="submit" form="selection" name="replayPartition" value="{{ partitionValue }}" data-held-replay data-await>Replay {{ page.plural(held.waitingMessages, 'message', 'messages') }} in order</button>
+                                        <button type="submit" form="selection" name="deletePartition" value="{{ partitionValue }}" class="danger" data-held-delete>Delete {{ page.plural(held.waitingMessages, 'failed message', 'failed messages') }}</button>
+                                    {% else %}
+                                        <span class="muted">Its last message is being replayed.</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </details>
+                {% endif %}
                 <div class="dl-groups">
                 {% for group in service.shownGroups %}
                     {% set rows = group.entries %}

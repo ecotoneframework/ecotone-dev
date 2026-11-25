@@ -311,6 +311,7 @@ jobs:
         packages/Sqs/tests/Integration/CoroutineExecutionsTest.php
         packages/Kafka/tests/Integration/CoroutineExecutionsTest.php
         Monorepo/CrossModuleTests/Tests/CoroutineOutboxTest.php
+        packages/Dbal/tests/Integration/CoroutineManagerRegistryTest.php
     steps:
     - name: PHP 8.5 with OpenSwoole
       if: matrix.runtime.extension == 'openswoole'

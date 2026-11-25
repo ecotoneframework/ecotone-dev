@@ -63,9 +63,9 @@ final class CoroutineOutboxTest extends TestCase
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
-            'Endpoint `coroutine_outbox` is set to run on 3 coroutines, but it runs on a schedule instead of consuming a channel, so every coroutine would run each scheduled execution again. '
-            . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this endpoint. '
-            . "To do its work on coroutines, let it send messages to an #[Asynchronous] handler and run that channel's consumer on coroutines."
+            'Consumer `coroutine_outbox` is set to consume on 3 coroutines, but it forwards the messages stored in the outbox to their target channel in batches: several coroutines would each forward a batch at once, so the messages would reach the target channel out of the order they were stored in. '
+            . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
+            . 'To handle more messages at once, forward more messages in every run with OutboxForwardingMessageChannel::withMaxForwardingBatchSize() and consume the target channel on coroutines.'
         );
 
         $ecotone->run('coroutine_outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));

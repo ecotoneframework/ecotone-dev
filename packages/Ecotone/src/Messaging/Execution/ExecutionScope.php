@@ -75,6 +75,21 @@ final class ExecutionScope
         return (('Swoole\\Runtime')::getHookFlags() & constant('SWOOLE_HOOK_PDO_PGSQL')) === 0;
     }
 
+    public static function isInsideCoroutine(): bool
+    {
+        return self::coroutineContext() !== null;
+    }
+
+    public static function isCoroutineOfOpenSwooleHookingCurl(): bool
+    {
+        if (self::coroutineClass() !== 'OpenSwoole\\Coroutine' || ! self::isInsideCoroutine()) {
+            return false;
+        }
+        $runtimeClass = 'OpenSwoole\\Runtime';
+
+        return ($runtimeClass::getHookFlags() & ($runtimeClass::HOOK_CURL | $runtimeClass::HOOK_NATIVE_CURL)) !== 0;
+    }
+
     public static function lastStartedCoroutineId(): int
     {
         $coroutineClass = self::coroutineClass();

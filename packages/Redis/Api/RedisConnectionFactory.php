@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Redis;
 
+use Ecotone\Messaging\Execution\ExecutionScope;
+use Ecotone\Redis\RedisConnectionOfExecution;
 use Enqueue\Dsn\Dsn;
 use Enqueue\Redis\PhpRedis;
 use Enqueue\Redis\PRedis;
@@ -23,10 +25,8 @@ final class RedisConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
      */
     private $config;
 
-    /**
-     * @var Redis
-     */
-    private $redis;
+    private ?Redis $redis = null;
+    private bool $isConnectionOfTheApplication = false;
 
     /**
      * @see https://github.com/nrk/predis/wiki/Connection-Parameters
@@ -65,6 +65,7 @@ final class RedisConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
     {
         if ($config instanceof Redis) {
             $this->redis = $config;
+            $this->isConnectionOfTheApplication = true;
             $this->config = $this->defaultConfig();
 
             return;
@@ -103,17 +104,28 @@ final class RedisConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 
     private function createRedis(): Redis
     {
-        if (false == $this->redis) {
-            if (in_array('phpredis', $this->config['scheme_extensions'], true)) {
-                $this->redis = new PhpRedis($this->config);
-            } else {
-                $this->redis = new PRedis($this->config);
-            }
+        if ($this->isConnectionOfTheApplication) {
+            RedisConnectionOfExecution::refuseConnectionOfTheApplicationInsideACoroutine();
 
-            $this->redis->connect();
+            return $this->redis;
+        }
+        if (ExecutionScope::isConcurrent()) {
+            $connectionOfExecution = ExecutionScope::stateOf($this, static fn () => new RedisConnectionOfExecution());
+
+            return $connectionOfExecution->redis ??= $this->connect();
         }
 
-        return $this->redis;
+        return $this->redis ??= $this->connect();
+    }
+
+    private function connect(): Redis
+    {
+        $redis = in_array('phpredis', $this->config['scheme_extensions'], true)
+            ? new PhpRedis($this->config)
+            : new PRedis($this->config);
+        $redis->connect();
+
+        return $redis;
     }
 
     private function parseDsn(string $dsn): array

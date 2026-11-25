@@ -15,7 +15,7 @@ final class RedisConnectionOfExecution
 {
     public ?Redis $redis = null;
 
-    public static function refuseConnectionOfTheApplicationInsideACoroutine(): void
+    public static function refuseClientOfTheApplicationInsideACoroutine(): void
     {
         if (! ExecutionScope::isInsideCoroutine()) {
             return;

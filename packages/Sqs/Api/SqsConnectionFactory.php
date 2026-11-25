@@ -25,8 +25,7 @@ final class SqsConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
      */
     private $config;
 
-    private ?SqsClient $client = null;
-    private bool $isClientOfTheApplication = false;
+    private ?SqsClient $clientOfTheApplication = null;
 
     /**
      * $config = [
@@ -52,8 +51,7 @@ final class SqsConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
     public function __construct($config = 'sqs:')
     {
         if ($config instanceof AwsSqsClient) {
-            $this->client = new SqsClient($config);
-            $this->isClientOfTheApplication = true;
+            $this->clientOfTheApplication = new SqsClient($config);
             $this->config = ['lazy' => false] + $this->defaultConfig();
 
             return;
@@ -87,18 +85,13 @@ final class SqsConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
     private function establishConnection(): SqsClient
     {
         SqsClientOfExecution::refuseCoroutineWhoseCurlHookRejectsTheAwsSdk();
-        if ($this->isClientOfTheApplication) {
+        if ($this->clientOfTheApplication !== null) {
             SqsClientOfExecution::refuseClientOfTheApplicationInsideACoroutine();
 
-            return $this->client;
-        }
-        if (ExecutionScope::isConcurrent()) {
-            $clientOfExecution = ExecutionScope::stateOf($this, static fn () => new SqsClientOfExecution());
-
-            return $clientOfExecution->client ??= $this->connect();
+            return $this->clientOfTheApplication;
         }
 
-        return $this->client ??= $this->connect();
+        return ExecutionScope::stateOf($this, static fn () => new SqsClientOfExecution())->client ??= $this->connect();
     }
 
     private function connect(): SqsClient

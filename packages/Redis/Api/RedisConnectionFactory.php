@@ -25,8 +25,7 @@ final class RedisConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
      */
     private $config;
 
-    private ?Redis $redis = null;
-    private bool $isConnectionOfTheApplication = false;
+    private ?Redis $clientOfTheApplication = null;
 
     /**
      * @see https://github.com/nrk/predis/wiki/Connection-Parameters
@@ -64,8 +63,7 @@ final class RedisConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
     public function __construct($config = 'redis:')
     {
         if ($config instanceof Redis) {
-            $this->redis = $config;
-            $this->isConnectionOfTheApplication = true;
+            $this->clientOfTheApplication = $config;
             $this->config = $this->defaultConfig();
 
             return;
@@ -104,18 +102,13 @@ final class RedisConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 
     private function createRedis(): Redis
     {
-        if ($this->isConnectionOfTheApplication) {
-            RedisConnectionOfExecution::refuseConnectionOfTheApplicationInsideACoroutine();
+        if ($this->clientOfTheApplication !== null) {
+            RedisConnectionOfExecution::refuseClientOfTheApplicationInsideACoroutine();
 
-            return $this->redis;
-        }
-        if (ExecutionScope::isConcurrent()) {
-            $connectionOfExecution = ExecutionScope::stateOf($this, static fn () => new RedisConnectionOfExecution());
-
-            return $connectionOfExecution->redis ??= $this->connect();
+            return $this->clientOfTheApplication;
         }
 
-        return $this->redis ??= $this->connect();
+        return ExecutionScope::stateOf($this, static fn () => new RedisConnectionOfExecution())->redis ??= $this->connect();
     }
 
     private function connect(): Redis

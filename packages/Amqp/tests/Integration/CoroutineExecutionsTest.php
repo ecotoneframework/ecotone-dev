@@ -140,13 +140,13 @@ final class CoroutineExecutionsTest extends AmqpMessagingTestCase
             }
         };
         $ecotone = $this->bootstrapFlowTesting(
-            [$inbox::class],
-            [$inbox, ...$this->getConnectionFactoryReferences()],
-            [
+            classesToResolve: [$inbox::class],
+            containerOrAvailableServices: [$inbox, ...$this->getConnectionFactoryReferences()],
+            extensionObjects: [
                 EcotoneAmqpQueue::createWith('coroutine_inbox'),
                 AmqpMessagePublisherConfiguration::create()->withDefaultRoutingKey('coroutine_inbox'),
             ],
-            [ModulePackageList::AMQP_PACKAGE],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         foreach (['letter-1', 'letter-2', 'letter-3', 'letter-4', 'letter-5', 'letter-6'] as $letter) {

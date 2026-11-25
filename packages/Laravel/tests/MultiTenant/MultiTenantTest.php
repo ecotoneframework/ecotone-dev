@@ -110,7 +110,7 @@ final class MultiTenantTest extends TestCase
 
         try {
             $this->commandBus->send(new RegisterCustomer(2, 'Jane Doe'), metadata: ['tenant' => 'tenant_b']);
-            $this->fail('Expected a ConfigurationException');
+            $this->fail();
         } catch (ConfigurationException $exception) {
             $this->assertSame(
                 'A tenant connection is activated while another message, handled at once in this process on a coroutine or a fiber, has its tenant active. '

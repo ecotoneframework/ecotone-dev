@@ -55,9 +55,6 @@ final class CoroutineExecutionsTest extends TestCase
         $this->assertEquals($this->ordersWithTheirTenants(publishers: 4, ordersOfEachPublisher: 25), $ecotone->sendQueryWithRouting('order.placed'));
     }
 
-    /**
-     * @return callable[]
-     */
     private function publishersOfOrders(FlowTestSupport $ecotone, int $publishers, int $ordersOfEachPublisher): array
     {
         $coroutines = [];
@@ -73,9 +70,6 @@ final class CoroutineExecutionsTest extends TestCase
         return $coroutines;
     }
 
-    /**
-     * @return array<string, string[]>
-     */
     private function ordersWithTheirTenants(int $publishers, int $ordersOfEachPublisher): array
     {
         $orders = [];

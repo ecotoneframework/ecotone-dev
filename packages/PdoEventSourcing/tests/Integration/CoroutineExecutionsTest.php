@@ -32,9 +32,9 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 use Swoole\Coroutine;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
@@ -63,19 +63,48 @@ final class CoroutineExecutionsTest extends TestCase
 {
     private const ACCOUNTS = 12;
 
-    protected function setUp(): void
+    public static function databases(): iterable
     {
-        $connection = (new DbalConnectionFactory(self::mysqlDsn()))->createContext()->getDbalConnection();
-        EventSourcingMessagingTestCase::clearDataTables($connection);
-        $connection->executeStatement('CREATE TABLE coroutine_account_names (account_id VARCHAR(36) PRIMARY KEY, name VARCHAR(255))');
-        $connection->close();
+        yield 'mysql' => [(string) getenv('DATABASE_MYSQL')];
+        yield 'mariadb' => [(string) getenv('DATABASE_MARIADB')];
+        if (extension_loaded('swoole')) {
+            yield 'postgresql' => [str_starts_with((string) getenv('DATABASE_DSN'), 'pgsql') ? (string) getenv('DATABASE_DSN') : (string) getenv('SECONDARY_DATABASE_DSN')];
+        }
     }
 
-    public function test_consumer_coroutines_of_a_partitioned_projection_project_partitions_at_once_and_every_event_once(): void
+    #[DataProvider('databases')]
+    public function test_consumer_coroutines_of_a_partitioned_projection_project_partitions_at_once_and_every_event_once(string $databaseDsn): void
     {
-        $projection = new #[Projection('coroutine_account_names'), Partitioned, Asynchronous('projections'), FromAggregateStream(CoroutineAccount::class)] class () extends CoroutineAccountNames {
+        $projection = new #[Projection('coroutine_account_names'), Partitioned, Asynchronous('projections'), FromAggregateStream(CoroutineAccount::class)] class () {
+            private int $projectedAtOnce = 0;
+            private int $mostProjectedAtOnce = 0;
+
+            #[EventHandler]
+            public function whenOpened(CoroutineAccountOpened $event, #[CurrentConnection] Connection $connection): void
+            {
+                $this->projectedAtOnce++;
+                $this->mostProjectedAtOnce = max($this->mostProjectedAtOnce, $this->projectedAtOnce);
+                try {
+                    $connection->executeStatement('INSERT INTO coroutine_account_names VALUES (?, ?)', [$event->accountId, $event->name]);
+                    usleep(50_000);
+                } finally {
+                    $this->projectedAtOnce--;
+                }
+            }
+
+            #[QueryHandler('coroutine_account_names.all')]
+            public function all(#[CurrentConnection] Connection $connection): array
+            {
+                return $connection->fetchAllKeyValue('SELECT account_id, name FROM coroutine_account_names ORDER BY account_id');
+            }
+
+            #[QueryHandler('coroutine_account_names.mostProjectedAtOnce')]
+            public function mostProjectedAtOnce(): int
+            {
+                return $this->mostProjectedAtOnce;
+            }
         };
-        $ecotone = $this->bootstrap($projection);
+        $ecotone = $this->bootstrap($databaseDsn, $projection);
         $this->openAccounts($ecotone);
 
         $ecotone->run('projections', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
@@ -84,11 +113,24 @@ final class CoroutineExecutionsTest extends TestCase
         $this->assertSame(3, $ecotone->sendQueryWithRouting('coroutine_account_names.mostProjectedAtOnce'));
     }
 
-    public function test_consumer_coroutines_of_a_global_projection_project_every_event_once(): void
+    #[DataProvider('databases')]
+    public function test_consumer_coroutines_of_a_global_projection_project_every_event_once(string $databaseDsn): void
     {
-        $projection = new #[Projection('coroutine_account_names'), Asynchronous('projections'), FromAggregateStream(CoroutineAccount::class)] class () extends CoroutineAccountNames {
+        $projection = new #[Projection('coroutine_account_names'), Asynchronous('projections'), FromAggregateStream(CoroutineAccount::class)] class () {
+            #[EventHandler]
+            public function whenOpened(CoroutineAccountOpened $event, #[CurrentConnection] Connection $connection): void
+            {
+                $connection->executeStatement('INSERT INTO coroutine_account_names VALUES (?, ?)', [$event->accountId, $event->name]);
+                usleep(50_000);
+            }
+
+            #[QueryHandler('coroutine_account_names.all')]
+            public function all(#[CurrentConnection] Connection $connection): array
+            {
+                return $connection->fetchAllKeyValue('SELECT account_id, name FROM coroutine_account_names ORDER BY account_id');
+            }
         };
-        $ecotone = $this->bootstrap($projection);
+        $ecotone = $this->bootstrap($databaseDsn, $projection);
         $this->openAccounts($ecotone);
 
         $ecotone->run('projections', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withCoroutines(3));
@@ -96,11 +138,45 @@ final class CoroutineExecutionsTest extends TestCase
         $this->assertSame($this->namesOfAccounts(), $ecotone->sendQueryWithRouting('coroutine_account_names.all'));
     }
 
-    public function test_batches_of_a_rebuild_are_executed_at_once_by_consumer_coroutines_and_complete_the_rebuild_once(): void
+    #[DataProvider('databases')]
+    public function test_batches_of_a_rebuild_are_executed_at_once_by_consumer_coroutines_and_complete_the_rebuild_once(string $databaseDsn): void
     {
-        $projection = new #[Projection('coroutine_account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild', batchCompletionChannelName: 'rebuild_reports'), FromAggregateStream(CoroutineAccount::class)] class () extends CoroutineAccountNames {
+        $projection = new #[Projection('coroutine_account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild', batchCompletionChannelName: 'rebuild_reports'), FromAggregateStream(CoroutineAccount::class)] class () {
+            private int $resetAtOnce = 0;
+            private int $mostResetAtOnce = 0;
+
+            #[EventHandler]
+            public function whenOpened(CoroutineAccountOpened $event, #[CurrentConnection] Connection $connection): void
+            {
+                $connection->executeStatement('INSERT INTO coroutine_account_names VALUES (?, ?)', [$event->accountId, $event->name]);
+            }
+
+            #[ProjectionReset]
+            public function reset(#[PartitionAggregateId] string $accountId, #[CurrentConnection] Connection $connection): void
+            {
+                $this->resetAtOnce++;
+                $this->mostResetAtOnce = max($this->mostResetAtOnce, $this->resetAtOnce);
+                try {
+                    $connection->executeStatement('DELETE FROM coroutine_account_names WHERE account_id = ?', [$accountId]);
+                    usleep(50_000);
+                } finally {
+                    $this->resetAtOnce--;
+                }
+            }
+
+            #[QueryHandler('coroutine_account_names.all')]
+            public function all(#[CurrentConnection] Connection $connection): array
+            {
+                return $connection->fetchAllKeyValue('SELECT account_id, name FROM coroutine_account_names ORDER BY account_id');
+            }
+
+            #[QueryHandler('coroutine_account_names.mostResetAtOnce')]
+            public function mostResetAtOnce(): int
+            {
+                return $this->mostResetAtOnce;
+            }
         };
-        $ecotone = $this->bootstrap($projection);
+        $ecotone = $this->bootstrap($databaseDsn, $projection);
         $this->openAccounts($ecotone);
 
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'coroutine_account_names']);
@@ -114,11 +190,10 @@ final class CoroutineExecutionsTest extends TestCase
         $this->assertSame(3, $ecotone->sendQueryWithRouting('coroutine_account_names.mostResetAtOnce'));
     }
 
-    public function test_commands_of_one_event_sourced_aggregate_handled_at_once_by_consumer_coroutines_record_every_event_once(): void
+    #[DataProvider('databases')]
+    public function test_commands_of_one_event_sourced_aggregate_handled_at_once_by_consumer_coroutines_record_every_event_once(string $databaseDsn): void
     {
-        $projection = new #[Projection('coroutine_account_names'), Partitioned, FromAggregateStream(CoroutineAccount::class)] class () extends CoroutineAccountNames {
-        };
-        $ecotone = $this->bootstrap($projection);
+        $ecotone = $this->bootstrap($databaseDsn);
         $ecotone->sendCommand(new OpenCoroutineAccount('account-01', 'Account 1'));
         for ($deposit = 1; $deposit <= 6; $deposit++) {
             $ecotone->sendCommandWithRouting('coroutine_account.deposit', $deposit, metadata: ['aggregate.id' => 'account-01']);
@@ -143,9 +218,6 @@ final class CoroutineExecutionsTest extends TestCase
         }
     }
 
-    /**
-     * @return array<string, string>
-     */
     private function namesOfAccounts(): array
     {
         $names = [];
@@ -156,8 +228,12 @@ final class CoroutineExecutionsTest extends TestCase
         return $names;
     }
 
-    private function bootstrap(object $projection): FlowTestSupport
+    private function bootstrap(string $databaseDsn, object ...$projections): FlowTestSupport
     {
+        $connection = (new DbalConnectionFactory($databaseDsn))->createContext()->getDbalConnection();
+        EventSourcingMessagingTestCase::clearDataTables($connection);
+        $connection->executeStatement('CREATE TABLE coroutine_account_names (account_id VARCHAR(36) PRIMARY KEY, name VARCHAR(255))');
+        $connection->close();
         $converter = new class () {
             #[Converter]
             public function fromOpened(CoroutineAccountOpened $event): array
@@ -185,8 +261,8 @@ final class CoroutineExecutionsTest extends TestCase
         };
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [CoroutineAccount::class, $projection::class, $converter::class],
-            containerOrAvailableServices: [$projection, $converter, DbalConnectionFactory::class => new DbalConnectionFactory(['dsn' => self::mysqlDsn(), 'connection_pool_size' => 10])],
+            classesToResolve: [CoroutineAccount::class, $converter::class, ...array_map(static fn (object $projection): string => $projection::class, $projections)],
+            containerOrAvailableServices: [...$projections, $converter, DbalConnectionFactory::class => new DbalConnectionFactory(['dsn' => $databaseDsn, 'connection_pool_size' => 10])],
             extensionObjects: [
                 DbalBackedMessageChannelBuilder::create('projections'),
                 DbalBackedMessageChannelBuilder::create('accounts'),
@@ -198,69 +274,6 @@ final class CoroutineExecutionsTest extends TestCase
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-    }
-
-    private static function mysqlDsn(): string
-    {
-        foreach ([getenv('DATABASE_DSN'), getenv('SECONDARY_DATABASE_DSN'), getenv('DATABASE_MYSQL')] as $dsn) {
-            if (is_string($dsn) && str_starts_with($dsn, 'mysql')) {
-                return $dsn;
-            }
-        }
-
-        throw new RuntimeException('The coroutine tests need a mysql database in DATABASE_DSN or SECONDARY_DATABASE_DSN.');
-    }
-}
-
-abstract class CoroutineAccountNames
-{
-    private int $projectedAtOnce = 0;
-    private int $mostProjectedAtOnce = 0;
-    private int $resetAtOnce = 0;
-    private int $mostResetAtOnce = 0;
-
-    #[EventHandler]
-    public function whenOpened(CoroutineAccountOpened $event, #[CurrentConnection] Connection $connection): void
-    {
-        $this->projectedAtOnce++;
-        $this->mostProjectedAtOnce = max($this->mostProjectedAtOnce, $this->projectedAtOnce);
-        try {
-            $connection->executeStatement('INSERT INTO coroutine_account_names VALUES (?, ?)', [$event->accountId, $event->name]);
-            usleep(50_000);
-        } finally {
-            $this->projectedAtOnce--;
-        }
-    }
-
-    #[ProjectionReset]
-    public function reset(#[PartitionAggregateId] string $accountId, #[CurrentConnection] Connection $connection): void
-    {
-        $this->resetAtOnce++;
-        $this->mostResetAtOnce = max($this->mostResetAtOnce, $this->resetAtOnce);
-        try {
-            $connection->executeStatement('DELETE FROM coroutine_account_names WHERE account_id = ?', [$accountId]);
-            usleep(50_000);
-        } finally {
-            $this->resetAtOnce--;
-        }
-    }
-
-    #[QueryHandler('coroutine_account_names.all')]
-    public function all(#[CurrentConnection] Connection $connection): array
-    {
-        return $connection->fetchAllKeyValue('SELECT account_id, name FROM coroutine_account_names ORDER BY account_id');
-    }
-
-    #[QueryHandler('coroutine_account_names.mostProjectedAtOnce')]
-    public function mostProjectedAtOnce(): int
-    {
-        return $this->mostProjectedAtOnce;
-    }
-
-    #[QueryHandler('coroutine_account_names.mostResetAtOnce')]
-    public function mostResetAtOnce(): int
-    {
-        return $this->mostResetAtOnce;
     }
 }
 

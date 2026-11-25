@@ -23,6 +23,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Messaging\PollableChannel;
+use Ecotone\Messaging\Channel\ChannelConsumedOneMessageAtATime;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\DynamicChannel\StreamsReceivedByDynamicChannel;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
@@ -1237,7 +1238,14 @@ final class MessagingSystemConfiguration implements Configuration
                             $inputChannelBuilder->isStreamingChannel() => [$inputChannelBuilder->getMessageChannelName()],
                             default => [],
                         },
-                        $this->handlersHandlingOneMessageAtATime[$messageHandlerBuilder->getEndpointId()] ?? [],
+                        [
+                            ...($this->handlersHandlingOneMessageAtATime[$messageHandlerBuilder->getEndpointId()] ?? []),
+                            ...match (true) {
+                                $inputChannelBuilder instanceof DynamicMessageChannelBuilder => StreamsReceivedByDynamicChannel::consumedOneMessageAtATime($inputChannelBuilder, $this->channelBuilders),
+                                $inputChannelBuilder instanceof ChannelConsumedOneMessageAtATime => [$inputChannelBuilder->whyItsConsumerHandlesOneMessageAtATime()],
+                                default => [],
+                            },
+                        ],
                     );
                     break;
                 }

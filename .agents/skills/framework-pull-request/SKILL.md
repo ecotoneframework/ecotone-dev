@@ -164,13 +164,31 @@ are kept and resumed for that long, and a new conversation starts new ones and g
 ### P4. The PR body is drafted from the template and agreed before publishing
 Title and branch use a conventional prefix (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`). The body follows
 `.github/PULL_REQUEST_TEMPLATE.md`: **Why** (the problem in the reporter's terms), **Description of Changes**
-(what an application observes differently, usage examples for a new feature, a Mermaid diagram for a changed
-message flow), and the **contribution terms** checkbox, which `contribution-check.yml` requires. Ask the user
+(what an application observes differently, usage examples for a new feature, a diagram for a changed message
+flow, screenshots for a changed Ecotone Pulse page: rule P4a), and the **contribution terms** checkbox, which `contribution-check.yml` requires. Ask the user
 whether they agree to the terms; never tick it for them. Show the full title and body and get it approved before
 `gh pr create`.
 - **Expected:** the agent presents the drafted title and body and asks for approval (and for the contribution
   terms) before running `gh pr create`.
 - **Verified by:** `eval:open-pr`
+
+### P4a. Diagrams and Pulse screenshots are images attached to the PR, never committed
+The GitHub mobile app and e-mail notifications show a ```` ```mermaid ```` block as source, so a diagram is written
+in Mermaid, rendered with `bin/render-mermaid` and embedded as an image. A change to what Ecotone Pulse shows
+(`apps/Pulse` templates, assets, or the data behind a page) is shown too: run the demo from the worktree, bring the
+changed page into the state the change is about, and take a Playwright screenshot of it, with a before and an after
+when an existing page changed. The body references each image by its local path under `var/` (git-ignored), and
+`gh pr create` or `gh pr edit` uploads it with `--attach`, which needs `gh` 2.99 or newer. No image, screenshot or
+`.mmd` file is committed, and no image is hosted on another service.
+CI refuses a body with a ```` ```mermaid ```` block or an image reference that was not uploaded; which images a
+change needs, and that none is committed, need judgement (the screenshots under `apps/Pulse/docs/screenshots` are
+committed on purpose), so the eval case grades those.
+[references/pr-images.md](references/pr-images.md) has the commands. Load it when the body needs a diagram or the
+change touches Pulse.
+- **Expected:** a PR body for a changed message flow or a changed Pulse page embeds images uploaded with
+  `gh ... --attach`, contains no ```` ```mermaid ```` block, and the branch adds no image file; for a Pulse change
+  the agent runs the demo and screenshots the changed page with Playwright.
+- **Verified by:** `check:pull-request-body-images`, `eval:open-pr-pulse`
 
 ### P5. Changed skills are evaluated in the local review, before the PR
 CI never runs a model: it runs only the deterministic `php bin/check-agent-skills.php`. So when the branch changes

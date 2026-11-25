@@ -7,13 +7,18 @@ namespace Ecotone\Test\Flow;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Collected;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
 use Ecotone\Api\Messaging\GatheredParts;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Test\CoroutineTesting;
@@ -33,6 +38,7 @@ final class CoroutineFlowScenarios
             self::splitterOnHandlerFansOutToHandlersOnCoroutineMessageChannel(),
             self::splitterOnHandlerIsWorkedAndGatheredOnCoroutineMessageChannels(),
             self::commandsAreCollectedIntoOneBatchOnCoroutineMessageChannel(),
+            self::projectionRebuiltOnCoroutineMessageChannel(),
         ];
     }
 
@@ -195,6 +201,44 @@ final class CoroutineFlowScenarios
                             ExpectedSpan::named('send search')->ofKind(SpanKind::Producer)->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'search'])->endingAfterTheTransaction()->containing(
                                 ExpectedSpan::named('receive search')->ofKind(SpanKind::Consumer)->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'search'])->containing(
                                     ExpectedSpan::named('process class@anonymous::index')->withAttributes([SpanAttribute::ENDPOINT_ID => 'product.indexing']),
+                                ),
+                            ),
+                        ),
+                    )
+                    ->withNoOtherSpans(),
+            ],
+        ))->needingACoroutineRuntime();
+    }
+
+    private static function projectionRebuiltOnCoroutineMessageChannel(): FlowScenario
+    {
+        $projection = new #[Projection('orders'), FromStream('orders_stream'), ProjectionRebuild(asyncChannelName: 'rebuild')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+
+        return (new FlowScenario(
+            name: 'projection rebuilt on a coroutine message channel',
+            classesToResolve: [$projection::class],
+            services: [$projection],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('rebuild')],
+            stages: [
+                FlowStage::when(function (FlowTestSupport $ecotone): void {
+                    $ecotone->withEventStream('orders_stream', [Event::createWithType('order.placed', ['orderId' => '1'])]);
+                    CoroutineTesting::runAtOnce(fn () => $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'orders']));
+                })
+                    ->expect(
+                        ExpectedSpan::named('rebuild orders')->asRoot()->ofKind(SpanKind::Server)->containing(
+                            ExpectedSpan::named('send rebuild')->ofKind(SpanKind::Producer)->endingAfterTheTransaction()->containing(
+                                ExpectedSpan::named('receive rebuild')->ofKind(SpanKind::Consumer)->containing(
+                                    ExpectedSpan::named('process partition batch orders')->ofKind(SpanKind::Internal)->withAttributes([SpanAttribute::PROJECTION_NAME => 'orders'])->containing(
+                                        ExpectedSpan::named('process class@anonymous::whenPlaced'),
+                                    ),
+                                    ExpectedSpan::named('send rebuild')->ofKind(SpanKind::Producer)->endingAfterTheTransaction()->containing(
+                                        ExpectedSpan::named('receive rebuild')->ofKind(SpanKind::Consumer),
+                                    ),
                                 ),
                             ),
                         ),

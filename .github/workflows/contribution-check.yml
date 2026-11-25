@@ -21,3 +21,19 @@ jobs:
             if (!/\[\s*[xX]\s*\] I have read and agree to the contribution terms/.test(prBody)) {
               core.setFailed("Contributor has not agreed to the contribution terms. Please mark the checkbox with x to agree to the terms. `[x] I have read and agree to the contribution terms outlined in [CONTRIBUTING](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md)`");
             }
+
+  check-body-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check that diagrams and screenshots are attached images
+        uses: actions/github-script@v3
+        with:
+          script: |
+            const prBody = context.payload.pull_request.body || "";
+            if (/^[ \t]*(```|~~~)[ \t]*mermaid\b/m.test(prBody)) {
+              core.setFailed("The pull request body contains a ```mermaid block, which the GitHub mobile app and e-mail notifications show as source. Render the diagram with `bin/render-mermaid <file.mmd>`, reference the PNG in the body and upload it with `gh pr edit <number> --body-file <body> --attach <file.png>`.");
+            }
+            const localImage = prBody.match(/!\[[^\]]*\]\((?!https?:\/\/)[^)]+\)/);
+            if (localImage) {
+              core.setFailed("The pull request body references an image that was not uploaded: " + localImage[0] + ". Upload it with `gh pr edit <number> --body-file <body> --attach <file>`, which rewrites the reference to the uploaded URL.");
+            }

@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\ErrorChannel;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Identifier;
@@ -28,6 +29,7 @@ use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Attribute\TimeToLive;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
@@ -36,6 +38,7 @@ use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
@@ -44,6 +47,12 @@ use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\FromTaggedStream;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionBackfill;
+use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Api\Tracing\TracingConfiguration;
@@ -1543,6 +1552,168 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame(1, $handler->mostAtOnce);
     }
 
+    public function test_a_projection_run_whose_batches_and_batch_reports_share_a_channel_stated_with_several_coroutines_is_refused_at_bootstrap(): void
+    {
+        $projection = new #[Projection('orders'), FromStream('orders_stream'), ProjectionRebuild(asyncChannelName: 'rebuild_channel')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            'Coroutine message channel `rebuild_channel` is registered with withCoroutines(4), which the batch reports of the rebuild of projection `orders` cannot be consumed with: '
+            . "batches finishing together would be recorded in their run at the same time, all but one would lose the run's optimistic write on every attempt until the instant retries run out, and a run missing those batches never completes. "
+            . "Leave withCoroutines() out of CoroutineMessageChannelBuilder::create('rebuild_channel'), the channel then handles one message at a time, the batches included; "
+            . "or keep withCoroutines(4) for the batches and name a channel of their own for the batch reports as batchCompletionChannelName of #[ProjectionRebuild], registered with CoroutineMessageChannelBuilder::create('rebuild_channel_batch_reports')."
+        );
+
+        EcotoneLite::bootstrapFlowTesting([], [$projection], extensionObjects: [CoroutineMessageChannelBuilder::create('rebuild_channel')->withCoroutines(4)], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+    }
+
+    public function test_a_projection_run_whose_batch_reports_have_a_channel_stated_with_several_coroutines_is_refused_at_bootstrap(): void
+    {
+        $projection = new #[Projection('orders'), FromStream('orders_stream'), ProjectionBackfill(asyncChannelName: 'backfill_channel', batchCompletionChannelName: 'backfill_reports')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            'Coroutine message channel `backfill_reports` is registered with withCoroutines(2), which the batch reports of the backfill of projection `orders` cannot be consumed with: '
+            . "batches finishing together would be recorded in their run at the same time, all but one would lose the run's optimistic write on every attempt until the instant retries run out, and a run missing those batches never completes. "
+            . "Leave withCoroutines() out of CoroutineMessageChannelBuilder::create('backfill_reports'), the channel of the batch reports then handles one message at a time, and the batches stay handled at once on `backfill_channel`."
+        );
+
+        EcotoneLite::bootstrapFlowTesting(
+            [],
+            [$projection],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('backfill_channel')->withCoroutines(4), CoroutineMessageChannelBuilder::create('backfill_reports')->withCoroutines(2)],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_a_projection_run_boots_with_its_batch_reports_on_a_channel_registered_without_stating_coroutines(): void
+    {
+        $projection = new #[Projection('orders'), FromStream('orders_stream'), ProjectionRebuild(asyncChannelName: 'rebuild_channel', batchCompletionChannelName: 'rebuild_channel_batch_reports')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [$projection],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('rebuild_channel')->withCoroutines(4), CoroutineMessageChannelBuilder::create('rebuild_channel_batch_reports')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $this->assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('orders.rebuild'));
+    }
+
+    public function test_a_projection_run_boots_with_batches_and_batch_reports_sharing_a_channel_registered_without_stating_coroutines(): void
+    {
+        $projection = new #[Projection('orders'), FromStream('orders_stream'), ProjectionRebuild(asyncChannelName: 'rebuild_channel')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [$projection], extensionObjects: [CoroutineMessageChannelBuilder::create('rebuild_channel')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+
+        $this->assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('orders.rebuild'));
+    }
+
+    public function test_rebuild_on_a_channel_registered_without_stating_coroutines_executes_its_batches_one_at_a_time_and_completes_once(): void
+    {
+        $projection = new #[Projection('course_seats'), FromTaggedStream('course'), Partitioned, ProjectionRebuild(partitionBatchSize: 1, asyncChannelName: 'rebuild_channel')] class () {
+            private int $definedAtOnce = 0;
+            public int $mostDefinedAtOnce = 0;
+            public array $defined = [];
+
+            #[EventHandler(endpointId: 'course_seats.defined')]
+            public function whenDefined(CoroutineCourseDefined $event): void
+            {
+                $this->definedAtOnce++;
+                $this->mostDefinedAtOnce = max($this->mostDefinedAtOnce, $this->definedAtOnce);
+                usleep(20_000);
+                $this->defined[] = $event->courseId;
+                $this->definedAtOnce--;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$projection::class, CoroutineCourseDefined::class],
+            containerOrAvailableServices: [$projection],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('rebuild_channel'), DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $ecotone->withEvents([new CoroutineCourseDefined('course-1'), new CoroutineCourseDefined('course-2'), new CoroutineCourseDefined('course-3')]);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'course_seats']));
+
+        sort($projection->defined);
+        $this->assertSame(['course-1', 'course-2', 'course-3'], $projection->defined);
+        $this->assertSame(1, $projection->mostDefinedAtOnce);
+        $this->assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('course_seats.rebuild'));
+        $this->assertSame([[3, 3, [], 0]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded'], $group['missingPartNumbers'], $group['latePartCount']], $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('course_seats.rebuild')));
+    }
+
+    public function test_rebuild_executes_its_batches_at_once_while_the_channel_of_its_batch_reports_registered_without_stating_coroutines_handles_one_message_at_a_time(): void
+    {
+        $projection = new #[Projection('course_seats'), FromTaggedStream('course'), Partitioned, ProjectionRebuild(partitionBatchSize: 1, asyncChannelName: 'rebuild_channel', batchCompletionChannelName: 'rebuild_reports')] class () {
+            private int $definedAtOnce = 0;
+            public int $mostDefinedAtOnce = 0;
+
+            #[EventHandler(endpointId: 'course_seats.defined')]
+            public function whenDefined(CoroutineCourseDefined $event): void
+            {
+                $this->definedAtOnce++;
+                $this->mostDefinedAtOnce = max($this->mostDefinedAtOnce, $this->definedAtOnce);
+                usleep(20_000);
+                $this->definedAtOnce--;
+            }
+        };
+        $audit = new class () {
+            private int $auditedAtOnce = 0;
+            public int $mostAuditedAtOnce = 0;
+
+            #[Asynchronous('rebuild_reports')]
+            #[CommandHandler('course_seats.audit', endpointId: 'course_seats.audit.endpoint')]
+            public function audit(string $course): void
+            {
+                $this->auditedAtOnce++;
+                $this->mostAuditedAtOnce = max($this->mostAuditedAtOnce, $this->auditedAtOnce);
+                usleep(20_000);
+                $this->auditedAtOnce--;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$projection::class, $audit::class, CoroutineCourseDefined::class],
+            containerOrAvailableServices: [$projection, $audit],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('rebuild_channel')->withCoroutines(4), CoroutineMessageChannelBuilder::create('rebuild_reports'), DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $ecotone->withEvents([new CoroutineCourseDefined('course-1'), new CoroutineCourseDefined('course-2'), new CoroutineCourseDefined('course-3')]);
+
+        CoroutineTesting::runAtOnce(
+            static fn () => $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'course_seats']),
+            ...array_fill(0, 3, static fn () => $ecotone->sendCommandWithRouting('course_seats.audit', 'course-1')),
+        );
+
+        $this->assertSame(3, $projection->mostDefinedAtOnce);
+        $this->assertSame(1, $audit->mostAuditedAtOnce);
+        $this->assertSame([[3, 3, [], 0]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded'], $group['missingPartNumbers'], $group['latePartCount']], $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('course_seats.rebuild')));
+    }
+
     #[DataProvider('channels_registered_with_several_coroutines')]
     public function test_a_gathered_handler_on_a_channel_of_several_coroutines_is_refused_at_bootstrap(CoroutineMessageChannelBuilder $channel, int $coroutines): void
     {
@@ -1729,4 +1900,11 @@ interface CoroutineChannelGateway
 {
     #[MessageGateway('gateway.input')]
     public function dispatch(string $payload): void;
+}
+
+final readonly class CoroutineCourseDefined
+{
+    public function __construct(#[EventTag('course')] public string $courseId)
+    {
+    }
 }

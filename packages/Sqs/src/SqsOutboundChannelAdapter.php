@@ -16,6 +16,7 @@ use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Execution\ExecutionScope;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Sqs\SqsContext;
 use Enqueue\Sqs\SqsDestination;
@@ -29,8 +30,6 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
     private const MISSING_QUEUE_ERROR_CODES = ['AWS.SimpleQueueService.NonExistentQueue', 'QueueDoesNotExist'];
     private const MAX_ENTRIES_PER_BATCH_REQUEST = 10;
     private const BATCH_REQUEST_PAYLOAD_BUDGET_IN_BYTES = 204800;
-
-    private SqsRequestDispatchPool $requestDispatchPool;
 
     public function __construct(
         CachedConnectionFactory $connectionFactory,
@@ -46,7 +45,6 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         private bool $requireExistingDestination = false,
         private string $connectionReferenceName = '',
     ) {
-        $this->requestDispatchPool = new SqsRequestDispatchPool();
         parent::__construct(
             $connectionFactory,
             new SqsDestination($queueName),
@@ -88,11 +86,12 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         }
 
         $awsSqsClient = $context->getAwsSqsClient();
+        $requestDispatchPool = ExecutionScope::stateOf($this, static fn () => new SqsRequestDispatchPool());
         $sendRequestPromises = [];
         $trackedMessagesPerRequest = [];
         foreach ($this->buildBatchRequests($messagesToPublish, $context) as $batchRequest) {
             $requestArguments = $batchRequest['arguments'];
-            $sendRequestPromises[] = $this->requestDispatchPool->dispatch(fn () => $awsSqsClient->sendMessageBatchAsync($requestArguments));
+            $sendRequestPromises[] = $requestDispatchPool->dispatch(fn () => $awsSqsClient->sendMessageBatchAsync($requestArguments));
             $trackedMessagesPerRequest[] = $batchRequest['trackedMessages'];
         }
 

@@ -8,6 +8,7 @@ use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Messaging\Channel\ChannelConsumedOneMessageAtATime;
 use Ecotone\Messaging\Channel\FinalFailureStrategyChannelBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -24,7 +25,7 @@ use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannel;
 /**
  * licence Apache-2.0
  */
-final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuilder, FinalFailureStrategyChannelBuilder, DelayedMessageChannelBuilder
+final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuilder, FinalFailureStrategyChannelBuilder, DelayedMessageChannelBuilder, ChannelConsumedOneMessageAtATime
 {
     public function supportsDelayedMessages(): bool
     {
@@ -62,6 +63,14 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
     public function isPollable(): bool
     {
         return true;
+    }
+
+    public function whyItsConsumerHandlesOneMessageAtATime(): array
+    {
+        return [
+            'reason' => "it consumes Symfony Messenger channel `{$this->transportName}`, whose transport Symfony keeps one connection of for the whole process: every coroutine would read from that one connection at the same time, which stops the process or mixes their transactions.",
+            'wayToHandleMoreAtOnce' => 'start more processes of this consumer, or move its handlers to a channel Ecotone connects to itself (DbalBackedMessageChannelBuilder with a connection registered from a DSN, AmqpBackedMessageChannelBuilder, RedisBackedMessageChannelBuilder or SqsBackedMessageChannelBuilder) and consume that channel on coroutines.',
+        ];
     }
 
     /**

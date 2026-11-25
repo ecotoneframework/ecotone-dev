@@ -31,6 +31,7 @@ final class ConsumerCoroutines
             return;
         }
         if (! $drainsAQueue) {
+            self::refuseHandlersHandlingOneMessageAtATime(endpointId: $endpointId, coroutines: $coroutines, handlersHandlingOneMessageAtATime: $handlersHandlingOneMessageAtATime);
             throw ConfigurationException::create(
                 "Endpoint `{$endpointId}` is set to run on {$coroutines} coroutines, but it runs on a schedule instead of consuming a channel, so every coroutine would run each scheduled execution again. "
                 . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this endpoint. '
@@ -51,6 +52,14 @@ final class ConsumerCoroutines
                 . 'To handle more of its messages at once: for a Kafka topic start more processes of this consumer, with at least as many partitions of the topic as processes; a RabbitMQ stream is read in order by one consumer, so let its handler send the work to an #[Asynchronous] queue channel and consume that channel on coroutines. A dynamic channel whose custom receiving strategy reads only queue channels can consume on coroutines when it receives through DynamicMessageChannelBuilder::createRoundRobin(), createRoundRobinWithDifferentChannels() or createThrottlingStrategy() naming those channels.'
             );
         }
+        self::refuseHandlersHandlingOneMessageAtATime(endpointId: $endpointId, coroutines: $coroutines, handlersHandlingOneMessageAtATime: $handlersHandlingOneMessageAtATime);
+    }
+
+    /**
+     * @param list<array{reason: string, wayToHandleMoreAtOnce: string}> $handlersHandlingOneMessageAtATime
+     */
+    private static function refuseHandlersHandlingOneMessageAtATime(string $endpointId, int $coroutines, array $handlersHandlingOneMessageAtATime): void
+    {
         foreach ($handlersHandlingOneMessageAtATime as $handler) {
             throw ConfigurationException::create(
                 "Consumer `{$endpointId}` is set to consume on {$coroutines} coroutines, but {$handler['reason']} "

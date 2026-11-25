@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# licence Apache-2.0
+#
+# Renders Mermaid files to PNG next to their source, for attaching to a pull request with `gh ... --attach`.
+# Usage: bin/render-mermaid <file.mmd>...
+set -euo pipefail
+
+if [ "$#" -lt 1 ]; then
+    echo "Usage: bin/render-mermaid <file.mmd>..." >&2
+    exit 1
+fi
+
+config="$(mktemp)"
+trap 'rm -f "$config"' EXIT
+echo '{"args":["--no-sandbox"]}' > "$config"
+chrome="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+if [ -n "$chrome" ]; then export PUPPETEER_EXECUTABLE_PATH="$chrome"; fi
+
+for file in "$@"; do
+    case "$file" in
+        *.mmd) ;;
+        *) echo "Not a Mermaid file: $file (expected .mmd)" >&2; exit 1 ;;
+    esac
+    [ -f "$file" ] || { echo "No such file: $file" >&2; exit 1; }
+    npx --yes -p @mermaid-js/mermaid-cli mmdc --quiet -i "$file" -o "${file%.mmd}.png" -b white -s 2 -p "$config" >&2
+    echo "${file%.mmd}.png"
+done

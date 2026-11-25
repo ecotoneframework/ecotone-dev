@@ -62,6 +62,14 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
         return [];
     }
 
+    /**
+     * @return list<array{reason: string, wayToHandleMoreAtOnce: string}>
+     */
+    protected function handlersHandlingOneMessageAtATime(): array
+    {
+        return [];
+    }
+
     abstract protected function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall;
 
     protected function compileGateway(MessagingContainerBuilder $builder): Definition|Reference|DefinedObject
@@ -93,7 +101,7 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
             new Reference(MessageBuilder::class),
             $this->drainsAQueue(),
             $this->streamsConsumed(),
-            [],
+            $this->handlersHandlingOneMessageAtATime(),
         ]);
         $builder->registerPollingEndpoint(
             endpointId: $this->endpointId,
@@ -101,7 +109,7 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
             withContinuousPolling: $this->withContinuesPolling(),
             drainsAQueue: $this->drainsAQueue(),
             streamsConsumed: $this->streamsConsumed(),
-            handlersHandlingOneMessageAtATime: [],
+            handlersHandlingOneMessageAtATime: $this->handlersHandlingOneMessageAtATime(),
         );
     }
 

@@ -6,6 +6,8 @@ namespace Ecotone\Api\Sqs;
 
 use Aws\Sdk;
 use Aws\Sqs\SqsClient as AwsSqsClient;
+use Ecotone\Messaging\Execution\ExecutionScope;
+use Ecotone\Sqs\SqsClientOfExecution;
 use Enqueue\Dsn\Dsn;
 use Enqueue\Sqs\SqsClient;
 use Enqueue\Sqs\SqsContext;
@@ -23,10 +25,7 @@ final class SqsConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
      */
     private $config;
 
-    /**
-     * @var SqsClient
-     */
-    private $client;
+    private ?SqsClient $clientOfTheApplication = null;
 
     /**
      * $config = [
@@ -52,7 +51,7 @@ final class SqsConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
     public function __construct($config = 'sqs:')
     {
         if ($config instanceof AwsSqsClient) {
-            $this->client = new SqsClient($config);
+            $this->clientOfTheApplication = new SqsClient($config);
             $this->config = ['lazy' => false] + $this->defaultConfig();
 
             return;
@@ -85,10 +84,18 @@ final class SqsConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 
     private function establishConnection(): SqsClient
     {
-        if ($this->client) {
-            return $this->client;
+        SqsClientOfExecution::refuseCoroutineWhoseCurlHookRejectsTheAwsSdk();
+        if ($this->clientOfTheApplication !== null) {
+            SqsClientOfExecution::refuseClientOfTheApplicationInsideACoroutine();
+
+            return $this->clientOfTheApplication;
         }
 
+        return ExecutionScope::stateOf($this, static fn () => new SqsClientOfExecution())->client ??= $this->connect();
+    }
+
+    private function connect(): SqsClient
+    {
         $config = [
             'version' => $this->config['version'],
             'retries' => $this->config['retries'],
@@ -122,12 +129,9 @@ final class SqsConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
             return (new Sdk(['Sqs' => $config]))->createMultiRegionSqs();
         };
 
-        $this->client = $this->config['lazy'] ?
-            new SqsClient($establishConnection) :
-            new SqsClient($establishConnection())
-        ;
-
-        return $this->client;
+        return $this->config['lazy']
+            ? new SqsClient($establishConnection)
+            : new SqsClient($establishConnection());
     }
 
     private function parseDsn(string $dsn): array

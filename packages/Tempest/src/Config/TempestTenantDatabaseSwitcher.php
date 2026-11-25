@@ -7,6 +7,8 @@ namespace Ecotone\Tempest\Config;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ConnectionReference;
 use Ecotone\Api\Tempest\TempestConnectionReference;
+use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Execution\HeldByOneExecutionAtATime;
 use Tempest\Container\GenericContainer;
 use Tempest\Database\Config\DatabaseConfig;
 use Tempest\Database\Connection\Connection;
@@ -23,9 +25,12 @@ use Throwable;
  */
 final class TempestTenantDatabaseSwitcher
 {
+    private HeldByOneExecutionAtATime $defaultConnectionOfTempest;
+
     public function __construct(
         private readonly DatabaseConfig $defaultDatabaseConfig,
     ) {
+        $this->defaultConnectionOfTempest = new HeldByOneExecutionAtATime();
     }
 
     public static function create(): self
@@ -47,6 +52,15 @@ final class TempestTenantDatabaseSwitcher
         if ($configTag === null) {
             return;
         }
+
+        if ($this->defaultConnectionOfTempest->isHeldByAnotherExecution()) {
+            throw ConfigurationException::create(
+                'A tenant connection is activated while another message, handled at once in this process on a coroutine or a fiber, has its tenant active. '
+                . "Tempest's default database connection is one for the whole process, so the models and queries of both messages would go to the tenant activated last. "
+                . 'Handle one message at a time: run consumers without the `coroutines` option of ecotone:run and PollingMetadata::withCoroutines(), set `enable_coroutine` to false on a Swoole or OpenSwoole server, and do not suspend a fiber while it handles a message.'
+            );
+        }
+        $this->defaultConnectionOfTempest->hold();
 
         $container = GenericContainer::instance();
         $tenantConfig = $container->get(DatabaseConfig::class, tag: $configTag);
@@ -74,6 +88,11 @@ final class TempestTenantDatabaseSwitcher
 
     public function switchOff(): void
     {
+        if ($this->defaultConnectionOfTempest->isHeldByAnotherExecution()) {
+            return;
+        }
+        $this->defaultConnectionOfTempest->release();
+
         $container = GenericContainer::instance();
         $container->singleton(DatabaseConfig::class, $this->defaultDatabaseConfig);
         $container->unregister(Connection::class);

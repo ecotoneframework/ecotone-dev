@@ -6,15 +6,20 @@ namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Amqp\AmqpQueue as EcotoneAmqpQueue;
+use Ecotone\Api\Amqp\RabbitConsumer;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Test\CoroutineTesting;
+use Ecotone\Test\LicenceTesting;
 use Interop\Amqp\Impl\AmqpQueue;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use RuntimeException;
@@ -32,7 +37,7 @@ final class CoroutineExecutionsTest extends AmqpMessagingTestCase
     public function setUp(): void
     {
         parent::setUp();
-        foreach (['coroutine_orders', 'coroutine_shipments'] as $queueName) {
+        foreach (['coroutine_orders', 'coroutine_shipments', 'coroutine_inbox'] as $queueName) {
             try {
                 self::getRabbitConnectionFactory()->createContext()->deleteQueue(new AmqpQueue($queueName));
             } catch (Throwable) {
@@ -101,6 +106,57 @@ final class CoroutineExecutionsTest extends AmqpMessagingTestCase
         $ecotone->run('coroutine_shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $this->assertSame(['accepted' => ['tenant-of-accepted']], $ecotone->sendQueryWithRouting('order.shipped'));
+    }
+
+    public function test_rabbit_consumer_on_coroutines_handles_messages_at_once_and_every_message_once(): void
+    {
+        $inbox = new class () {
+            private array $received = [];
+            private int $receivedAtOnce = 0;
+            private int $mostReceivedAtOnce = 0;
+
+            #[RabbitConsumer('coroutine_inbox_consumer', 'coroutine_inbox')]
+            public function receive(#[Payload] string $payload): void
+            {
+                $this->receivedAtOnce++;
+                $this->mostReceivedAtOnce = max($this->mostReceivedAtOnce, $this->receivedAtOnce);
+                usleep(50_000);
+                $this->received[] = $payload;
+                $this->receivedAtOnce--;
+            }
+
+            #[QueryHandler('inbox.received')]
+            public function received(): array
+            {
+                sort($this->received);
+
+                return $this->received;
+            }
+
+            #[QueryHandler('inbox.mostReceivedAtOnce')]
+            public function mostReceivedAtOnce(): int
+            {
+                return $this->mostReceivedAtOnce;
+            }
+        };
+        $ecotone = $this->bootstrapFlowTesting(
+            classesToResolve: [$inbox::class],
+            containerOrAvailableServices: [$inbox, ...$this->getConnectionFactoryReferences()],
+            extensionObjects: [
+                EcotoneAmqpQueue::createWith('coroutine_inbox'),
+                AmqpMessagePublisherConfiguration::create()->withDefaultRoutingKey('coroutine_inbox'),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        foreach (['letter-1', 'letter-2', 'letter-3', 'letter-4', 'letter-5', 'letter-6'] as $letter) {
+            $ecotone->getMessagePublisher()->send($letter);
+        }
+
+        $ecotone->run('coroutine_inbox_consumer', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
+
+        $this->assertSame(['letter-1', 'letter-2', 'letter-3', 'letter-4', 'letter-5', 'letter-6'], $ecotone->sendQueryWithRouting('inbox.received'));
+        $this->assertSame(3, $ecotone->sendQueryWithRouting('inbox.mostReceivedAtOnce'));
     }
 
     /**

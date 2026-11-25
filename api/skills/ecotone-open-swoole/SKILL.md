@@ -73,6 +73,12 @@ final class ConsumerConfiguration
   (`SymfonyMessengerMessageChannelBuilder`) is refused on coroutines, also behind a dynamic channel: the framework
   keeps one connection for the process. Start more processes, or move the handlers to a channel Ecotone connects to
   itself (DBAL from a DSN, RabbitMQ, Redis, SQS)
+- Outbox (`OutboxForwardingMessageChannel`): the consumer forwarding the outbox is refused on coroutines; run it
+  without `--coroutines` and run the consumer of the target channel on coroutines
+- Multi-tenancy: tenants on `DbalConnectionFactory` DSNs are handled at once, each message on its tenant's
+  connection. Tenants on `LaravelConnectionReference` or `TempestConnectionReference` are refused when two messages
+  are handled at once, because the framework's default connection is one for the process: run those consumers
+  without `--coroutines` and set `enable_coroutine` to false on the server
 - Projections: an `#[Asynchronous]` projection is consumed on coroutines like any handler. A `#[Partitioned]` one
   projects different partitions at once; a global one is projected by one coroutine at a time, the others lose the
   optimistic write, are retried and find nothing left, so coroutines add nothing to it. A `#[Polling]` and a
@@ -270,7 +276,9 @@ and leave `withCoroutines()` out. The channel of a `#[Gathered]` handler handles
 other handler on it, because parts finishing together would lose the group's optimistic write until the retries run
 out; bootstrap refuses `withCoroutines()` with more than one coroutine there. A `#[Collected]` handler follows the
 same rule: its own channel without `withCoroutines()`, and messages sent at once by several requests are recorded
-into one batch. On a channel consumed with `ecotone:run`, run the consumer of a `#[Gathered]` or `#[Collected]`
+into one batch. The channel named as `batchCompletionChannelName` of a `#[ProjectionRebuild]` or
+`#[ProjectionBackfill]` follows it too: leave `withCoroutines()` out there and state it on the `asyncChannelName`
+channel. On a channel consumed with `ecotone:run`, run the consumer of a `#[Gathered]` or `#[Collected]`
 handler without `--coroutines`: the consumer refuses the option, and `PollingMetadata::withCoroutines()`, above one.
 
 ```php

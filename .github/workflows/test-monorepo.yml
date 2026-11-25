@@ -93,6 +93,20 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: "secret"
+          MARIADB_USER: "ecotone"
+          MARIADB_PASSWORD: "secret"
+          MARIADB_DATABASE: "ecotone"
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+        ports:
+          - 3307:3306
       localstack:
         image: localstack/localstack:3.8
         env:
@@ -241,6 +255,20 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: "secret"
+          MARIADB_USER: "ecotone"
+          MARIADB_PASSWORD: "secret"
+          MARIADB_DATABASE: "ecotone"
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+        ports:
+          - 3307:3306
       localstack:
         image: localstack/localstack:3.8
         env:
@@ -259,6 +287,8 @@ jobs:
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4566&version=latest
       REDIS_DSN: redis://127.0.0.1:6379
       KAFKA_DSN: 127.0.0.1:9092
+      DATABASE_MYSQL: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
+      DATABASE_MARIADB: mysql://ecotone:secret@127.0.0.1:3307/ecotone?serverVersion=11.4.5-MariaDB
       COMPOSER_PROCESS_TIMEOUT: 3600
       # The tests that run messages in real coroutines are skipped wherever neither extension is loaded,
       # so they are named here: a renamed or moved file fails the job instead of silently not running.
@@ -280,6 +310,7 @@ jobs:
         packages/Redis/tests/Integration/CoroutineExecutionsTest.php
         packages/Sqs/tests/Integration/CoroutineExecutionsTest.php
         packages/Kafka/tests/Integration/CoroutineExecutionsTest.php
+        Monorepo/CrossModuleTests/Tests/CoroutineOutboxTest.php
     steps:
     - name: PHP 8.5 with OpenSwoole
       if: matrix.runtime.extension == 'openswoole'

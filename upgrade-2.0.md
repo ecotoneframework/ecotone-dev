@@ -3127,8 +3127,8 @@ next one. Their number is not limited: a process holds as many as it has had exe
 coroutines per worker (`max_coroutine`) times the workers below what the broker accepts.
 
 Every concurrent execution has its own Redis connection and its own SQS client as well, when the connection factory
-is built from its settings (`new RedisConnectionFactory('redis://...')`, `new SqsConnectionFactory('sqs:?...')`). They
-are closed when the execution ends. A factory given a client object (`new RedisConnectionFactory($redis)`,
+is built from its settings (`new RedisConnectionFactory('redis://...')`, `new SqsConnectionFactory('sqs:?...')`). The
+Redis connection is closed when the execution ends, and the SQS client is released with it. A factory given a client object (`new RedisConnectionFactory($redis)`,
 `new SqsConnectionFactory($awsSqsClient)`) has one connection for the process and is refused with a
 `ConfigurationException` inside a Swoole or OpenSwoole coroutine: pass the settings instead. SQS is also refused inside
 an OpenSwoole coroutine while OpenSwoole's curl hook is enabled, because that hook rejects options the AWS SDK sets;
@@ -3138,9 +3138,10 @@ A consumer of a Laravel queue channel or a Symfony Messenger channel is refused 
 keeps one connection for the process, and so is the consumer of the batch reports of an asynchronous projection
 rebuild or backfill, which lose the run's optimistic write when handled at once: name a `batchCompletionChannelName`
 of their own and run only `asyncChannelName` on coroutines. A coroutine message channel named as
-`batchCompletionChannelName` (or as `asyncChannelName` without one) is registered with `withCoroutines(1)`. In a
-Laravel application with a `MultiTenantConfiguration`, a tenant activated while another message handled at once has
-its tenant active is refused: Laravel's default connection is one setting for the process.
+`batchCompletionChannelName` (or as `asyncChannelName` without one) handles one message at a time when
+`withCoroutines()` is left out, and the application refuses to boot when it states more than one. In a
+Laravel or Tempest application with a `MultiTenantConfiguration`, a tenant activated while another message handled at
+once has its tenant active is refused: the framework's default connection is one for the process.
 
 With the `amqp` extension and a `heartbeat` configured, a connection that published nothing for two heartbeat
 periods is opened again before the next publish made outside of a RabbitMQ transaction. The extension sends heartbeats only while it waits for the broker,
@@ -3201,6 +3202,23 @@ times `connection_pool_size` below what the database accepts, and take the
 connection in your own code with `#[CurrentConnection] Connection $connection` on the handler, not from a property.
 Do the work that must share the handler's transaction in the handler itself, not in a fiber or coroutine it starts,
 and pass a fiber the headers it needs explicitly (`metadata:` on the bus call).
+
+On a Swoole or OpenSwoole server with `enable_coroutine` on, or a consumer run on coroutines, also:
+
+- **A Redis or SQS client object passed to the connection factory**: pass the connection settings instead
+  (`new RedisConnectionFactory('redis://host:6379')`, `new SqsConnectionFactory('sqs:?key=...&secret=...&region=...')`),
+  or set `enable_coroutine` to false and run the consumers without `--coroutines`.
+- **SQS on OpenSwoole**: run on Swoole, or switch OpenSwoole's curl hook off before the coroutines start
+  (`OpenSwoole\Runtime::enableCoroutine(OpenSwoole\Runtime::HOOK_ALL & ~(OpenSwoole\Runtime::HOOK_CURL | OpenSwoole\Runtime::HOOK_NATIVE_CURL))`,
+  or the same value as `hook_flags` of the server); every SQS request then stops the other coroutines while it waits.
+- **A Laravel queue or Symfony Messenger channel**: run its consumer without `--coroutines` and start more processes,
+  or move the handlers to a channel Ecotone connects to itself (DBAL from a DSN, RabbitMQ, Redis, SQS) and run that
+  consumer on coroutines.
+- **A Laravel or Tempest application with a `MultiTenantConfiguration`**: set `enable_coroutine` to false and run the
+  consumers without `--coroutines`; tenants on `DbalConnectionFactory` DSNs are handled at once.
+- **An asynchronous projection rebuild or backfill**: name a `batchCompletionChannelName` of its own, run that
+  consumer without `--coroutines` and only the `asyncChannelName` consumer with it. On coroutine message channels leave
+  `withCoroutines()` out for the channel of the batch reports.
 
 ### A handler takes the database connection with `#[CurrentConnection]`
 

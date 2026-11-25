@@ -27,7 +27,7 @@ final class ManagerRegistrySharedByExecutionsTest extends DbalMessagingTestCase
 {
     private const REFUSAL = 'Database connection `default` of a Doctrine ManagerRegistry is used by two executions of this process at once (coroutines or fibers running concurrently, or one a handler started). '
         . 'A ManagerRegistry keeps a single connection for the whole process, so the statements of both messages would run on it: their writes are not atomic, a transaction of one includes what the other wrote, and MySQL refuses their concurrent queries. '
-        . 'Ecotone gives every concurrent execution its own connection when it can open one itself: register the connection from a DSN (new Ecotone\\Api\\Dbal\\DbalConnectionFactory($dsn)), or in Symfony register the DBAL connection with SymfonyConnectionReference::defaultConnection() or ::createForConnection(), which work on copies of that connection. '
+        . 'Ecotone gives every concurrent execution its own connection when it can open one itself: register the connection from a DSN (new Ecotone\\Api\\Dbal\\DbalConnectionFactory($dsn)), in Symfony register the DBAL connection with SymfonyConnectionReference::defaultConnection() or ::createForConnection(), which work on copies of that connection, or keep Doctrine ORM on a connection per execution with Ecotone\\Api\\Dbal\\ManagerRegistryProvider::fromDsnAndConfig($dsn, $pathsToMapping). '
         . 'To keep the ManagerRegistry, handle one message at a time per process: run consumers without the `coroutines` option of ecotone:run and PollingMetadata::withCoroutines(), set `enable_coroutine` to false on a Swoole or OpenSwoole server, and do not use the connection from a coroutine or fiber a handler starts.';
 
     public function test_manager_registry_connection_used_without_a_transaction_while_a_suspended_execution_uses_it_is_refused(): void
@@ -75,6 +75,20 @@ final class ManagerRegistrySharedByExecutionsTest extends DbalMessagingTestCase
         (new Fiber(static fn () => $ecotone->sendCommandWithRouting('person.register', ['personId' => 2, 'name' => 'second'])))->start();
         $ecotone->sendCommandWithRouting('person.register', ['personId' => 3, 'name' => 'third']);
 
+        $this->assertSame(['first', 'second', 'third'], $ecotone->sendQueryWithRouting('person.registered'));
+    }
+
+    public function test_manager_registry_connection_is_free_again_once_the_fiber_that_used_it_has_finished_though_the_application_keeps_the_fiber(): void
+    {
+        $ecotone = $this->bootstrapPersonRegistration();
+
+        $first = new Fiber(static fn () => $ecotone->sendCommandWithRouting('person.register', ['personId' => 1, 'name' => 'first']));
+        $first->start();
+        $second = new Fiber(static fn () => $ecotone->sendCommandWithRouting('person.register', ['personId' => 2, 'name' => 'second']));
+        $second->start();
+        $ecotone->sendCommandWithRouting('person.register', ['personId' => 3, 'name' => 'third']);
+
+        $this->assertTrue($first->isTerminated() && $second->isTerminated());
         $this->assertSame(['first', 'second', 'third'], $ecotone->sendQueryWithRouting('person.registered'));
     }
 

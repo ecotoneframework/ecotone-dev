@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Execution;
 
+use Fiber;
 use WeakReference;
 
 /**
@@ -12,11 +13,15 @@ use WeakReference;
 final class HeldByOneExecutionAtATime
 {
     private ?WeakReference $executionHolding = null;
+    private ?WeakReference $fiberHolding = null;
     private int $timesHeld = 0;
 
     public function isHeldByAnotherExecution(): bool
     {
         $executionHolding = $this->executionHolding?->get();
+        if ($this->fiberHolding?->get()?->isTerminated() ?? false) {
+            return false;
+        }
 
         return $executionHolding !== null && $executionHolding !== ExecutionScope::current();
     }
@@ -25,6 +30,8 @@ final class HeldByOneExecutionAtATime
     {
         if ($this->executionHolding?->get() !== ExecutionScope::current()) {
             $this->executionHolding = WeakReference::create(ExecutionScope::current());
+            $fiber = ExecutionScope::isInsideCoroutine() ? null : Fiber::getCurrent();
+            $this->fiberHolding = $fiber === null ? null : WeakReference::create($fiber);
             $this->timesHeld = 0;
         }
         $this->timesHeld++;

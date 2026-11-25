@@ -3217,7 +3217,9 @@ On a Swoole or OpenSwoole server with `enable_coroutine` on, or a consumer run o
 - **A Doctrine `ManagerRegistry` connection** (`SymfonyConnectionReference::defaultManagerRegistry()`,
   `ManagerRegistryProvider::create()`): it is one connection for the process, and its use by a second coroutine or
   fiber while another still runs is refused, also with database transactions switched off. Register the DBAL
-  connection with `SymfonyConnectionReference::defaultConnection()`, or handle one message at a time.
+  connection with `SymfonyConnectionReference::defaultConnection()`, keep Doctrine ORM on a connection per execution
+  with `ManagerRegistryProvider::fromDsnAndConfig()`, or handle one message at a time. A fiber that has finished no
+  longer counts as using the connection.
 - **The consumer forwarding an outbox** (`OutboxForwardingMessageChannel`): run it without `--coroutines`, raise
   `withMaxForwardingBatchSize()` to move more in a run, and run the consumer of the target channel on coroutines.
 - **A Laravel or Tempest application with a `MultiTenantConfiguration`**: set `enable_coroutine` to false and run the

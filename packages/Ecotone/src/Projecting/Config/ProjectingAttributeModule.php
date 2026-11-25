@@ -347,7 +347,7 @@ final class ProjectingAttributeModule implements AnnotationModule
 
     private static function wayToProjectMoreEventsAtOnce(string $attributeReplaced): string
     {
-        return "make the projection #[Asynchronous] on a queue channel instead of {$attributeReplaced} and #[Partitioned], so that different partitions are projected at once, and consume that channel on coroutines.";
+        return "replace {$attributeReplaced} on the projection with #[Asynchronous] on a queue channel and add #[Partitioned], so that different partitions are projected at once, and consume that channel on coroutines.";
     }
 
     private static function verifyCorrectApiUsage(bool $isPolling, ?string $asynchronousChannelName, Projection $projectionAttribute, bool $isEventStreaming, bool $isPartitioned, bool $isManualKickOff): void

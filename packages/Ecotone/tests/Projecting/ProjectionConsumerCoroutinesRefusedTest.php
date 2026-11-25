@@ -42,10 +42,10 @@ final class ProjectionConsumerCoroutinesRefusedTest extends TestCase
 {
     private const POLLING_PROJECTION_REFUSAL = 'Consumer `orders_poller` is set to consume on 3 coroutines, but it runs #[Polling] projection `orders`, which projects the events of its streams after the last position it committed: every coroutine would project the same events again at the same time. '
         . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
-        . 'To handle more messages at once, make the projection #[Asynchronous] on a queue channel instead of #[Polling] and #[Partitioned], so that different partitions are projected at once, and consume that channel on coroutines.';
+        . 'To handle more messages at once, replace #[Polling] on the projection with #[Asynchronous] on a queue channel and add #[Partitioned], so that different partitions are projected at once, and consume that channel on coroutines.';
     private const STREAMING_PROJECTION_REFUSAL = 'Consumer `orders` is set to consume on 3 coroutines, but it runs #[Streaming] projection `orders`, which reads the stream `orders_stream_channel`, where the position of the last projected event is what gets committed: a coroutine finishing a later event would commit past an earlier event another coroutine is still projecting, so that event is never projected when the process stops, and the events are projected out of order. '
         . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
-        . 'To handle more messages at once, make the projection #[Asynchronous] on a queue channel instead of #[Streaming] and #[Partitioned], so that different partitions are projected at once, and consume that channel on coroutines.';
+        . 'To handle more messages at once, replace #[Streaming] on the projection with #[Asynchronous] on a queue channel and add #[Partitioned], so that different partitions are projected at once, and consume that channel on coroutines.';
 
     public function test_polling_projection_is_refused_to_run_on_coroutines_passed_when_running_it(): void
     {

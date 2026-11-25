@@ -280,7 +280,7 @@ function checkLinks(string $root, string $audience, string $skillDirectory, arra
 
         preg_match_all('#`((?:docs|bin|\.agents|api|\.github)/[\w./-]+\.(?:md|php|yml))`#', $prose, $paths);
         foreach (array_unique($paths[1]) as $path) {
-            if (! str_starts_with($path, 'docs/superpowers/') && ! file_exists($root . '/' . $path)) {
+            if (! str_starts_with($path, 'docs/superpowers/') && ! str_starts_with($path, 'docs/reviews/') && ! file_exists($root . '/' . $path)) {
                 $violations[] = "{$relative} names `{$path}`, which does not exist.\nThe file moved or was deleted; an agent following the instruction finds nothing. Name its current path.";
             }
         }

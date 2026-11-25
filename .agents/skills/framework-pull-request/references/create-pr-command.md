@@ -80,15 +80,18 @@ Present the complete PR content (title + body) to the user for review. Ask if th
 
 ### Step 4b: Checks and the four reviews
 
-Before anything is pushed, run the [checklist](checklist.md) and start, without asking, the four independent review
+Before anything is pushed, run the [checklist](checklist.md) and start, without asking, or resume when
+`docs/reviews/sessions.md` already names them
+([rule P3c](../SKILL.md#p3c-the-review-sub-sessions-live-as-long-as-the-worktree)), the four independent review
 sub-sessions of [framework-pull-request rule P3](../SKILL.md#p3-four-independent-reviews-pass-the-review-list-before-anything-is-pushed):
-Orca worker sessions in the current workspace when the session runs inside Orca, subagents only when Orca is not
+Orca worker sessions in the current workspace, started with `--keep-open`, when the session runs inside Orca, subagents only when Orca is not
 available, on Claude Opus 5.5 either way ([rule P3b](../SKILL.md#p3b-a-review-sub-session-is-an-orca-session-a-subagent-only-where-orca-is-not-available)).
 Each decides every requirement of its section of the [review list](review-list.md) as `not-apply`, `covered` or
 `missing`. Wait for all four reports, save the decided lists to files under `docs/reviews/`, and cover every `missing` requirement (or get the
 maintainer's decision on it). Then resume the sub-sessions with the fix commits
 ([rule P3a](../SKILL.md#p3a-a-fix-is-re-verified-by-resuming-the-review-sub-sessions)), and continue only when no
-requirement is `missing`.
+requirement is `missing`. The reviewers are not stopped or released afterwards: they stay open for the next change
+in this worktree.
 
 ### Step 5: Create the PR
 
@@ -116,8 +119,8 @@ The box is ticked (`- [X]`) only after the user has said they agree to the terms
 Push the branch first if needed (`git push -u origin <branch-name>`).
 
 A later push to the open PR (a fix, a merge from `main`, a rebase) goes through Step 4b again first: the checklist
-and the four reviews of the new commits, before `git push`: the earlier sub-sessions resumed while they still can
-be, new ones started automatically otherwise.
+and the four reviews of the new commits, before `git push`: the sub-sessions the worktree already has are resumed, and a new
+one is started only in place of one that cannot be reached.
 
 Return the PR URL when done.
 

@@ -238,17 +238,16 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_a_message_arriving_once_the_last_message_of_its_partition_key_left_the_dead_letter_is_not_held(string $implementation): void
+    public function test_a_partition_key_is_not_held_while_its_last_message_is_on_its_way_back_and_is_held_again_when_that_message_fails(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation);
         $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
         $this->consume($ecotone);
 
-        $this->place($ecotone, 'tea', orderId: '1', messageId: 'm-2');
         $ecotone->getGateway(DeadLetterGateway::class)->replay('m-1');
-        $this->consume($ecotone);
+        self::assertSame([], $ecotone->getGateway(PartitionDeadLetterGateway::class)->list());
 
-        self::assertSame(['1:tea'], $this->orders->placed);
+        $this->consume($ecotone);
         self::assertEquals(
             [new HeldPartition(trackingName: 'partitionDeadLetter.place.endpoint', partitionKey: '1', waitingMessages: 1, oldestMessageId: 'm-1')],
             $ecotone->getGateway(PartitionDeadLetterGateway::class)->list(),

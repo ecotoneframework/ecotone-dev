@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\ErrorChannel;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Gathered;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Identifier;
@@ -28,6 +29,7 @@ use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Attribute\TimeToLive;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
@@ -46,6 +48,8 @@ use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\FromTaggedStream;
+use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionBackfill;
 use Ecotone\Api\Projecting\ProjectionRebuild;
@@ -1627,6 +1631,89 @@ final class CoroutineMessageChannelTest extends TestCase
         $this->assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('orders.rebuild'));
     }
 
+    public function test_rebuild_on_a_channel_registered_without_stating_coroutines_executes_its_batches_one_at_a_time_and_completes_once(): void
+    {
+        $projection = new #[Projection('course_seats'), FromTaggedStream('course'), Partitioned, ProjectionRebuild(partitionBatchSize: 1, asyncChannelName: 'rebuild_channel')] class () {
+            private int $definedAtOnce = 0;
+            public int $mostDefinedAtOnce = 0;
+            public array $defined = [];
+
+            #[EventHandler(endpointId: 'course_seats.defined')]
+            public function whenDefined(CoroutineCourseDefined $event): void
+            {
+                $this->definedAtOnce++;
+                $this->mostDefinedAtOnce = max($this->mostDefinedAtOnce, $this->definedAtOnce);
+                usleep(20_000);
+                $this->defined[] = $event->courseId;
+                $this->definedAtOnce--;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$projection::class, CoroutineCourseDefined::class],
+            containerOrAvailableServices: [$projection],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('rebuild_channel'), DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $ecotone->withEvents([new CoroutineCourseDefined('course-1'), new CoroutineCourseDefined('course-2'), new CoroutineCourseDefined('course-3')]);
+
+        CoroutineTesting::runAtOnce(static fn () => $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'course_seats']));
+
+        sort($projection->defined);
+        $this->assertSame(['course-1', 'course-2', 'course-3'], $projection->defined);
+        $this->assertSame(1, $projection->mostDefinedAtOnce);
+        $this->assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('course_seats.rebuild'));
+        $this->assertSame([[3, 3, [], 0]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded'], $group['missingPartNumbers'], $group['latePartCount']], $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('course_seats.rebuild')));
+    }
+
+    public function test_rebuild_executes_its_batches_at_once_while_the_channel_of_its_batch_reports_registered_without_stating_coroutines_handles_one_message_at_a_time(): void
+    {
+        $projection = new #[Projection('course_seats'), FromTaggedStream('course'), Partitioned, ProjectionRebuild(partitionBatchSize: 1, asyncChannelName: 'rebuild_channel', batchCompletionChannelName: 'rebuild_reports')] class () {
+            private int $definedAtOnce = 0;
+            public int $mostDefinedAtOnce = 0;
+
+            #[EventHandler(endpointId: 'course_seats.defined')]
+            public function whenDefined(CoroutineCourseDefined $event): void
+            {
+                $this->definedAtOnce++;
+                $this->mostDefinedAtOnce = max($this->mostDefinedAtOnce, $this->definedAtOnce);
+                usleep(20_000);
+                $this->definedAtOnce--;
+            }
+        };
+        $audit = new class () {
+            private int $auditedAtOnce = 0;
+            public int $mostAuditedAtOnce = 0;
+
+            #[Asynchronous('rebuild_reports')]
+            #[CommandHandler('course_seats.audit', endpointId: 'course_seats.audit.endpoint')]
+            public function audit(string $course): void
+            {
+                $this->auditedAtOnce++;
+                $this->mostAuditedAtOnce = max($this->mostAuditedAtOnce, $this->auditedAtOnce);
+                usleep(20_000);
+                $this->auditedAtOnce--;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$projection::class, $audit::class, CoroutineCourseDefined::class],
+            containerOrAvailableServices: [$projection, $audit],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('rebuild_channel')->withCoroutines(4), CoroutineMessageChannelBuilder::create('rebuild_reports'), DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $ecotone->withEvents([new CoroutineCourseDefined('course-1'), new CoroutineCourseDefined('course-2'), new CoroutineCourseDefined('course-3')]);
+
+        CoroutineTesting::runAtOnce(
+            static fn () => $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'course_seats']),
+            ...array_fill(0, 3, static fn () => $ecotone->sendCommandWithRouting('course_seats.audit', 'course-1')),
+        );
+
+        $this->assertSame(3, $projection->mostDefinedAtOnce);
+        $this->assertSame(1, $audit->mostAuditedAtOnce);
+        $this->assertSame([[3, 3, [], 0]], array_map(static fn (array $group): array => [$group['expectedSize'], $group['recorded'], $group['missingPartNumbers'], $group['latePartCount']], $ecotone->getGateway(GatheredGroups::class)->listClosedGroups('course_seats.rebuild')));
+    }
+
     #[DataProvider('channels_registered_with_several_coroutines')]
     public function test_a_gathered_handler_on_a_channel_of_several_coroutines_is_refused_at_bootstrap(CoroutineMessageChannelBuilder $channel, int $coroutines): void
     {
@@ -1813,4 +1900,11 @@ interface CoroutineChannelGateway
 {
     #[MessageGateway('gateway.input')]
     public function dispatch(string $payload): void;
+}
+
+final readonly class CoroutineCourseDefined
+{
+    public function __construct(#[EventTag('course')] public string $courseId)
+    {
+    }
 }

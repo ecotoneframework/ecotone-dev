@@ -119,7 +119,7 @@ final class CoroutineOutboxTest extends TestCase
                 RedisConnectionFactory::class => new RedisConnectionFactory($redisDsn),
             ],
             extensionObjects: [
-                OutboxForwardingMessageChannel::create('orders', DbalBackedMessageChannelBuilder::create('coroutine_outbox'), 'coroutine_order_processing'),
+                OutboxForwardingMessageChannel::create(referenceName: 'orders', sourceChannelName: DbalBackedMessageChannelBuilder::create('coroutine_outbox'), targetChannelName: 'coroutine_order_processing'),
                 RedisBackedMessageChannelBuilder::create('coroutine_order_processing')->withReceiveTimeout(50),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::REDIS_PACKAGE],

@@ -194,7 +194,7 @@ final class CoroutineWallet
     #[CommandHandler('coroutine_wallet.open')]
     public static function open(string $walletId): self
     {
-        return new self($walletId, [], 0);
+        return new self(walletId: $walletId, deposits: [], version: 0);
     }
 
     #[Asynchronous('orders')]
@@ -225,7 +225,7 @@ final class CoroutineWalletAudit
     #[CommandHandler('coroutine_wallet_audit.open')]
     public static function open(string $walletId): self
     {
-        return new self($walletId, [], 0);
+        return new self(walletId: $walletId, deposits: [], version: 0);
     }
 
     #[Asynchronous('orders')]

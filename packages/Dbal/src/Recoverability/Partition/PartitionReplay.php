@@ -36,26 +36,15 @@ final class PartitionReplay
     ) {
     }
 
-    public function isReplaying(DeadLetterPartition $partition): bool
-    {
-        return $this->heldPartitions->releasedOf($partition) !== [];
-    }
-
     public function continueWith(DeadLetterPartition $partition): bool
     {
-        foreach ($this->heldPartitions->releasedOf($partition) as $releasedDeadLetterId) {
-            if ($this->deadLetterStore->find($releasedDeadLetterId) !== null) {
-                $this->deadLetterHandler->replay($releasedDeadLetterId, $this->messagingEntrypoint);
-
-                return true;
-            }
-        }
-
-        $nextDeadLetterId = $this->heldPartitions->releaseOldestWaitingOf($partition);
+        $nextDeadLetterId = $this->heldPartitions->oldestOf($partition);
         if ($nextDeadLetterId === null) {
             return false;
         }
-        $this->deadLetterHandler->replay($nextDeadLetterId, $this->messagingEntrypoint);
+        if ($this->deadLetterStore->find($nextDeadLetterId) !== null) {
+            $this->deadLetterHandler->replay($nextDeadLetterId, $this->messagingEntrypoint);
+        }
 
         return true;
     }

@@ -26,23 +26,17 @@ interface HeldPartitions
 {
     public function hold(DeadLetterPartition $partition, string $deadLetterId): void;
 
-    public function holdAgain(string $releasedDeadLetterId, string $deadLetterId): void;
-
-    public function release(string $deadLetterId): void;
-
-    public function releaseOldestWaitingOf(DeadLetterPartition $partition): ?string;
+    public function holdAtPlace(DeadLetterPartition $partition, string $deadLetterId, int $place): void;
 
     public function forget(string $deadLetterId): void;
 
     public function forgetAll(): void;
 
-    public function isReleased(string $deadLetterId): bool;
-
     public function partitionOf(string $deadLetterId): ?DeadLetterPartition;
 
-    public function oldestOf(DeadLetterPartition $partition): ?string;
+    public function placeOf(string $deadLetterId): ?int;
 
-    public function oldestWaitingOf(DeadLetterPartition $partition): ?string;
+    public function oldestOf(DeadLetterPartition $partition): ?string;
 
     /**
      * @return list<string>
@@ -50,12 +44,7 @@ interface HeldPartitions
     public function waitingOf(DeadLetterPartition $partition): array;
 
     /**
-     * @return list<string>
-     */
-    public function releasedOf(DeadLetterPartition $partition): array;
-
-    /**
-     * @return list<array{trackingName: string, partitionKey: string, waiting: int, released: int, oldestDeadLetterId: string}>
+     * @return list<array{trackingName: string, partitionKey: string, waiting: int, oldestDeadLetterId: string}>
      */
     public function summary(): array;
 }

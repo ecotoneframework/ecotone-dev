@@ -7,7 +7,6 @@ namespace Ecotone\Dbal\Recoverability\Partition;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Recoverability\DeadLetterReplayOrder;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
@@ -41,39 +40,19 @@ final class PartitionDeadLetterReplayOrder implements DeadLetterReplayOrder
         return array_values(array_filter($deadLetterIds, function (string $deadLetterId): bool {
             $partition = $this->heldPartitions->partitionOf($deadLetterId);
 
-            return $partition === null || ($this->heldPartitions->oldestWaitingOf($partition) === $deadLetterId && $this->heldPartitions->releasedOf($partition) === []);
+            return $partition === null || $this->heldPartitions->oldestOf($partition) === $deadLetterId;
         }));
     }
 
     public function releasing(string $deadLetterId, Message $message): Message
     {
-        $partition = $this->heldPartitions->partitionOf($deadLetterId);
-        if ($partition === null) {
+        $place = $this->heldPartitions->placeOf($deadLetterId);
+        if ($place === null) {
             return $message;
         }
 
-        if (! $this->heldPartitions->isReleased($deadLetterId)) {
-            $replayed = $this->heldPartitions->releasedOf($partition);
-            if ($replayed !== []) {
-                throw InvalidArgumentException::create(
-                    "Dead letter message `{$deadLetterId}` can not be replayed while message `{$replayed[0]}` of its partition key `{$partition->partitionKey}` of `{$partition->trackingName}` is being replayed, as that would handle them out of order. "
-                    . 'Nothing has to be done: it is replayed once the messages before it succeed. '
-                    . "When the replayed message will never be handled (its channel was purged), delete the partition key with PartitionDeadLetterGateway::delete('{$partition->trackingName}', '{$partition->partitionKey}') or the ecotone:deadletter:deletePartition console command."
-                );
-            }
-            $oldestWaiting = $this->heldPartitions->oldestWaitingOf($partition);
-            if ($oldestWaiting !== $deadLetterId) {
-                throw InvalidArgumentException::create(
-                    "Dead letter message `{$deadLetterId}` can not be replayed before the older messages of its partition key `{$partition->partitionKey}` of `{$partition->trackingName}`, as that would handle them out of order. "
-                    . "Replay the oldest one, `{$oldestWaiting}`, and the rest follow in order once it succeeds: PartitionDeadLetterGateway::replay('{$partition->trackingName}', '{$partition->partitionKey}') or the ecotone:deadletter:replayPartition console command do that. "
-                    . 'To handle this message first anyway, delete the older messages of the partition key from the dead letter.'
-                );
-            }
-            $this->heldPartitions->release($deadLetterId);
-        }
-
         return $this->messageBuilder->fromMessage($message)
-            ->setHeader(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE, $deadLetterId)
+            ->setHeader(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE, (string) $place)
             ->build();
     }
 }

@@ -46,7 +46,6 @@ use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Recoverability\DeadLetterChannels;
@@ -166,10 +165,8 @@ final class PartitionDeadLetterRegistration
                 Reference::to(PartitionedHandlers::class),
                 Reference::to(HeldPartitions::class),
                 Reference::to(PartitionReplay::class),
-                Reference::to(DbalDeadLetterBuilder::storeReferenceFor(DeadLetterGateway::class)),
                 Reference::to(ErrorChannelService::class),
                 Reference::to(ChannelResolver::class),
-                Reference::to(LoggingGateway::class),
                 Reference::to(MessageHeadersPropagatorInterceptor::class),
                 DbalDeadLetterBuilder::STORE_CHANNEL,
             ])

@@ -42,7 +42,7 @@ final class DeadLetterOverview
 
     /**
      * @param list<array<string, mixed>> $entries
-     * @param list<array{trackingName: string, partitionKey: string, waitingMessages: int, releasedMessages: int, oldestMessageId: string, messageIds: list<string>}> $heldPartitions
+     * @param list<array{trackingName: string, partitionKey: string, waitingMessages: int, oldestMessageId: string, messageIds: list<string>}> $heldPartitions
      * @return list<array<string, mixed>>
      */
     private static function withPlaceInHeldPartition(array $entries, array $heldPartitions): array
@@ -121,7 +121,7 @@ final class DeadLetterOverview
 
     /**
      * @param list<ServiceSnapshot> $snapshots
-     * @return array{trackingName: string, partitionKey: string, waitingMessages: int, releasedMessages: int, oldestMessageId: string, messageIds: list<string>}|null
+     * @return array{trackingName: string, partitionKey: string, waitingMessages: int, oldestMessageId: string, messageIds: list<string>}|null
      */
     public static function heldPartition(array $snapshots, string $service, string $trackingName, string $partitionKey): ?array
     {
@@ -140,7 +140,7 @@ final class DeadLetterOverview
     }
 
     /**
-     * @return list<array{trackingName: string, partitionKey: string, waitingMessages: int, releasedMessages: int, oldestMessageId: string, messageIds: list<string>}>
+     * @return list<array{trackingName: string, partitionKey: string, waitingMessages: int, oldestMessageId: string, messageIds: list<string>}>
      */
     private static function heldPartitionsOf(ServiceSnapshot $snapshot): array
     {
@@ -154,7 +154,6 @@ final class DeadLetterOverview
                 'trackingName' => $partition['trackingName'],
                 'partitionKey' => $partition['partitionKey'],
                 'waitingMessages' => (int) ($partition['waitingMessages'] ?? 0),
-                'releasedMessages' => (int) ($partition['releasedMessages'] ?? 0),
                 'oldestMessageId' => $partition['oldestMessageId'],
                 'messageIds' => array_values(array_filter(is_array($partition['messageIds'] ?? null) ? $partition['messageIds'] : [], is_string(...))),
             ];

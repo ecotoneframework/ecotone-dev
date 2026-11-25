@@ -52,7 +52,6 @@ final class PartitionDeadLetterActions
                 trackingName: $held['trackingName'],
                 partitionKey: $held['partitionKey'],
                 waitingMessages: $held['waiting'],
-                releasedMessages: $held['released'],
                 oldestMessageId: $held['oldestDeadLetterId'],
             ),
             $this->heldPartitions->summary(),
@@ -66,13 +65,6 @@ final class PartitionDeadLetterActions
             return;
         }
 
-        if ($this->partitionReplay->isReplaying($partition)) {
-            throw InvalidArgumentException::create(
-                "Partition key `{$partitionKey}` of `{$trackingName}` is being replayed already: one of its messages was released and is not handled yet, and the rest follow in order once it succeeds, so nothing has to be done. "
-                . 'When that message will never be handled (its channel was purged), delete the partition key with PartitionDeadLetterGateway::delete() or the ecotone:deadletter:deletePartition console command.'
-            );
-        }
-
         throw InvalidArgumentException::create(
             "The dead letter holds no message for partition key `{$partitionKey}` of `{$trackingName}`: its messages were replayed or deleted already, or the tracking name and the partition key do not name a held one. "
             . 'List the held partition keys with PartitionDeadLetterGateway::list() or the ecotone:deadletter:listPartitions console command.'
@@ -84,9 +76,6 @@ final class PartitionDeadLetterActions
         $partition = new DeadLetterPartition(trackingName: $trackingName, partitionKey: $partitionKey);
         foreach ($this->heldPartitions->waitingOf($partition) as $deadLetterId) {
             $this->deadLetterHandler->delete($deadLetterId);
-        }
-        foreach ($this->heldPartitions->releasedOf($partition) as $deadLetterId) {
-            $this->heldPartitions->forget($deadLetterId);
         }
     }
 }

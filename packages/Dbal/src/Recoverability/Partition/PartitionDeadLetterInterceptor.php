@@ -7,10 +7,8 @@ namespace Ecotone\Dbal\Recoverability\Partition;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Dbal\Recoverability\DeadLetterStore;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
-use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 
 /**
@@ -37,10 +35,8 @@ final class PartitionDeadLetterInterceptor
         private PartitionedHandlers $partitionedHandlers,
         private HeldPartitions $heldPartitions,
         private PartitionReplay $partitionReplay,
-        private DeadLetterStore $deadLetterStore,
         private ErrorChannelService $errorChannelService,
         private ChannelResolver $channelResolver,
-        private LoggingGateway $logger,
         private MessageHeadersPropagatorInterceptor $headersPropagator,
         private string $deadLetterChannelName,
     ) {
@@ -53,59 +49,25 @@ final class PartitionDeadLetterInterceptor
             return $methodInvocation->proceed();
         }
 
-        if (! $message->getHeaders()->containsKey(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE)) {
-            $holdingDeadLetterId = $this->headersPropagator->storeHeaders(fn (): ?string => $this->heldPartitions->oldestOf($partition), $message);
-            if ($holdingDeadLetterId === null) {
-                return $methodInvocation->proceed();
-            }
-
-            $this->followToDeadLetter(message: $message, partition: $partition, holdingDeadLetterId: $holdingDeadLetterId);
-            $this->headersPropagator->storeHeaders(fn () => $this->replayWhenLeftAlone(message: $message, partition: $partition, followedDeadLetterId: $holdingDeadLetterId), $message);
-
-            return null;
-        }
-
-        $releasedDeadLetterId = (string) $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE);
-        if (! $this->headersPropagator->storeHeaders(fn (): bool => $this->heldPartitions->isReleased($releasedDeadLetterId), $message)) {
-            $this->logger->info(
-                "Message released from the dead letter as `{$releasedDeadLetterId}` for partition key `{$partition->partitionKey}` of `{$partition->trackingName}` was delivered again after its handling was finished. Skipping it and continuing with the rest of its partition key.",
-                $message,
-            );
+        if ($message->getHeaders()->containsKey(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE)) {
+            $result = $methodInvocation->proceed();
             $this->headersPropagator->storeHeaders(fn (): bool => $this->partitionReplay->continueWith($partition), $message);
 
-            return null;
+            return $result;
         }
 
-        $result = $methodInvocation->proceed();
-        $this->headersPropagator->storeHeaders(function () use ($releasedDeadLetterId, $partition): void {
-            $this->heldPartitions->forget($releasedDeadLetterId);
-            $this->partitionReplay->continueWith($partition);
-        }, $message);
+        $holdingDeadLetterId = $this->headersPropagator->storeHeaders(fn (): ?string => $this->heldPartitions->oldestOf($partition), $message);
+        if ($holdingDeadLetterId === null) {
+            return $methodInvocation->proceed();
+        }
 
-        return $result;
-    }
-
-    private function followToDeadLetter(Message $message, DeadLetterPartition $partition, string $holdingDeadLetterId): void
-    {
         $this->errorChannelService->handle(
             requestMessage: $message,
             cause: PartitionHeldInDeadLetter::since($partition, $holdingDeadLetterId),
             errorChannel: $this->channelResolver->resolve($this->deadLetterChannelName),
             relatedPolledChannelName: $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) ? $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME) : null,
         );
-    }
 
-    private function replayWhenLeftAlone(Message $message, DeadLetterPartition $partition, string $followedDeadLetterId): void
-    {
-        if ($this->heldPartitions->partitionOf($followedDeadLetterId) !== null) {
-            return;
-        }
-        $oldestDeadLetterId = $this->heldPartitions->oldestOf($partition);
-        $oldest = $oldestDeadLetterId === null ? null : $this->deadLetterStore->find($oldestDeadLetterId);
-        if ($oldest === null || $oldest->getHeaders()->getMessageId() !== $message->getHeaders()->getMessageId()) {
-            return;
-        }
-
-        $this->partitionReplay->continueWith($partition);
+        return null;
     }
 }

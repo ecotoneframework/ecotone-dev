@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Recoverability\Partition;
 
-use Ecotone\Api\Messaging\ConcurrencyException;
-
 /**
  * licence Enterprise
  *
@@ -27,53 +25,26 @@ use Ecotone\Api\Messaging\ConcurrencyException;
 final class InMemoryHeldPartitions implements HeldPartitions
 {
     /**
-     * @var array<int, array{deadLetterId: string, trackingName: string, partitionKey: string, released: bool}>
+     * @var list<array{deadLetterId: string, trackingName: string, partitionKey: string, place: int, position: int}>
      */
     private array $held = [];
     private int $lastPosition = 0;
 
     public function hold(DeadLetterPartition $partition, string $deadLetterId): void
     {
-        $this->held[++$this->lastPosition] = ['deadLetterId' => $deadLetterId, 'trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'released' => false];
+        $position = ++$this->lastPosition;
+        $this->held[] = ['deadLetterId' => $deadLetterId, 'trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'place' => $position, 'position' => $position];
     }
 
-    public function holdAgain(string $releasedDeadLetterId, string $deadLetterId): void
+    public function holdAtPlace(DeadLetterPartition $partition, string $deadLetterId, int $place): void
     {
-        $position = $this->positionOf($releasedDeadLetterId);
-        if ($position === null) {
-            return;
-        }
-
-        $this->held[$position] = [...$this->held[$position], 'deadLetterId' => $deadLetterId, 'released' => false];
-    }
-
-    public function release(string $deadLetterId): void
-    {
-        $position = $this->positionOf($deadLetterId);
-        if ($position === null || $this->held[$position]['released']) {
-            throw ConcurrencyException::forReleasedDeadLetter($deadLetterId);
-        }
-
-        $this->held[$position]['released'] = true;
-    }
-
-    public function releaseOldestWaitingOf(DeadLetterPartition $partition): ?string
-    {
-        $oldestWaiting = $this->oldestWaitingOf($partition);
-        if ($oldestWaiting === null || $this->releasedOf($partition) !== []) {
-            return null;
-        }
-        $this->held[$this->positionOf($oldestWaiting)]['released'] = true;
-
-        return $oldestWaiting;
+        $this->held[] = ['deadLetterId' => $deadLetterId, 'trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'place' => $place, 'position' => ++$this->lastPosition];
+        usort($this->held, static fn (array $held, array $other): int => [$held['place'], $held['position']] <=> [$other['place'], $other['position']]);
     }
 
     public function forget(string $deadLetterId): void
     {
-        $position = $this->positionOf($deadLetterId);
-        if ($position !== null) {
-            unset($this->held[$position]);
-        }
+        $this->held = array_values(array_filter($this->held, static fn (array $held): bool => $held['deadLetterId'] !== $deadLetterId));
     }
 
     public function forgetAll(): void
@@ -81,60 +52,28 @@ final class InMemoryHeldPartitions implements HeldPartitions
         $this->held = [];
     }
 
-    public function isReleased(string $deadLetterId): bool
-    {
-        $position = $this->positionOf($deadLetterId);
-
-        return $position !== null && $this->held[$position]['released'];
-    }
-
     public function partitionOf(string $deadLetterId): ?DeadLetterPartition
     {
-        $position = $this->positionOf($deadLetterId);
+        $held = $this->heldAs($deadLetterId);
 
-        return $position === null ? null : new DeadLetterPartition(trackingName: $this->held[$position]['trackingName'], partitionKey: $this->held[$position]['partitionKey']);
+        return $held === null ? null : new DeadLetterPartition(trackingName: $held['trackingName'], partitionKey: $held['partitionKey']);
+    }
+
+    public function placeOf(string $deadLetterId): ?int
+    {
+        return $this->heldAs($deadLetterId)['place'] ?? null;
     }
 
     public function oldestOf(DeadLetterPartition $partition): ?string
     {
-        return $this->deadLetterIdsOf($partition, null)[0] ?? null;
-    }
-
-    public function oldestWaitingOf(DeadLetterPartition $partition): ?string
-    {
-        return $this->deadLetterIdsOf($partition, false)[0] ?? null;
+        return $this->waitingOf($partition)[0] ?? null;
     }
 
     public function waitingOf(DeadLetterPartition $partition): array
     {
-        return $this->deadLetterIdsOf($partition, false);
-    }
-
-    public function releasedOf(DeadLetterPartition $partition): array
-    {
-        return $this->deadLetterIdsOf($partition, true);
-    }
-
-    public function summary(): array
-    {
-        $summary = [];
-        foreach ($this->held as $held) {
-            $partition = $held['trackingName'] . "\0" . $held['partitionKey'];
-            $summary[$partition] ??= ['trackingName' => $held['trackingName'], 'partitionKey' => $held['partitionKey'], 'waiting' => 0, 'released' => 0, 'oldestDeadLetterId' => $held['deadLetterId']];
-            $summary[$partition][$held['released'] ? 'released' : 'waiting']++;
-        }
-
-        return array_values($summary);
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function deadLetterIdsOf(DeadLetterPartition $partition, ?bool $released): array
-    {
         $deadLetterIds = [];
         foreach ($this->held as $held) {
-            if ($held['trackingName'] === $partition->trackingName && $held['partitionKey'] === $partition->partitionKey && ($released === null || $held['released'] === $released)) {
+            if ($held['trackingName'] === $partition->trackingName && $held['partitionKey'] === $partition->partitionKey) {
                 $deadLetterIds[] = $held['deadLetterId'];
             }
         }
@@ -142,11 +81,26 @@ final class InMemoryHeldPartitions implements HeldPartitions
         return $deadLetterIds;
     }
 
-    private function positionOf(string $deadLetterId): ?int
+    public function summary(): array
     {
-        foreach ($this->held as $position => $held) {
+        $summary = [];
+        foreach ($this->held as $held) {
+            $partition = $held['trackingName'] . "\0" . $held['partitionKey'];
+            $summary[$partition] ??= ['trackingName' => $held['trackingName'], 'partitionKey' => $held['partitionKey'], 'waiting' => 0, 'oldestDeadLetterId' => $held['deadLetterId']];
+            $summary[$partition]['waiting']++;
+        }
+
+        return array_values($summary);
+    }
+
+    /**
+     * @return array{deadLetterId: string, trackingName: string, partitionKey: string, place: int, position: int}|null
+     */
+    private function heldAs(string $deadLetterId): ?array
+    {
+        foreach ($this->held as $held) {
             if ($held['deadLetterId'] === $deadLetterId) {
-                return $position;
+                return $held;
             }
         }
 

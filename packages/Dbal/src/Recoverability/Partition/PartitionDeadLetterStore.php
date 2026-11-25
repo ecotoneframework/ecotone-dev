@@ -51,15 +51,10 @@ final class PartitionDeadLetterStore implements DeadLetterStore
             return $deadLetterId;
         }
 
-        $releasedDeadLetterId = (string) $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE);
         $deadLetterId = $this->deadLetterStore->store(
             $this->messageBuilder->fromMessage($message)->removeHeader(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE)->build()
         );
-        if ($this->heldPartitions->isReleased($releasedDeadLetterId)) {
-            $this->heldPartitions->holdAgain($releasedDeadLetterId, $deadLetterId);
-        } else {
-            $this->heldPartitions->hold($partition, $deadLetterId);
-        }
+        $this->heldPartitions->holdAtPlace(partition: $partition, deadLetterId: $deadLetterId, place: (int) $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE));
 
         return $deadLetterId;
     }
@@ -86,10 +81,8 @@ final class PartitionDeadLetterStore implements DeadLetterStore
 
     public function delete(string $messageId): void
     {
+        $this->heldPartitions->forget($messageId);
         $this->deadLetterStore->delete($messageId);
-        if (! $this->heldPartitions->isReleased($messageId)) {
-            $this->heldPartitions->forget($messageId);
-        }
     }
 
     public function deleteAll(): void

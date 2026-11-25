@@ -34,7 +34,7 @@ final class PulseHeldPartitions implements PulseSnapshotSection
     }
 
     /**
-     * @return array{total: int, partitions: list<array{trackingName: string, partitionKey: string, waitingMessages: int, releasedMessages: int, oldestMessageId: string, messageIds: list<string>}>}
+     * @return array{total: int, partitions: list<array{trackingName: string, partitionKey: string, waitingMessages: int, oldestMessageId: string, messageIds: list<string>}>}
      */
     public function snapshot(): array
     {
@@ -47,7 +47,6 @@ final class PulseHeldPartitions implements PulseSnapshotSection
                     'trackingName' => $held['trackingName'],
                     'partitionKey' => $held['partitionKey'],
                     'waitingMessages' => $held['waiting'],
-                    'releasedMessages' => $held['released'],
                     'oldestMessageId' => $held['oldestDeadLetterId'],
                     'messageIds' => $this->heldPartitions->waitingOf(new DeadLetterPartition(trackingName: $held['trackingName'], partitionKey: $held['partitionKey'])),
                 ],

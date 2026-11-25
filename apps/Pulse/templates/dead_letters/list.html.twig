@@ -95,14 +95,10 @@
                             <tr data-held-partition data-service="{{ service.service }}" data-partition-key="{{ held.partitionKey }}" data-partition-tracking-name="{{ held.trackingName }}">
                                 <td><code>{{ held.partitionKey }}</code></td>
                                 <td><code>{{ held.trackingName }}</code></td>
-                                <td data-held-messages>{{ held.waitingMessages }} waiting{% if held.releasedMessages %}, {{ held.releasedMessages }} being replayed{% endif %}</td>
+                                <td data-held-messages>{{ held.waitingMessages }} waiting</td>
                                 <td>
-                                    {% if held.waitingMessages %}
                                         <button type="submit" form="selection" name="replayPartition" value="{{ partitionValue }}" data-held-replay data-await>Replay {{ page.plural(held.waitingMessages, 'message', 'messages') }} of this key in order</button>
                                         <button type="submit" form="selection" name="deletePartition" value="{{ partitionValue }}" class="danger" data-held-delete>Delete {{ page.plural(held.waitingMessages, 'failed message', 'failed messages') }}</button>
-                                    {% else %}
-                                        <span class="muted">Its last message is being replayed.</span>
-                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}
@@ -154,7 +150,7 @@
                                     <tr data-dead-letter data-service="{{ service.service }}" data-message-id="{{ entry.messageId }}" data-message-name="{{ entry.messageName }}">
                                         <td><input type="checkbox" form="selection" name="selected[{{ service.service }}][]" value="{{ entry.messageId }}" aria-label="Select {{ entry.messageName ?: '(unnamed)' }} {{ entry.messageId }}"></td>
                                         <td><a href="{{ path('dead_letter', {service: service.service, messageId: entry.messageId, listFilter: filter.toQuery|url_encode}) }}" title="{{ entry.messageName }}">{{ entry.messageName ?: '(unnamed)' }}</a><br><span class="muted mono">{{ entry.messageId }}</span>{% if entry.exceptionMessage is defined and entry.exceptionMessage != group.exceptionMessage %}<br><span class="muted" data-entry-message>{{ entry.exceptionMessage|length > 140 ? (entry.exceptionMessage|slice(0, 140)|split(' ')|slice(0, -1)|join(' ')) ~ '…' : entry.exceptionMessage }}</span>{% endif %}</td>
-                                        {% if service.heldPartitions %}<td>{% if entry.heldPartition is defined %}<span data-entry-partition title="Held by {{ entry.heldPartition.trackingName }}"><code>{{ entry.heldPartition.partitionKey }}</code> · {{ entry.heldPartition.place }} of {{ entry.heldPartition.of }}, {{ entry.heldPartition.place == 1 ? 'replayed first' : 'follows the first' }}</span>{% else %}<span class="muted">none</span>{% endif %}</td>{% endif %}
+                                        {% if service.heldPartitions %}<td>{% if entry.heldPartition is defined %}<span data-entry-partition title="Tracking name: {{ entry.heldPartition.trackingName }}"><code>{{ entry.heldPartition.partitionKey }}</code> · {{ entry.heldPartition.place }} of {{ entry.heldPartition.of }}, {{ entry.heldPartition.place == 1 ? 'replayed first' : 'follows the first' }}</span>{% else %}<span class="muted">none</span>{% endif %}</td>{% endif %}
                                         <td>{{ entry.failedAt|date('Y-m-d H:i:s', 'UTC') }}{% if entry.traceId is defined and entry.traceId %} <a data-view-trace href="{{ path('trace_detail', {traceId: entry.traceId}) }}">View trace</a>{% set externalTrace = pulse.traceUrl.of(entry.traceId) %}{% if externalTrace %} <a data-external-trace href="{{ externalTrace }}" target="_blank" rel="noopener">Open in tracing UI</a>{% endif %}{% endif %}</td>
                                     </tr>
                                 {% endfor %}

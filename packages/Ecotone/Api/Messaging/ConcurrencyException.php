@@ -110,17 +110,6 @@ class ConcurrencyException extends MessagingException
         ), self::errorCode());
     }
 
-    public static function forReleasedDeadLetter(string $deadLetterId): self
-    {
-        return new self(sprintf(
-            'Dead letter message %s was released for replay by another replay at the same time, so this replay did not send it a second time. '
-            . 'Nothing has to be repeated: the other replay handles it, and the rest of its partition key follow in order. '
-            . 'List what is still held with PartitionDeadLetterGateway::list() or the ecotone:deadletter:listPartitions console command, '
-            . 'and replay a key again with PartitionDeadLetterGateway::replay() once none of its messages is being replayed.',
-            $deadLetterId,
-        ), self::errorCode());
-    }
-
     private static function whereItIsNow(int $expectedVersion, int $currentVersion): string
     {
         return $currentVersion === $expectedVersion

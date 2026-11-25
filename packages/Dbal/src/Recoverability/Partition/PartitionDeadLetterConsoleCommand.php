@@ -35,9 +35,9 @@ final class PartitionDeadLetterConsoleCommand
     public function listPartitions(PartitionDeadLetterGateway $partitionDeadLetterGateway): ConsoleCommandResultSet
     {
         return ConsoleCommandResultSet::create(
-            ['Tracking Name', 'Partition Key', 'Waiting Messages', 'Released Messages', 'Oldest Message Id'],
+            ['Tracking Name', 'Partition Key', 'Waiting Messages', 'Oldest Message Id'],
             array_map(
-                static fn (HeldPartition $heldPartition): array => [$heldPartition->trackingName, $heldPartition->partitionKey, $heldPartition->waitingMessages, $heldPartition->releasedMessages, $heldPartition->oldestMessageId],
+                static fn (HeldPartition $heldPartition): array => [$heldPartition->trackingName, $heldPartition->partitionKey, $heldPartition->waitingMessages, $heldPartition->oldestMessageId],
                 $partitionDeadLetterGateway->list(),
             ),
         );

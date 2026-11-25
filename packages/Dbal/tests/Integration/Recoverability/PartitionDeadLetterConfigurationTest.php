@@ -39,10 +39,7 @@ use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
-use Fiber;
-use Psr\Log\AbstractLogger;
 use RuntimeException;
-use Stringable;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
@@ -548,61 +545,6 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         );
 
         $this->bootstrap([$projection::class], [$projection]);
-    }
-
-    public function test_a_message_following_its_partition_key_while_another_consumer_finishes_replaying_it_is_handled_and_not_left_held(): void
-    {
-        $handler = new class () {
-            public array $handled = [];
-            public bool $broken = true;
-            public bool $suspendWhileHandling = false;
-
-            #[PartitionDeadLetter(partitionHeaderName: 'orderId')]
-            #[Asynchronous('partitionConfiguration.orders')]
-            #[CommandHandler('partitionConfiguration.place', endpointId: 'partitionConfiguration.place.endpoint')]
-            public function place(string $item): void
-            {
-                if ($this->broken) {
-                    throw new RuntimeException('cannot place');
-                }
-                if ($this->suspendWhileHandling) {
-                    $this->suspendWhileHandling = false;
-                    Fiber::suspend();
-                }
-
-                $this->handled[] = $item;
-            }
-        };
-        $logger = new class () extends AbstractLogger {
-            public bool $suspendBeforeDeadLettering = false;
-
-            public function log($level, string|Stringable $message, array $context = []): void
-            {
-                if ($this->suspendBeforeDeadLettering && str_starts_with((string) $message, 'Error occurred during handling message')) {
-                    $this->suspendBeforeDeadLettering = false;
-                    Fiber::suspend();
-                }
-            }
-        };
-        $ecotone = $this->bootstrap([$handler::class], [$handler, 'logger' => $logger]);
-        $ecotone->sendCommandWithRouting('partitionConfiguration.place', 'coffee', metadata: ['orderId' => '1', MessageHeaders::MESSAGE_ID => 'm-1']);
-        $this->consume($ecotone, 'partitionConfiguration.orders');
-        $handler->broken = false;
-        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-1');
-        $ecotone->sendCommandWithRouting('partitionConfiguration.place', 'tea', metadata: ['orderId' => '1']);
-
-        $handler->suspendWhileHandling = true;
-        $logger->suspendBeforeDeadLettering = true;
-        $replaying = new Fiber(fn () => $ecotone->run('partitionConfiguration.orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false)));
-        $following = new Fiber(fn () => $ecotone->run('partitionConfiguration.orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false)));
-        $replaying->start();
-        $following->start();
-        $replaying->resume();
-        $following->resume();
-        $this->consume($ecotone, 'partitionConfiguration.orders');
-
-        self::assertSame(['coffee', 'tea'], $handler->handled);
-        self::assertSame([], $ecotone->getGateway(PartitionDeadLetterGateway::class)->list());
     }
 
     public function test_holding_partition_keys_is_refused_without_an_enterprise_licence(): void

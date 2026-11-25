@@ -111,59 +111,57 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_a_message_is_not_replayed_before_the_older_ones_of_its_partition_key(string $implementation): void
+    public function test_a_message_replayed_before_the_older_ones_of_its_partition_key_is_handled_and_the_older_ones_follow_it(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation);
         $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
         $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->place($ecotone, 'tea', orderId: '1', messageId: 'm-3');
         $this->consume($ecotone);
 
-        $this->expectExceptionMessage(
-            'Dead letter message `m-2` can not be replayed before the older messages of its partition key `1` of `partitionDeadLetter.place.endpoint`, as that would handle them out of order. '
-            . "Replay the oldest one, `m-1`, and the rest follow in order once it succeeds: PartitionDeadLetterGateway::replay('partitionDeadLetter.place.endpoint', '1') or the ecotone:deadletter:replayPartition console command do that. "
-            . 'To handle this message first anyway, delete the older messages of the partition key from the dead letter.'
-        );
-
+        $this->orders->broken = [];
         $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2');
+        $this->consume($ecotone);
+
+        self::assertSame(['1:coffee', '1:broken', '1:tea'], $this->orders->placed);
+        self::assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
     }
 
     #[DataProvider('implementations')]
-    public function test_a_message_is_not_replayed_while_an_older_one_of_its_partition_key_is_being_replayed(string $implementation): void
+    public function test_a_message_is_replayed_while_an_older_one_of_its_partition_key_is_on_its_way_back(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation);
         $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
         $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
         $this->consume($ecotone);
+
+        $this->orders->broken = [];
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-1');
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2');
+        $this->consume($ecotone);
+
+        self::assertSame(['1:broken', '1:coffee'], $this->orders->placed);
+        self::assertSame([], $ecotone->getGateway(PartitionDeadLetterGateway::class)->list());
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_partition_key_stays_held_by_the_messages_still_in_the_dead_letter_while_its_oldest_one_is_on_its_way_back(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->consume($ecotone);
+
         $ecotone->getGateway(DeadLetterGateway::class)->replay('m-1');
 
-        $this->expectExceptionMessage(
-            'Dead letter message `m-2` can not be replayed while message `m-1` of its partition key `1` of `partitionDeadLetter.place.endpoint` is being replayed, as that would handle them out of order. '
-            . 'Nothing has to be done: it is replayed once the messages before it succeed. '
-            . "When the replayed message will never be handled (its channel was purged), delete the partition key with PartitionDeadLetterGateway::delete('partitionDeadLetter.place.endpoint', '1') or the ecotone:deadletter:deletePartition console command."
+        self::assertEquals(
+            [new HeldPartition(trackingName: 'partitionDeadLetter.place.endpoint', partitionKey: '1', waitingMessages: 1, oldestMessageId: 'm-2')],
+            $ecotone->getGateway(PartitionDeadLetterGateway::class)->list(),
         );
-
-        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2');
     }
 
     #[DataProvider('implementations')]
-    public function test_a_partition_key_that_is_being_replayed_is_not_replayed_a_second_time(string $implementation): void
-    {
-        $ecotone = $this->bootstrap($implementation);
-        $this->place($ecotone, 'broken', orderId: '1');
-        $this->place($ecotone, 'coffee', orderId: '1');
-        $this->consume($ecotone);
-        $ecotone->getGateway(PartitionDeadLetterGateway::class)->replay('partitionDeadLetter.place.endpoint', '1');
-
-        $this->expectExceptionMessage(
-            'Partition key `1` of `partitionDeadLetter.place.endpoint` is being replayed already: one of its messages was released and is not handled yet, and the rest follow in order once it succeeds, so nothing has to be done. '
-            . 'When that message will never be handled (its channel was purged), delete the partition key with PartitionDeadLetterGateway::delete() or the ecotone:deadletter:deletePartition console command.'
-        );
-
-        $ecotone->getGateway(PartitionDeadLetterGateway::class)->replay('partitionDeadLetter.place.endpoint', '1');
-    }
-
-    #[DataProvider('implementations')]
-    public function test_a_released_message_delivered_again_after_it_was_handled_is_not_handled_a_second_time(string $implementation): void
+    public function test_a_replayed_message_delivered_again_after_it_was_handled_is_not_handled_a_second_time(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation);
         $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
@@ -172,7 +170,7 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
         $ecotone->getGateway(DeadLetterGateway::class)->replay('m-1');
         $this->consume($ecotone);
 
-        $ecotone->sendCommandWithRouting('partitionDeadLetter.place', 'broken', metadata: ['orderId' => '1', 'id' => 'm-1', MessageHeaders::DEAD_LETTER_PARTITION_RELEASE => 'm-1']);
+        $ecotone->sendCommandWithRouting('partitionDeadLetter.place', 'broken', metadata: ['orderId' => '1', 'id' => 'm-1', MessageHeaders::DEAD_LETTER_PARTITION_RELEASE => '1']);
         $this->consume($ecotone);
 
         self::assertSame(['1:broken'], $this->orders->placed);
@@ -180,7 +178,7 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_a_released_message_delivered_again_lets_the_rest_of_its_partition_key_follow(string $implementation): void
+    public function test_a_replayed_message_delivered_again_lets_the_rest_of_its_partition_key_follow(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation);
         $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
@@ -193,7 +191,7 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
         $this->consume($ecotone);
 
         $this->orders->broken = [];
-        $ecotone->sendCommandWithRouting('partitionDeadLetter.place', 'broken', metadata: ['orderId' => '1', 'id' => 'm-1', MessageHeaders::DEAD_LETTER_PARTITION_RELEASE => 'm-1']);
+        $ecotone->sendCommandWithRouting('partitionDeadLetter.place', 'broken', metadata: ['orderId' => '1', 'id' => 'm-1', MessageHeaders::DEAD_LETTER_PARTITION_RELEASE => '1']);
         $this->consume($ecotone);
 
         self::assertSame(['1:broken', '1:faulty'], $this->orders->placed);
@@ -222,20 +220,39 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_a_message_arriving_while_its_partition_key_is_replayed_is_handled_after_the_ones_that_failed_before_it(string $implementation): void
+    public function test_a_message_arriving_while_its_partition_key_still_has_messages_in_the_dead_letter_is_handled_after_them(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation);
         $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
         $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->place($ecotone, 'cocoa', orderId: '1', messageId: 'm-3');
         $this->consume($ecotone);
 
         $this->orders->broken = [];
         $ecotone->getGateway(DeadLetterGateway::class)->replay('m-1');
-        $this->place($ecotone, 'tea', orderId: '1', messageId: 'm-3');
+        $this->place($ecotone, 'tea', orderId: '1', messageId: 'm-4');
         $this->consume($ecotone);
 
-        self::assertSame(['1:broken', '1:coffee', '1:tea'], $this->orders->placed);
+        self::assertSame(['1:broken', '1:coffee', '1:cocoa', '1:tea'], $this->orders->placed);
         self::assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_message_arriving_once_the_last_message_of_its_partition_key_left_the_dead_letter_is_not_held(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->consume($ecotone);
+
+        $this->place($ecotone, 'tea', orderId: '1', messageId: 'm-2');
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-1');
+        $this->consume($ecotone);
+
+        self::assertSame(['1:tea'], $this->orders->placed);
+        self::assertEquals(
+            [new HeldPartition(trackingName: 'partitionDeadLetter.place.endpoint', partitionKey: '1', waitingMessages: 1, oldestMessageId: 'm-1')],
+            $ecotone->getGateway(PartitionDeadLetterGateway::class)->list(),
+        );
     }
 
     #[DataProvider('implementations')]
@@ -317,8 +334,8 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
 
         self::assertEquals(
             [
-                new HeldPartition(trackingName: 'partitionDeadLetter.place.endpoint', partitionKey: '1', waitingMessages: 2, releasedMessages: 0, oldestMessageId: 'm-1'),
-                new HeldPartition(trackingName: 'partitionDeadLetter.place.endpoint', partitionKey: '2', waitingMessages: 1, releasedMessages: 0, oldestMessageId: 'm-3'),
+                new HeldPartition(trackingName: 'partitionDeadLetter.place.endpoint', partitionKey: '1', waitingMessages: 2, oldestMessageId: 'm-1'),
+                new HeldPartition(trackingName: 'partitionDeadLetter.place.endpoint', partitionKey: '2', waitingMessages: 1, oldestMessageId: 'm-3'),
             ],
             $ecotone->getGateway(PartitionDeadLetterGateway::class)->list(),
         );

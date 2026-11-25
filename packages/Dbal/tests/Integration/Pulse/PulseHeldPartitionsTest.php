@@ -53,8 +53,8 @@ final class PulseHeldPartitionsTest extends DbalMessagingTestCase
 
         self::assertSame(
             [
-                ['trackingName' => 'pulsePartition.place.endpoint', 'partitionKey' => '1', 'waitingMessages' => 2, 'releasedMessages' => 0, 'oldestMessageId' => 'm-1', 'messageIds' => ['m-1', 'm-2']],
-                ['trackingName' => 'pulsePartition.place.endpoint', 'partitionKey' => '2', 'waitingMessages' => 1, 'releasedMessages' => 0, 'oldestMessageId' => 'm-3', 'messageIds' => ['m-3']],
+                ['trackingName' => 'pulsePartition.place.endpoint', 'partitionKey' => '1', 'waitingMessages' => 2, 'oldestMessageId' => 'm-1', 'messageIds' => ['m-1', 'm-2']],
+                ['trackingName' => 'pulsePartition.place.endpoint', 'partitionKey' => '2', 'waitingMessages' => 1, 'oldestMessageId' => 'm-3', 'messageIds' => ['m-3']],
             ],
             $this->ask('ecotone.pulse.snapshot', '{}')['deadLetterPartitions']['partitions'],
         );

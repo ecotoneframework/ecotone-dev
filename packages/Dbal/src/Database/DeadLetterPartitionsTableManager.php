@@ -121,7 +121,7 @@ final class DeadLetterPartitionsTableManager implements DbalTableManager
         $table->addColumn('dead_letter_id', Types::STRING, ['length' => 255]);
         $table->addColumn('tracking_name', Types::STRING, ['length' => 255]);
         $table->addColumn('partition_key', Types::STRING, ['length' => 255]);
-        $table->addColumn('released', Types::SMALLINT, ['default' => 0]);
+        $table->addColumn('kept_place', Types::BIGINT, ['notnull' => false]);
 
         $table->setPrimaryKey(['position']);
         $table->addUniqueIndex(['dead_letter_id']);

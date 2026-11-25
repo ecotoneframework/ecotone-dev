@@ -15,7 +15,6 @@ final class HeldPartition
         public readonly string $trackingName,
         public readonly string $partitionKey,
         public readonly int $waitingMessages,
-        public readonly int $releasedMessages,
         public readonly string $oldestMessageId,
     ) {
     }

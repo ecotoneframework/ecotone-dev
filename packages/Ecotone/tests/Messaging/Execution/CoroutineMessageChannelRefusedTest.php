@@ -55,7 +55,7 @@ final class CoroutineMessageChannelRefusedTest extends TestCase
     public function test_a_channel_requires_at_least_one_coroutine(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Coroutine message channel `async` cannot run on 0 coroutines: it needs at least one. Pass a positive number to CoroutineMessageChannelBuilder::withCoroutines(), or leave it out for the default of 10, or of one for the channel of a #[Gathered] or #[Collected] handler.');
+        $this->expectExceptionMessage('Coroutine message channel `async` cannot run on 0 coroutines: it needs at least one. Pass a positive number to CoroutineMessageChannelBuilder::withCoroutines(), or leave it out for the default of 10, or of one for the channel of a #[Gathered] or #[Collected] handler or of the batch reports of a projection rebuild or backfill.');
 
         CoroutineMessageChannelBuilder::create('async')->withCoroutines(0);
     }

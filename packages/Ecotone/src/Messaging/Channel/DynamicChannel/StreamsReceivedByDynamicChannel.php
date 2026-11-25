@@ -20,7 +20,7 @@ final class StreamsReceivedByDynamicChannel
     public static function of(DynamicMessageChannelBuilder $dynamicChannel, array $channelsOfTheApplication): array
     {
         $streams = [];
-        foreach (self::channelsReceivedBy($dynamicChannel, $channelsOfTheApplication, []) as $channel) {
+        foreach (self::channelsReceivedBy(dynamicChannel: $dynamicChannel, channelsOfTheApplication: $channelsOfTheApplication, dynamicChannelsAlreadyFollowed: []) as $channel) {
             if ($channel->isStreamingChannel()) {
                 $streams[] = $channel->getMessageChannelName();
             }
@@ -36,7 +36,7 @@ final class StreamsReceivedByDynamicChannel
     public static function consumedOneMessageAtATime(DynamicMessageChannelBuilder $dynamicChannel, array $channelsOfTheApplication): array
     {
         $consumedOneMessageAtATime = [];
-        foreach (self::channelsReceivedBy($dynamicChannel, $channelsOfTheApplication, []) as $channel) {
+        foreach (self::channelsReceivedBy(dynamicChannel: $dynamicChannel, channelsOfTheApplication: $channelsOfTheApplication, dynamicChannelsAlreadyFollowed: []) as $channel) {
             if ($channel instanceof ChannelConsumedOneMessageAtATime) {
                 $consumedOneMessageAtATime[$channel->getMessageChannelName()] = $channel->whyItsConsumerHandlesOneMessageAtATime();
             }
@@ -69,7 +69,7 @@ final class StreamsReceivedByDynamicChannel
                 continue;
             }
             if ($channel instanceof DynamicMessageChannelBuilder) {
-                $channels = [...$channels, ...self::channelsReceivedBy($channel, $channelsOfTheApplication, $dynamicChannelsAlreadyFollowed)];
+                $channels = [...$channels, ...self::channelsReceivedBy(dynamicChannel: $channel, channelsOfTheApplication: $channelsOfTheApplication, dynamicChannelsAlreadyFollowed: $dynamicChannelsAlreadyFollowed)];
 
                 continue;
             }

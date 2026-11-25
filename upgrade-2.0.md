@@ -3214,6 +3214,12 @@ On a Swoole or OpenSwoole server with `enable_coroutine` on, or a consumer run o
 - **A Laravel queue or Symfony Messenger channel**: run its consumer without `--coroutines` and start more processes,
   or move the handlers to a channel Ecotone connects to itself (DBAL from a DSN, RabbitMQ, Redis, SQS) and run that
   consumer on coroutines.
+- **A Doctrine `ManagerRegistry` connection** (`SymfonyConnectionReference::defaultManagerRegistry()`,
+  `ManagerRegistryProvider::create()`): it is one connection for the process, and its use by a second coroutine or
+  fiber while another still runs is refused, also with database transactions switched off. Register the DBAL
+  connection with `SymfonyConnectionReference::defaultConnection()`, or handle one message at a time.
+- **The consumer forwarding an outbox** (`OutboxForwardingMessageChannel`): run it without `--coroutines`, raise
+  `withMaxForwardingBatchSize()` to move more in a run, and run the consumer of the target channel on coroutines.
 - **A Laravel or Tempest application with a `MultiTenantConfiguration`**: set `enable_coroutine` to false and run the
   consumers without `--coroutines`; tenants on `DbalConnectionFactory` DSNs are handled at once.
 - **An asynchronous projection rebuild or backfill**: name a `batchCompletionChannelName` of its own, run that

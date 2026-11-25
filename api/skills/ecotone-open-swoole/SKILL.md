@@ -73,8 +73,9 @@ final class ConsumerConfiguration
   (`SymfonyMessengerMessageChannelBuilder`) is refused on coroutines, also behind a dynamic channel: the framework
   keeps one connection for the process. Start more processes, or move the handlers to a channel Ecotone connects to
   itself (DBAL from a DSN, RabbitMQ, Redis, SQS)
-- Outbox (`OutboxForwardingMessageChannel`): the consumer forwarding the outbox is refused on coroutines; run it
-  without `--coroutines` and run the consumer of the target channel on coroutines
+- Outbox (`OutboxForwardingMessageChannel`): the consumer forwarding the outbox is refused on coroutines, which would
+  forward batches out of order; run it without `--coroutines`, raise `withMaxForwardingBatchSize()` to move more in a
+  run, and run the consumer of the target channel on coroutines
 - Multi-tenancy: tenants on `DbalConnectionFactory` DSNs are handled at once, each message on its tenant's
   connection. Tenants on `LaravelConnectionReference` or `TempestConnectionReference` are refused when two messages
   are handled at once, because the framework's default connection is one for the process: run those consumers
@@ -104,7 +105,7 @@ new DbalConnectionFactory(['dsn' => 'mysql://user:secret@database/app', 'connect
 |---|---|
 | `new DbalConnectionFactory($dsn)` | A pool, 10 connections by default (`connection_pool_size`) |
 | `SymfonyConnectionReference::defaultConnection('default')` | Copies of Symfony's connection, 10 by default (`->withConnectionPoolSize(20)`) |
-| `SymfonyConnectionReference::defaultManagerRegistry('default')`, Laravel, Tempest | One connection for the process: handle one message at a time |
+| `SymfonyConnectionReference::defaultManagerRegistry('default')`, Laravel, Tempest | One connection for the process: handle one message at a time. A `ManagerRegistry` connection used by two coroutines at once is refused, with or without a transaction |
 
 - A consumer coroutine keeps its connection while it consumes, so the pool is at least `--coroutines` large
 - Pool size times processes stays below what the database accepts

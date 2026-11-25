@@ -23,6 +23,8 @@ final class DeadLetterOverview
             $configured = is_array($deadLetters) && ($snapshot->snapshot['deadLetter']['enabled'] ?? true) === true;
             $entries = $configured ? array_values(array_filter($deadLetters['recent'] ?? [], $filter->matches(...))) : [];
             $groups = $configured ? array_values(array_filter($deadLetters['groups'] ?? [], $filter->selectsFailure(...))) : [];
+            $heldPartitions = $configured ? self::heldPartitionsOf($snapshot) : [];
+            $entries = self::withPlaceInHeldPartition($entries, $heldPartitions);
             $services[] = [
                 'service' => $snapshot->scope(),
                 'name' => $snapshot->service,
@@ -31,11 +33,36 @@ final class DeadLetterOverview
                 'configured' => $configured,
                 'total' => $configured ? (int) ($deadLetters['total'] ?? 0) : 0,
                 'groups' => array_map(static fn (array $group): array => $group + ['entries' => self::entriesOf($group, $entries)], $groups),
-                'heldPartitions' => $configured ? self::heldPartitionsOf($snapshot) : [],
+                'heldPartitions' => $heldPartitions,
             ];
         }
 
         return $services;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $entries
+     * @param list<array{trackingName: string, partitionKey: string, waitingMessages: int, releasedMessages: int, oldestMessageId: string, messageIds: list<string>}> $heldPartitions
+     * @return list<array<string, mixed>>
+     */
+    private static function withPlaceInHeldPartition(array $entries, array $heldPartitions): array
+    {
+        $placeByMessageId = [];
+        foreach ($heldPartitions as $heldPartition) {
+            foreach ($heldPartition['messageIds'] as $index => $messageId) {
+                $placeByMessageId[$messageId] = [
+                    'partitionKey' => $heldPartition['partitionKey'],
+                    'trackingName' => $heldPartition['trackingName'],
+                    'place' => $index + 1,
+                    'of' => count($heldPartition['messageIds']),
+                ];
+            }
+        }
+
+        return array_map(
+            static fn (array $entry): array => isset($placeByMessageId[$entry['messageId'] ?? '']) ? $entry + ['heldPartition' => $placeByMessageId[$entry['messageId']]] : $entry,
+            $entries,
+        );
     }
 
     /**

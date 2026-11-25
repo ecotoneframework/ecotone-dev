@@ -32,7 +32,39 @@ final class HeldPartitionsTest extends ReleasingWebTestCase
 
         self::assertSame(['o-1', 'o-2'], $held->each(static fn (Crawler $row) => $row->attr('data-partition-key')));
         self::assertSame('2 waiting', $held->eq(0)->filter('[data-held-messages]')->text());
-        self::assertSame('Replay 2 messages in order', $held->eq(0)->filter('[data-held-replay]')->text());
+        self::assertSame('Replay 2 messages of this key in order', $held->eq(0)->filter('[data-held-replay]')->text());
+    }
+
+    public function test_the_held_partition_keys_say_that_order_is_kept_within_one_partition_key_only(): void
+    {
+        $client = $this->pulseWithHeldPartitionKeys();
+
+        $summary = $this->freshView($client, '/dead-letters')->filter('[data-held-partitions] summary')->text();
+
+        self::assertStringContainsString('Order is kept within one partition key', $summary);
+        self::assertStringContainsString('other failed messages are replayed in no particular order', $summary);
+    }
+
+    public function test_a_failed_message_shows_the_partition_key_holding_it_and_its_place_among_the_messages_of_that_key(): void
+    {
+        $client = $this->pulseWithHeldPartitionKeys();
+
+        $places = $this->freshView($client, '/dead-letters')->filter('[data-dead-letter] [data-entry-partition]')->each(static fn (Crawler $cell) => $cell->text());
+        sort($places);
+
+        self::assertSame(['o-1 · 1 of 2, replayed first', 'o-1 · 2 of 2, follows the first', 'o-2 · 1 of 1, replayed first'], $places);
+    }
+
+    public function test_a_failure_group_with_held_messages_says_its_replay_starts_each_partition_key_with_its_oldest_message(): void
+    {
+        $client = $this->pulseWithHeldPartitionKeys();
+
+        $notes = $this->freshView($client, '/dead-letters')->filter('[data-group-held-note]')->each(static fn (Crawler $note) => $note->text());
+
+        self::assertSame([
+            'All 2 listed messages belong to a held partition key: a replay starts each key with its oldest message, and the rest follow in order.',
+            'The listed message belongs to a held partition key: a replay starts each key with its oldest message, and the rest follow in order.',
+        ], $notes);
     }
 
     public function test_replaying_a_held_partition_key_handles_its_messages_in_the_order_they_failed(): void

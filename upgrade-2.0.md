@@ -3126,6 +3126,22 @@ Every concurrent execution also has its own RabbitMQ connection, kept open when 
 next one. Their number is not limited: a process holds as many as it has had executions running at once, so keep the
 coroutines per worker (`max_coroutine`) times the workers below what the broker accepts.
 
+Every concurrent execution has its own Redis connection and its own SQS client as well, when the connection factory
+is built from its settings (`new RedisConnectionFactory('redis://...')`, `new SqsConnectionFactory('sqs:?...')`). They
+are closed when the execution ends. A factory given a client object (`new RedisConnectionFactory($redis)`,
+`new SqsConnectionFactory($awsSqsClient)`) has one connection for the process and is refused with a
+`ConfigurationException` inside a Swoole or OpenSwoole coroutine: pass the settings instead. SQS is also refused inside
+an OpenSwoole coroutine while OpenSwoole's curl hook is enabled, because that hook rejects options the AWS SDK sets;
+on Swoole built with `--enable-swoole-curl` coroutines wait on SQS requests.
+
+A consumer of a Laravel queue channel or a Symfony Messenger channel is refused on coroutines, where the framework
+keeps one connection for the process, and so is the consumer of the batch reports of an asynchronous projection
+rebuild or backfill, which lose the run's optimistic write when handled at once: name a `batchCompletionChannelName`
+of their own and run only `asyncChannelName` on coroutines. A coroutine message channel named as
+`batchCompletionChannelName` (or as `asyncChannelName` without one) is registered with `withCoroutines(1)`. In a
+Laravel application with a `MultiTenantConfiguration`, a tenant activated while another message handled at once has
+its tenant active is refused: Laravel's default connection is one setting for the process.
+
 With the `amqp` extension and a `heartbeat` configured, a connection that published nothing for two heartbeat
 periods is opened again before the next publish made outside of a RabbitMQ transaction. The extension sends heartbeats only while it waits for the broker,
 so the broker has closed such a connection by then, and a message published on it without publisher confirmations

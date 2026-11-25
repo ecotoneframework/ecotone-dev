@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
+use Ecotone\Api\ExtensionObject\CoroutineMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\DelayedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\GatheringConfiguration;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
@@ -340,12 +341,33 @@ final class GatheringModule extends NoExternalConfigurationModule
             }
         }
         foreach ($this->licensedProjectionRuns($messagingConfiguration) as $run) {
+            $this->refuseBatchReportsHandledAtOnce(run: $run, extensionObjects: $extensionObjects);
             if (! isset($registered[$run->asyncChannelName])) {
                 throw ConfigurationException::create("Projection '{$run->projectionName}' runs its {$run->operation} on '{$run->asyncChannelName}' (asyncChannelName of {$run->attributeName()}), which is not registered as a message channel. Register it from a #[ServiceContext] method, for example DbalBackedMessageChannelBuilder::create('{$run->asyncChannelName}'), or remove asyncChannelName from {$run->attributeName()} to run the {$run->operation} in the calling process.");
             }
             if (! isset($registered[$run->batchCompletionChannelName])) {
                 throw ConfigurationException::create("Projection '{$run->projectionName}' consumes the batch reports of its {$run->operation} on '{$run->batchCompletionChannelName}' (batchCompletionChannelName of {$run->attributeName()}), which is not registered as a message channel. Register it from a #[ServiceContext] method, for example DbalBackedMessageChannelBuilder::create('{$run->batchCompletionChannelName}'), or remove batchCompletionChannelName to consume them on '{$run->asyncChannelName}'.");
             }
+        }
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     */
+    private function refuseBatchReportsHandledAtOnce(ProjectionRun $run, array $extensionObjects): void
+    {
+        foreach (ExtensionObjectResolver::resolve(CoroutineMessageChannelBuilder::class, $extensionObjects) as $channel) {
+            $coroutines = $channel->coroutines ?? CoroutineMessageChannelBuilder::DEFAULT_COROUTINES;
+            if ($channel->messageChannelName !== $run->batchCompletionChannelName || $coroutines === 1) {
+                continue;
+            }
+
+            throw ConfigurationException::create(
+                "Projection '{$run->projectionName}' consumes the batch reports of its {$run->operation} on coroutine message channel `{$run->batchCompletionChannelName}` (batchCompletionChannelName of {$run->attributeName()}, or its asyncChannelName when that is left out), which handles up to {$coroutines} messages at once: "
+                . "batches finishing together would be recorded in their run at the same time, all but one would lose the run's optimistic write on every attempt until the instant retries run out, and a run missing those batches never completes. "
+                . "Register a channel of their own for the batch reports that handles one message at a time, CoroutineMessageChannelBuilder::create('{$run->asyncChannelName}_batch_reports')->withCoroutines(1), and name it as batchCompletionChannelName of {$run->attributeName()}; "
+                . 'or name a channel consumed with ecotone:run without its coroutines option there.'
+            );
         }
     }
 
@@ -371,7 +393,13 @@ final class GatheringModule extends NoExternalConfigurationModule
                         ->withEndpointId($run->endpointId())
                         ->withInputChannelName($run->gatherChannelName())
                 )
-                ->registerAsynchronousEndpoint($run->batchCompletionChannelName, $run->endpointId());
+                ->registerAsynchronousEndpoint($run->batchCompletionChannelName, $run->endpointId())
+                ->registerHandlerHandlingOneMessageAtATime(
+                    consumerEndpointId: $run->batchCompletionChannelName,
+                    reason: "it handles the batch reports of the {$run->operation} of projection `{$run->projectionName}` (endpoint `{$run->endpointId()}`): batches finishing together would be recorded in their run at the same time, all but one would lose the run's optimistic write on every attempt until the instant retries run out, and a run missing those batches never completes.",
+                    wayToHandleMoreAtOnce: ($run->batchCompletionChannelName === $run->asyncChannelName ? "name a channel of their own for the batch reports as batchCompletionChannelName of {$run->attributeName()}, consume that channel one message at a time, and " : '')
+                        . "consume `{$run->asyncChannelName}`, which the batches are executed on, on coroutines.",
+                );
         }
     }
 

@@ -36,6 +36,7 @@ use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\CollectedMessages;
@@ -44,6 +45,9 @@ use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\GatheredParts;
 use Ecotone\Api\Messaging\GatheredReleaseReason;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Api\Tracing\TracingConfiguration;
@@ -1541,6 +1545,46 @@ final class CoroutineMessageChannelTest extends TestCase
         CoroutineTesting::runAtOnce(...array_fill(0, 3, static fn () => $ecotone->sendCommandWithRouting('archive')));
 
         $this->assertSame(1, $handler->mostAtOnce);
+    }
+
+    public function test_a_projection_run_consuming_its_batch_reports_on_a_channel_of_several_coroutines_is_refused_at_bootstrap(): void
+    {
+        $projection = new #[Projection('orders'), FromStream('orders_stream'), ProjectionRebuild(asyncChannelName: 'rebuild_channel')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            "Projection 'orders' consumes the batch reports of its rebuild on coroutine message channel `rebuild_channel` (batchCompletionChannelName of #[ProjectionRebuild], or its asyncChannelName when that is left out), which handles up to 10 messages at once: "
+            . "batches finishing together would be recorded in their run at the same time, all but one would lose the run's optimistic write on every attempt until the instant retries run out, and a run missing those batches never completes. "
+            . "Register a channel of their own for the batch reports that handles one message at a time, CoroutineMessageChannelBuilder::create('rebuild_channel_batch_reports')->withCoroutines(1), and name it as batchCompletionChannelName of #[ProjectionRebuild]; "
+            . 'or name a channel consumed with ecotone:run without its coroutines option there.'
+        );
+
+        EcotoneLite::bootstrapFlowTesting([], [$projection], extensionObjects: [CoroutineMessageChannelBuilder::create('rebuild_channel')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
+    }
+
+    public function test_a_projection_run_consuming_its_batch_reports_on_a_channel_of_one_coroutine_boots_beside_batches_executed_on_several(): void
+    {
+        $projection = new #[Projection('orders'), FromStream('orders_stream'), ProjectionRebuild(asyncChannelName: 'rebuild_channel', batchCompletionChannelName: 'rebuild_channel_batch_reports')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [$projection],
+            extensionObjects: [CoroutineMessageChannelBuilder::create('rebuild_channel')->withCoroutines(4), CoroutineMessageChannelBuilder::create('rebuild_channel_batch_reports')->withCoroutines(1)],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $this->assertSame([], $ecotone->getGateway(GatheredGroups::class)->listOpenGroups('orders.rebuild'));
     }
 
     #[DataProvider('channels_registered_with_several_coroutines')]

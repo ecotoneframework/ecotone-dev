@@ -56,16 +56,8 @@ Keep the title under 70 characters, concise and descriptive.
 1. **Concise summary** — What was changed, in 3-5 bullet points max
 2. **Usage examples** — Show PHP code examples of how end users would use the new/changed feature. Include attribute usage, handler registration, configuration, etc. Examples should be copy-pasteable and realistic.
 3. **Use case scenarios** — Describe 2-3 real-world scenarios where this feature is useful
-4. **Mermaid diagram** (when applicable) — For changes involving message flows, handler chains, async processing, sagas, interceptor pipelines, or any multi-step process, include a Mermaid diagram:
-   ```mermaid
-   sequenceDiagram
-       participant User
-       participant CommandBus
-       participant Handler
-       User->>CommandBus: SendCommand
-       CommandBus->>Handler: #[CommandHandler]
-   ```
-   Use sequence diagrams for flows, flowcharts for decision logic, or class diagrams for structural changes.
+4. **Diagram** (when applicable) — For changes involving message flows, handler chains, async processing, sagas, interceptor pipelines, or any multi-step process, write a Mermaid diagram and embed it as a rendered image, never as a ```` ```mermaid ```` block. See [Images in a pull request body](pr-images.md).
+5. **Screenshots** (when Ecotone Pulse changed) — Playwright screenshots of the changed page from the running demo, uploaded the same way.
 
 **"Pull Request Contribution Terms"** section:
 - Ask the user using AskUserQuestion: "Do you agree to the contribution terms outlined in CONTRIBUTING.md?" with options:

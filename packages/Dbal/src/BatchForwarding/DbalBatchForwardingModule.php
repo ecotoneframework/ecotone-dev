@@ -109,6 +109,10 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
                 )
                     ->withEndpointId((string) $endpointId)
                     ->withContinuousPolling()
+                    ->withHandlerHandlingOneMessageAtATime(
+                        reason: 'it forwards the messages stored in the outbox to their target channel in batches: several coroutines would each forward a batch at once, so the messages would reach the target channel out of the order they were stored in.',
+                        wayToHandleMoreAtOnce: 'forward more messages in every run with OutboxForwardingMessageChannel::withMaxForwardingBatchSize() and consume the target channel on coroutines.',
+                    )
                     ->withEndpointAnnotations([new AttributeDefinition(WithoutMessageCollector::class), new AttributeDefinition(WithoutDatabaseTransaction::class)]),
             );
         }

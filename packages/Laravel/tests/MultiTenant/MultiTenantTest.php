@@ -9,7 +9,9 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
+use Fiber;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\Artisan;
@@ -99,6 +101,29 @@ final class MultiTenantTest extends TestCase
             [2],
             $this->queryBus->sendWithRouting('customer.getAllRegistered', metadata: ['tenant' => 'tenant_b'])
         );
+    }
+
+    public function test_tenant_activated_while_a_suspended_execution_has_another_tenant_active_is_refused(): void
+    {
+        $suspended = new Fiber(fn () => $this->commandBus->sendWithRouting('customer.register_after_being_suspended', new RegisterCustomer(1, 'John Doe'), metadata: ['tenant' => 'tenant_a']));
+        $suspended->start();
+
+        try {
+            $this->commandBus->send(new RegisterCustomer(2, 'Jane Doe'), metadata: ['tenant' => 'tenant_b']);
+            $this->fail();
+        } catch (ConfigurationException $exception) {
+            $this->assertSame(
+                'A tenant connection is activated while another message, handled at once in this process on a coroutine or a fiber, has its tenant active. '
+                . "Laravel's default database connection is one setting for the whole process, so the Eloquent models and DB facade calls of both messages would go to the tenant activated last. "
+                . 'Handle one message at a time: run consumers without the `coroutines` option of ecotone:run and PollingMetadata::withCoroutines(), set `enable_coroutine` to false on a Swoole or OpenSwoole server, and do not suspend a fiber while it handles a message.',
+                $exception->getMessage(),
+            );
+        } finally {
+            $suspended->resume();
+        }
+
+        $this->assertSame([1], $this->queryBus->sendWithRouting('customer.getAllRegistered', metadata: ['tenant' => 'tenant_a']));
+        $this->assertSame([], $this->queryBus->sendWithRouting('customer.getAllRegistered', metadata: ['tenant' => 'tenant_b']));
     }
 
     public function test_using_dbal_based_business_interfaces(): void

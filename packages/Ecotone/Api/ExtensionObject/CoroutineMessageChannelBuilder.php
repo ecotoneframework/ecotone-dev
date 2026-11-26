@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Recoverability\DeclaresReplayChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Tracing\ChannelSendingAfterItsSenderFinished;
 use Psr\Container\ContainerInterface;
 
 /**
@@ -22,7 +23,7 @@ use Psr\Container\ContainerInterface;
  *
  * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
-final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, DelayedMessageChannelBuilder, DeclaresReplayChannel
+final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, DelayedMessageChannelBuilder, DeclaresReplayChannel, ChannelSendingAfterItsSenderFinished
 {
     public const DEFAULT_COROUTINES = 10;
 
@@ -38,7 +39,7 @@ final class CoroutineMessageChannelBuilder implements MessageChannelBuilder, Del
     public function withCoroutines(int $coroutines): self
     {
         if ($coroutines < 1) {
-            throw ConfigurationException::create("Coroutine message channel `{$this->messageChannelName}` cannot run on {$coroutines} coroutines: it needs at least one. Pass a positive number to CoroutineMessageChannelBuilder::withCoroutines(), or leave it out for the default of " . self::DEFAULT_COROUTINES . ', or of one for the channel of a #[Gathered] or #[Collected] handler.');
+            throw ConfigurationException::create("Coroutine message channel `{$this->messageChannelName}` cannot run on {$coroutines} coroutines: it needs at least one. Pass a positive number to CoroutineMessageChannelBuilder::withCoroutines(), or leave it out for the default of " . self::DEFAULT_COROUTINES . ', or of one for the channel of a #[Gathered] or #[Collected] handler or of the batch reports of a projection rebuild or backfill.');
         }
         return new self(...[...get_object_vars($this), 'coroutines' => $coroutines]);
     }

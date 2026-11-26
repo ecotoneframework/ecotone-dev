@@ -371,7 +371,13 @@ final class GatheringModule extends NoExternalConfigurationModule
                         ->withEndpointId($run->endpointId())
                         ->withInputChannelName($run->gatherChannelName())
                 )
-                ->registerAsynchronousEndpoint($run->batchCompletionChannelName, $run->endpointId());
+                ->registerAsynchronousEndpoint($run->batchCompletionChannelName, $run->endpointId())
+                ->registerHandlerHandlingOneMessageAtATime(
+                    consumerEndpointId: $run->batchCompletionChannelName,
+                    reason: "it handles the batch reports of the {$run->operation} of projection `{$run->projectionName}` (endpoint `{$run->endpointId()}`): batches finishing together would be recorded in their run at the same time, all but one would lose the run's optimistic write on every attempt until the instant retries run out, and a run missing those batches never completes.",
+                    wayToHandleMoreAtOnce: ($run->batchCompletionChannelName === $run->asyncChannelName ? "name a channel of their own for the batch reports as batchCompletionChannelName of {$run->attributeName()}, consume that channel one message at a time, and " : '')
+                        . "consume `{$run->asyncChannelName}`, which the batches are executed on, on coroutines.",
+                );
         }
     }
 

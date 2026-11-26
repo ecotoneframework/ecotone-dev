@@ -37,6 +37,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Projecting\Config\ProjectionRuns;
 
 #[ModuleAnnotation]
 /**
@@ -214,6 +215,22 @@ final class CoroutineMessageChannelModule extends NoExternalConfigurationModule 
                 }
                 $coroutines[$channel] = 1;
             }
+        }
+        foreach (ProjectionRuns::fromAnnotations($this->annotationFinder) as $run) {
+            $channel = $run->batchCompletionChannelName;
+            if (! array_key_exists($channel, $statedCoroutines)) {
+                continue;
+            }
+            if (($statedCoroutines[$channel] ?? 1) > 1) {
+                throw ConfigurationException::create(
+                    "Coroutine message channel `{$channel}` is registered with withCoroutines({$statedCoroutines[$channel]}), which the batch reports of the {$run->operation} of projection `{$run->projectionName}` cannot be consumed with: "
+                    . "batches finishing together would be recorded in their run at the same time, all but one would lose the run's optimistic write on every attempt until the instant retries run out, and a run missing those batches never completes. "
+                    . ($channel === $run->asyncChannelName
+                        ? "Leave withCoroutines() out of CoroutineMessageChannelBuilder::create('{$channel}'), the channel then handles one message at a time, the batches included; or keep withCoroutines({$statedCoroutines[$channel]}) for the batches and name a channel of their own for the batch reports as batchCompletionChannelName of {$run->attributeName()}, registered with CoroutineMessageChannelBuilder::create('{$channel}_batch_reports')."
+                        : "Leave withCoroutines() out of CoroutineMessageChannelBuilder::create('{$channel}'), the channel of the batch reports then handles one message at a time, and the batches stay handled at once on `{$run->asyncChannelName}`.")
+                );
+            }
+            $coroutines[$channel] = 1;
         }
         $configuration->registerServiceDefinition(CoroutineMessageChannelCoroutines::class, new Definition(CoroutineMessageChannelCoroutines::class, [$coroutines]));
     }

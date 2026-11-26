@@ -33,6 +33,8 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
     private string $requestChannelName;
     private ?object $directObject = null;
     private bool $continuousPolling = false;
+    /** @var list<array{reason: string, wayToHandleMoreAtOnce: string}> */
+    private array $handlersHandlingOneMessageAtATime = [];
 
     private function __construct(string $requestChannelName, string $referenceName, private InterfaceToCall $interfaceToCall)
     {
@@ -123,6 +125,18 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
         $this->continuousPolling = $continuousPolling;
 
         return $this;
+    }
+
+    public function withHandlerHandlingOneMessageAtATime(string $reason, string $wayToHandleMoreAtOnce): self
+    {
+        $this->handlersHandlingOneMessageAtATime[] = ['reason' => $reason, 'wayToHandleMoreAtOnce' => $wayToHandleMoreAtOnce];
+
+        return $this;
+    }
+
+    protected function handlersHandlingOneMessageAtATime(): array
+    {
+        return $this->handlersHandlingOneMessageAtATime;
     }
 
     protected function drainsAQueue(): bool

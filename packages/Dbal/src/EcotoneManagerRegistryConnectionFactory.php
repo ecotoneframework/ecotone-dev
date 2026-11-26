@@ -10,6 +10,9 @@ use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
 use Ecotone\Api\Dbal\ManagerRegistryConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Execution\ExecutionScope;
+use Ecotone\Messaging\Execution\HeldByOneExecutionAtATime;
+use WeakMap;
 
 /**
  * licence Apache-2.0
@@ -19,10 +22,14 @@ final class EcotoneManagerRegistryConnectionFactory extends ManagerRegistryConne
     private ManagerRegistry $registry;
     /** @var array<string, string> */
     private array $config;
+    /** @var WeakMap<Connection, HeldByOneExecutionAtATime> */
+    private WeakMap $executionsUsingConnections;
 
     public function __construct(ManagerRegistry $registry, array $config = [])
     {
         parent::__construct($registry, $config);
+
+        $this->executionsUsingConnections = new WeakMap();
 
         $this->registry = $registry;
         $this->config = $config;
@@ -58,6 +65,34 @@ final class EcotoneManagerRegistryConnectionFactory extends ManagerRegistryConne
 
     public function getConnection(): Connection
     {
-        return $this->registry->getConnection($this->config['connection_name'] ?? null);
+        $connection = $this->registry->getConnection($this->config['connection_name'] ?? null);
+        $this->refuseConnectionUsedByAnotherExecution($connection);
+
+        return $connection;
+    }
+
+    public function establishConnection(): Connection
+    {
+        $connection = parent::establishConnection();
+        $this->refuseConnectionUsedByAnotherExecution($connection);
+
+        return $connection;
+    }
+
+    private function refuseConnectionUsedByAnotherExecution(Connection $connection): void
+    {
+        $usedBy = $this->executionsUsingConnections[$connection] ??= new HeldByOneExecutionAtATime();
+        if ($usedBy->isHeldByAnotherExecution()) {
+            $connectionName = $this->config['connection_name'] ?? $this->registry->getDefaultConnectionName();
+            throw ConfigurationException::create(
+                "Database connection `{$connectionName}` of a Doctrine ManagerRegistry is used by two executions of this process at once (coroutines or fibers running concurrently, or one a handler started). "
+                . 'A ManagerRegistry keeps a single connection for the whole process, so the statements of both messages would run on it: their writes are not atomic, a transaction of one includes what the other wrote, and MySQL refuses their concurrent queries. '
+                . 'Ecotone gives every concurrent execution its own connection when it can open one itself: register the connection from a DSN (new Ecotone\\Api\\Dbal\\DbalConnectionFactory($dsn)), in Symfony register the DBAL connection with SymfonyConnectionReference::defaultConnection() or ::createForConnection(), which work on copies of that connection, or keep Doctrine ORM on a connection per execution with Ecotone\\Api\\Dbal\\ManagerRegistryProvider::fromDsnAndConfig($dsn, $pathsToMapping). '
+                . 'To keep the ManagerRegistry, handle one message at a time per process: run consumers without the `coroutines` option of ecotone:run and PollingMetadata::withCoroutines(), set `enable_coroutine` to false on a Swoole or OpenSwoole server, and do not use the connection from a coroutine or fiber a handler starts.'
+            );
+        }
+        if (ExecutionScope::isConcurrent()) {
+            $usedBy->hold();
+        }
     }
 }

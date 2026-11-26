@@ -43,6 +43,7 @@ use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagato
 use Ecotone\Projecting\PartitionBatchExecutorHandler;
 use Ecotone\Projecting\ProjectionOperationEndpoint;
 use Ecotone\Projecting\ProjectionTriggerEndpoint;
+use Ecotone\Tracing\ChannelSendingAfterItsSenderFinished;
 use Ecotone\Tracing\CompositeSpanRecorder;
 use Ecotone\Tracing\EcotoneTracer;
 use Ecotone\Tracing\Execution\ExecutionRecorder;
@@ -153,6 +154,9 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         foreach (ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects) as $messageChannelBuilder) {
             if ($messageChannelBuilder->isPollable()) {
                 $messagingConfiguration->registerChannelInterceptor(new TracingChannelInterceptorBuilder($messageChannelBuilder->getMessageChannelName()));
+            }
+            if ($messageChannelBuilder instanceof ChannelSendingAfterItsSenderFinished) {
+                $messagingConfiguration->registerChannelInterceptor(new TraceOfSenderChannelInterceptorBuilder($messageChannelBuilder->getMessageChannelName()));
             }
         }
 

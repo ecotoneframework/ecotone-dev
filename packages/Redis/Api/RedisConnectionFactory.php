@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Redis;
 
+use Ecotone\Messaging\Execution\ExecutionScope;
+use Ecotone\Redis\RedisConnectionOfExecution;
 use Enqueue\Dsn\Dsn;
 use Enqueue\Redis\PhpRedis;
 use Enqueue\Redis\PRedis;
@@ -23,10 +25,7 @@ final class RedisConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
      */
     private $config;
 
-    /**
-     * @var Redis
-     */
-    private $redis;
+    private ?Redis $clientOfTheApplication = null;
 
     /**
      * @see https://github.com/nrk/predis/wiki/Connection-Parameters
@@ -64,7 +63,7 @@ final class RedisConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
     public function __construct($config = 'redis:')
     {
         if ($config instanceof Redis) {
-            $this->redis = $config;
+            $this->clientOfTheApplication = $config;
             $this->config = $this->defaultConfig();
 
             return;
@@ -103,17 +102,23 @@ final class RedisConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 
     private function createRedis(): Redis
     {
-        if (false == $this->redis) {
-            if (in_array('phpredis', $this->config['scheme_extensions'], true)) {
-                $this->redis = new PhpRedis($this->config);
-            } else {
-                $this->redis = new PRedis($this->config);
-            }
+        if ($this->clientOfTheApplication !== null) {
+            RedisConnectionOfExecution::refuseClientOfTheApplicationInsideACoroutine();
 
-            $this->redis->connect();
+            return $this->clientOfTheApplication;
         }
 
-        return $this->redis;
+        return ExecutionScope::stateOf($this, static fn () => new RedisConnectionOfExecution())->redis ??= $this->connect();
+    }
+
+    private function connect(): Redis
+    {
+        $redis = in_array('phpredis', $this->config['scheme_extensions'], true)
+            ? new PhpRedis($this->config)
+            : new PRedis($this->config);
+        $redis->connect();
+
+        return $redis;
     }
 
     private function parseDsn(string $dsn): array

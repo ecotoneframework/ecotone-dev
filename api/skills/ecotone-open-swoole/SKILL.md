@@ -19,8 +19,8 @@ description: >-
 On OpenSwoole or Swoole one PHP process stays booted and can handle several messages at once, each on its own
 coroutine. Ecotone keeps the state of every message (propagated headers, the transaction, the database connection,
 the active tenant) per coroutine, so messages handled at once do not see each other's state. A coroutine only helps
-while it waits on something the runtime can wait on: MySQL, MariaDB and `php-amqplib` are; the `amqp` extension is
-not, and PostgreSQL only on Swoole built with `--enable-swoole-pgsql` (never on OpenSwoole). A Kafka topic or a
+while it waits on something the runtime can wait on: MySQL, MariaDB, `php-amqplib` and Redis are, and SQS on Swoole;
+the `amqp` extension is not, and PostgreSQL only on Swoole built with `--enable-swoole-pgsql` (never on OpenSwoole). A Kafka topic or a
 RabbitMQ stream is consumed one message at a time: Ecotone refuses its consumer on coroutines.
 
 ## Applies when
@@ -69,6 +69,27 @@ final class ConsumerConfiguration
   commit its position past one still being handled, also when it is read through a dynamic channel. For Kafka start
   more processes (with at least as many partitions); for a RabbitMQ stream, which one consumer reads in order, let
   the handler send the work to a queue channel and consume that channel on coroutines
+- A consumer of a Laravel queue channel (`LaravelQueueMessageChannelBuilder`) or a Symfony Messenger channel
+  (`SymfonyMessengerMessageChannelBuilder`) is refused on coroutines, also behind a dynamic channel: the framework
+  keeps one connection for the process. Start more processes, or move the handlers to a channel Ecotone connects to
+  itself (DBAL from a DSN, RabbitMQ, Redis, SQS)
+- Outbox (`OutboxForwardingMessageChannel`): the consumer forwarding the outbox is refused on coroutines, which would
+  forward batches out of order; run it without `--coroutines`, raise `withMaxForwardingBatchSize()` to move more in a
+  run, and run the consumer of the target channel on coroutines
+- Multi-tenancy: tenants on `DbalConnectionFactory` DSNs are handled at once, each message on its tenant's
+  connection. Tenants on `LaravelConnectionReference` or `TempestConnectionReference` are refused when two messages
+  are handled at once, because the framework's default connection is one for the process: run those consumers
+  without `--coroutines` and set `enable_coroutine` to false on the server
+- Projections: an `#[Asynchronous]` projection is consumed on coroutines like any handler. A `#[Partitioned]` one
+  projects different partitions at once; a global one is projected by one coroutine at a time, the others lose the
+  optimistic write, are retried and find nothing left, so coroutines add nothing to it. A `#[Polling]` and a
+  `#[Streaming]` projection are refused on coroutines
+- Projection rebuild and backfill: the batches of `asyncChannelName` run at once on coroutines. The batch reports
+  are handled one at a time: give them `batchCompletionChannelName` (a channel of their own, consumed without
+  `--coroutines`) and run `asyncChannelName` with `--coroutines`. Left on one channel, that consumer refuses the option
+- Aggregates and sagas keep their optimistic locking: commands of one aggregate handled at once are retried, and
+  go to the error channel when the retries run out. `#[Deduplicated]`, `#[Delayed]`, dead letter and
+  `#[RabbitConsumer]` work on coroutines as they do in one process per message
 
 ## 2. A database connection per coroutine
 
@@ -84,7 +105,7 @@ new DbalConnectionFactory(['dsn' => 'mysql://user:secret@database/app', 'connect
 |---|---|
 | `new DbalConnectionFactory($dsn)` | A pool, 10 connections by default (`connection_pool_size`) |
 | `SymfonyConnectionReference::defaultConnection('default')` | Copies of Symfony's connection, 10 by default (`->withConnectionPoolSize(20)`) |
-| `SymfonyConnectionReference::defaultManagerRegistry('default')`, Laravel, Tempest | One connection for the process: handle one message at a time |
+| `SymfonyConnectionReference::defaultManagerRegistry('default')`, Laravel, Tempest | One connection for the process: handle one message at a time. A `ManagerRegistry` connection used by two coroutines at once is refused, with or without a transaction |
 
 - A consumer coroutine keeps its connection while it consumes, so the pool is at least `--coroutines` large
 - Pool size times processes stays below what the database accepts
@@ -103,6 +124,17 @@ new DbalConnectionFactory(['dsn' => 'mysql://user:secret@database/app', 'connect
 | SQLite | stops every coroutine during the call; a second writer fails with `database is locked` | waits when Swoole is built with `--enable-swoole-sqlite` (`SWOOLE_HOOK_PDO_SQLITE`): writers take turns; like OpenSwoole otherwise |
 | Kafka topic, RabbitMQ stream (consuming) | consumer refused on coroutines | same |
 | Kafka (`rdkafka`), sending from a handler | stops every coroutine during the call | same |
+| Redis with `new RedisConnectionFactory($dsn)` (predis, or `redis+phpredis:`) | waits, a connection per coroutine | same |
+| Redis with a client the application connected (`new RedisConnectionFactory($redis)`) | refused by Ecotone inside a coroutine | same |
+| SQS with `new SqsConnectionFactory($dsn)` | refused by Ecotone while the curl hook is on (it rejects options the AWS SDK sets); with the hook off each request stops every coroutine | waits when Swoole is built with `--enable-swoole-curl`, a client per coroutine |
+| SQS with a client the application built (`new SqsConnectionFactory($awsClient)`) | refused by Ecotone inside a coroutine | same |
+| Laravel queue channel, Symfony Messenger channel (consuming) | consumer refused on coroutines | same |
+
+With SQS on OpenSwoole switch the curl hook off before the coroutines start,
+`OpenSwoole\Runtime::enableCoroutine(OpenSwoole\Runtime::HOOK_ALL & ~(OpenSwoole\Runtime::HOOK_CURL | OpenSwoole\Runtime::HOOK_NATIVE_CURL))`
+or the same value as the server's `hook_flags`: SQS then works, and each request stops the other coroutines while it
+waits. Every coroutine opens its own Redis connection and builds its own SQS client, closed when the coroutine ends,
+so register both from their settings and not from a client object.
 
 With PostgreSQL on OpenSwoole, or on a Swoole built without `--enable-swoole-pgsql`, set `enable_coroutine` to
 `false` on the server and run consumers without `--coroutines`: the process stays booted, and handles one message at
@@ -245,7 +277,9 @@ and leave `withCoroutines()` out. The channel of a `#[Gathered]` handler handles
 other handler on it, because parts finishing together would lose the group's optimistic write until the retries run
 out; bootstrap refuses `withCoroutines()` with more than one coroutine there. A `#[Collected]` handler follows the
 same rule: its own channel without `withCoroutines()`, and messages sent at once by several requests are recorded
-into one batch. On a channel consumed with `ecotone:run`, run the consumer of a `#[Gathered]` or `#[Collected]`
+into one batch. The channel named as `batchCompletionChannelName` of a `#[ProjectionRebuild]` or
+`#[ProjectionBackfill]` follows it too: leave `withCoroutines()` out there and state it on the `asyncChannelName`
+channel. On a channel consumed with `ecotone:run`, run the consumer of a `#[Gathered]` or `#[Collected]`
 handler without `--coroutines`: the consumer refuses the option, and `PollingMetadata::withCoroutines()`, above one.
 
 ```php

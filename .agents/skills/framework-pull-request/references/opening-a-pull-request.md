@@ -22,19 +22,10 @@ Add, beyond the template, when the change warrants it:
 
 - **Usage examples** for a new or changed feature — the PHP an application would write: handler registration,
   the attribute, the `#[ServiceContext]` configuration
-- **A Mermaid diagram** for anything that changes a message flow — handler chains, async processing, sagas,
-  interceptor pipelines:
-  ````markdown
-  ```mermaid
-  sequenceDiagram
-      participant User
-      participant CommandBus
-      participant Handler
-      User->>CommandBus: PlaceOrder
-      CommandBus->>Handler: #[CommandHandler]
-      Handler-->>User: OrderPlaced event
-  ```
-  ````
+- **A diagram** for anything that changes a message flow, as a rendered image, never a ```` ```mermaid ```` block
+- **Screenshots** for anything that changes what Ecotone Pulse shows, taken with Playwright from the running demo
+
+Both are attached with `gh ... --attach` and never committed: [Images in a pull request body](pr-images.md).
 
 **Draft the body and get it agreed before opening the PR.** Propose it, let the maintainer correct it, and do not
 publish a description they have not seen.

@@ -107,7 +107,7 @@ function createValidTree(): string
     write($root, '.github/workflows/agent-skills.yml', "steps:\n  - run: php bin/check-agent-skills.php\n");
     write($root, '.github/workflows/file-licence.yml', "steps:\n  - run: php bin/check-licence.php\n  - run: php bin/check-framework-transactions.php\n  - run: php bin/check-framework-connections.php\n  - run: php bin/check-flow-catalogue.php\n");
     write($root, '.github/workflows/test-monorepo.yml', "steps:\n  - run: php bin/check-suite-parity.php\n  - run: php bin/check-monorepo-shards.php\n");
-    write($root, '.github/workflows/contribution-check.yml', "on: pull_request\n");
+    write($root, '.github/workflows/contribution-check.yml', "on: pull_request\njobs:\n  check-body-images:\n");
 
     return $root;
 }

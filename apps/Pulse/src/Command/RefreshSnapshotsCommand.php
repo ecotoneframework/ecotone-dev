@@ -8,6 +8,8 @@ use App\Health\Heartbeats;
 use App\Settings\PulseSettings;
 use App\Snapshot\Snapshots;
 use DateTimeImmutable;
+use Doctrine\DBAL\Exception\LockWaitTimeoutException;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -27,6 +29,7 @@ final class RefreshSnapshotsCommand extends Command implements SignalableCommand
         private readonly Heartbeats $heartbeats,
         private readonly PulseSettings $settings,
         #[Autowire(service: 'pulse.clock')] private readonly ClockInterface $clock,
+        private readonly LoggerInterface $logger,
     ) {
         parent::__construct();
     }
@@ -42,15 +45,30 @@ final class RefreshSnapshotsCommand extends Command implements SignalableCommand
         $done = 0;
         $nextTickAt = DateTimeImmutable::createFromInterface($this->clock->now());
         do {
-            $this->snapshots->refreshIdleServices();
-            $this->heartbeats->record(Heartbeats::REFRESH);
-            $this->heartbeats->recordRunningConsumers((string) (getenv('PULSE_RUN_DIR') ?: '/tmp/pulse-run'));
+            $this->tick($output);
             $done++;
-            $output->writeln('Pulse requested snapshots from the services that were not waiting for one.', OutputInterface::VERBOSITY_VERBOSE);
             $nextTickAt = $nextTickAt->modify(sprintf('+%d seconds', $this->settings->refreshIntervalSeconds));
         } while (($ticks === 0 || $done < $ticks) && $this->waitUntil($nextTickAt));
 
         return Command::SUCCESS;
+    }
+
+    private function tick(OutputInterface $output): void
+    {
+        try {
+            $this->snapshots->refreshIdleServices();
+            $this->heartbeats->record(Heartbeats::REFRESH);
+            $this->heartbeats->recordRunningConsumers((string) (getenv('PULSE_RUN_DIR') ?: '/tmp/pulse-run'));
+        } catch (LockWaitTimeoutException $exception) {
+            $this->logger->warning(
+                'Pulse skipped a refresh tick: another process held the write lock of the internal database at {path} for more than {seconds} seconds. Pulse refreshes again on the next tick. If this repeats, check that the reply consumers and the web server in this container are running and not stopped; /readyz names the one that stopped reporting.',
+                ['path' => $this->settings->internalDatabasePath, 'seconds' => PulseSettings::INTERNAL_DATABASE_BUSY_TIMEOUT_SECONDS, 'exception' => $exception]
+            );
+
+            return;
+        }
+
+        $output->writeln('Pulse requested snapshots from the services that were not waiting for one.', OutputInterface::VERBOSITY_VERBOSE);
     }
 
     public function getSubscribedSignals(): array

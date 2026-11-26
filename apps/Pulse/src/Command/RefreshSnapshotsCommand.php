@@ -61,7 +61,7 @@ final class RefreshSnapshotsCommand extends Command implements SignalableCommand
             $this->heartbeats->recordRunningConsumers((string) (getenv('PULSE_RUN_DIR') ?: '/tmp/pulse-run'));
         } catch (LockWaitTimeoutException $exception) {
             $this->logger->warning(
-                'Pulse skipped a refresh tick: another process held the write lock of the internal database at {path} for more than {seconds} seconds. Pulse refreshes again on the next tick. If this repeats, check that the reply consumers and the web server in this container are running and not stopped; /readyz names the one that stopped reporting.',
+                'Pulse skipped a refresh tick: another process held the write lock of the internal database at {path} for more than {seconds} seconds. Pulse refreshes again on the next tick. If this repeats, a process in this container is stopped or stuck inside a write to that database: check the reply consumers first, /readyz names one that stopped reporting.',
                 ['path' => $this->settings->internalDatabasePath, 'seconds' => PulseSettings::INTERNAL_DATABASE_BUSY_TIMEOUT_SECONDS, 'exception' => $exception]
             );
 

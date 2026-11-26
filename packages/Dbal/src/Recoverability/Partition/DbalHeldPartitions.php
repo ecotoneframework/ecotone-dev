@@ -56,12 +56,22 @@ final class DbalHeldPartitions implements HeldPartitions
 
     public function holdAtPlace(DeadLetterPartition $partition, string $deadLetterId, int $place): void
     {
-        $this->onTable(fn () => $this->connection()->update(
-            $this->tableManager->getTableName(),
-            ['partition_tracking_name' => $partition->trackingName, 'partition_key' => $partition->partitionKey, 'partition_place' => $place],
-            ['message_id' => $deadLetterId],
-            ['partition_tracking_name' => Types::STRING, 'partition_key' => Types::STRING, 'partition_place' => Types::BIGINT, 'message_id' => Types::STRING],
-        ));
+        $table = $this->tableManager->getTableName();
+        $this->onTable(function () use ($table, $partition, $deadLetterId, $place): void {
+            if ($this->isPlaceTaken($partition, $place)) {
+                $this->connection()->executeStatement(
+                    "UPDATE {$table} SET partition_place = partition_place + 1 WHERE partition_tracking_name = :trackingName AND partition_key = :partitionKey AND partition_place >= :place",
+                    ['trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'place' => $place],
+                    ['trackingName' => Types::STRING, 'partitionKey' => Types::STRING, 'place' => Types::BIGINT],
+                );
+            }
+            $this->connection()->update(
+                $table,
+                ['partition_tracking_name' => $partition->trackingName, 'partition_key' => $partition->partitionKey, 'partition_place' => $place],
+                ['message_id' => $deadLetterId],
+                ['partition_tracking_name' => Types::STRING, 'partition_key' => Types::STRING, 'partition_place' => Types::BIGINT, 'message_id' => Types::STRING],
+            );
+        });
     }
 
     public function forget(string $deadLetterId): void
@@ -153,6 +163,16 @@ final class DbalHeldPartitions implements HeldPartitions
             ->andWhere('partition_key = :partitionKey')
             ->setParameter('trackingName', $partition->trackingName, Types::STRING)
             ->setParameter('partitionKey', $partition->partitionKey, Types::STRING));
+    }
+
+    private function isPlaceTaken(DeadLetterPartition $partition, int $place): bool
+    {
+        return $this->deadLetterIdsOf($partition)
+            ->andWhere('partition_place = :place')
+            ->setParameter('place', $place, Types::BIGINT)
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchOne() !== false;
     }
 
     private function inOrder(QueryBuilder $held): QueryBuilder

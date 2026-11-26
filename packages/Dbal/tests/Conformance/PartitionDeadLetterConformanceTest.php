@@ -255,6 +255,26 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_a_replayed_message_that_fails_again_is_replayed_before_a_message_of_its_partition_key_that_failed_while_it_was_on_its_way_back(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->orders->broken = ['broken', 'faulty'];
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-2', sentAt: 1700000000);
+        $this->consume($ecotone);
+
+        $this->place($ecotone, 'faulty', orderId: '1', messageId: 'm-1', sentAt: 1700000000);
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2');
+        $this->consume($ecotone);
+
+        $this->orders->broken = [];
+        $ecotone->getGateway(DeadLetterGateway::class)->replayAll();
+        $this->consume($ecotone);
+
+        self::assertSame(['1:broken', '1:faulty'], $this->orders->placed);
+        self::assertSame([], $ecotone->getGateway(PartitionDeadLetterGateway::class)->list());
+    }
+
+    #[DataProvider('implementations')]
     public function test_a_partition_key_whose_messages_were_all_replayed_is_handled_normally_again(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation);
@@ -406,12 +426,12 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
         self::assertSame([], $ecotone->getGateway(PartitionDeadLetterGateway::class)->list());
     }
 
-    private function place(FlowTestSupport $ecotone, string $item, string $orderId, ?string $messageId = null): void
+    private function place(FlowTestSupport $ecotone, string $item, string $orderId, ?string $messageId = null, ?int $sentAt = null): void
     {
         $ecotone->sendCommandWithRouting(
             'partitionDeadLetter.place',
             $item,
-            metadata: ['orderId' => $orderId] + ($messageId === null ? [] : ['id' => $messageId]),
+            metadata: ['orderId' => $orderId] + ($messageId === null ? [] : ['id' => $messageId]) + ($sentAt === null ? [] : ['timestamp' => $sentAt]),
         );
     }
 

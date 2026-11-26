@@ -46,8 +46,9 @@ trait DeadLetterServicesTrait
 
     /**
      * @param list<object> $additionalHandlers
+     * @param list<object> $additionalExtensionObjects
      */
-    private function serviceWithDeadLetters(string $service, bool $deadLettersEnabled = true, array $additionalHandlers = []): FlowTestSupport
+    private function serviceWithDeadLetters(string $service, bool $deadLettersEnabled = true, array $additionalHandlers = [], array $additionalExtensionObjects = []): FlowTestSupport
     {
         $work = new class () {
             public bool $failing = true;
@@ -123,6 +124,7 @@ trait DeadLetterServicesTrait
                 ServiceConfiguration::createWithDefaults()->withServiceName($service)->withDefaultErrorChannel('dbal_dead_letter'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
                 DbalConfiguration::createWithDefaults()->withDeadLetter($deadLettersEnabled),
+                ...$additionalExtensionObjects,
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,

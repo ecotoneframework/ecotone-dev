@@ -166,7 +166,7 @@ ready(() => {
         }
     });
 
-    const toast = document.querySelector('.toast[data-notice]');
+    const toast = document.querySelector('.toast[data-notice]:not([data-notice-stays])');
     if (toast) {
         setTimeout(() => { toast.hidden = true; }, 10000);
     }

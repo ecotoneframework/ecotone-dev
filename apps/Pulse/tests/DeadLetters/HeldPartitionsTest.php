@@ -9,6 +9,7 @@ use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\PartitionDeadLetter;
+use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use RuntimeException;
@@ -81,6 +82,38 @@ final class HeldPartitionsTest extends ReleasingWebTestCase
         self::assertSame(['o-2'], $this->freshView($client, '/dead-letters')->filter('[data-held-partition]')->each(static fn (Crawler $row) => $row->attr('data-partition-key')));
     }
 
+    public function test_the_notice_of_a_replayed_partition_key_links_to_the_trace_its_messages_are_handled_in(): void
+    {
+        $client = $this->pulseWithHeldPartitionKeys(storingTraces: true);
+        $list = $this->freshView($client, '/dead-letters');
+        $this->shipments->failing = false;
+
+        $client->request('POST', '/dead-letters/actions', ['scope' => 'ids', 'replayPartition' => $list->filter('[data-held-partition][data-partition-key="o-1"] [data-held-replay]')->attr('value')]);
+        $traceOfTheReplay = $client->followRedirect()->filter('[data-notice] a[data-replay-trace]')->attr('href');
+        $this->deliver($client);
+        $this->replayWorkOf($this->services['orders']);
+        $client->request('GET', $traceOfTheReplay);
+        $this->deliver($client);
+
+        self::assertSame(
+            ['receive pulse_dead_letter_work|ok', 'process class@anonymous::dispatch|ok', 'send pulse_dead_letter_work|ok', 'receive pulse_dead_letter_work|ok', 'process class@anonymous::dispatch|ok'],
+            $client->request('GET', $traceOfTheReplay)->filter('[data-span]')->each(static fn (Crawler $step) => trim($step->filter('[data-column="name"]')->text()) . '|' . $step->filter('[data-column="status"]')->text()),
+        );
+        self::assertSame([1, 3], $this->shipments->handled);
+    }
+
+    public function test_the_notice_of_a_replayed_partition_key_has_no_trace_link_when_the_service_stores_no_traces(): void
+    {
+        $client = $this->pulseWithHeldPartitionKeys();
+        $list = $this->freshView($client, '/dead-letters');
+
+        $client->request('POST', '/dead-letters/actions', ['scope' => 'ids', 'replayPartition' => $list->filter('[data-held-partition][data-partition-key="o-1"] [data-held-replay]')->attr('value')]);
+        $notice = $client->followRedirect();
+
+        self::assertCount(1, $notice->filter('[data-notice]'));
+        self::assertCount(0, $notice->filter('a[data-replay-trace]'));
+    }
+
     public function test_deleting_a_held_partition_key_asks_to_confirm_and_then_removes_its_failed_messages(): void
     {
         $client = $this->pulseWithHeldPartitionKeys();
@@ -96,7 +129,7 @@ final class HeldPartitionsTest extends ReleasingWebTestCase
         self::assertCount(1, $after->filter('[data-dead-letter]'));
     }
 
-    private function pulseWithHeldPartitionKeys(): KernelBrowser
+    private function pulseWithHeldPartitionKeys(bool $storingTraces = false): KernelBrowser
     {
         $this->configurePulseWithServices('orders');
         $client = static::createClient();
@@ -122,7 +155,7 @@ final class HeldPartitionsTest extends ReleasingWebTestCase
                 $this->handled[] = $order['orderId'];
             }
         };
-        $orders = $this->serviceWithDeadLetters('orders', additionalHandlers: [$this->shipments]);
+        $orders = $this->serviceWithDeadLetters('orders', additionalHandlers: [$this->shipments], additionalExtensionObjects: $storingTraces ? [FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage(true)] : []);
         $this->failOrderOf($orders, 'order.dispatch', 1, 'o-1');
         $this->failOrderOf($orders, 'order.dispatch', 3, 'o-1');
         $this->failOrderOf($orders, 'order.dispatch', 2, 'o-2');

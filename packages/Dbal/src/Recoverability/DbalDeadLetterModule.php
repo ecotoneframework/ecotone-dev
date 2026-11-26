@@ -13,7 +13,6 @@ use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
-use Ecotone\Dbal\Database\DeadLetterPartitionsTableManager;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Recoverability\Partition\PartitionDeadLetterRegistration;
@@ -103,7 +102,6 @@ final class DbalDeadLetterModule implements AnnotationModule
             interfaceToCallRegistry: $interfaceToCallRegistry,
             extensionObjects: $extensionObjects,
             dbalConfiguration: $dbalConfiguration,
-            consoleInvocationPrefix: $consoleInvocationPrefix,
         );
         $holdsPartitions = PartitionDeadLetterRegistration::isConfiguredBy($this->annotationFinder, $extensionObjects);
 
@@ -161,7 +159,6 @@ final class DbalDeadLetterModule implements AnnotationModule
             fn (string $connectionReference): DbalTableManagerReference => new DbalTableManagerReference(DeadLetterTableManager::class, $connectionReference),
             array_values(array_unique($connectionReferences)),
         );
-        $extensions[] = new DbalTableManagerReference(DeadLetterPartitionsTableManager::class, $dbalConfiguration->getDeadLetterConnectionReference());
         $extensions = [...$extensions, ...DbalDeadLetterPulseFeatures::reportedFor($serviceExtensions, $dbalConfiguration)];
         if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
             $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetter', serviceReference: PulseDeadLetterStatus::class, tenantScoped: false);

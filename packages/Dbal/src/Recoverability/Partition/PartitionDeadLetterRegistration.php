@@ -23,7 +23,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Pulse\PulseConfiguration;
-use Ecotone\Dbal\Database\DeadLetterPartitionsTableManager;
+use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Recoverability\AnyDeadLetterReplayOrder;
 use Ecotone\Dbal\Recoverability\DeadLetterHandler;
@@ -96,20 +96,9 @@ final class PartitionDeadLetterRegistration
         InterfaceToCallRegistry $interfaceToCallRegistry,
         array $extensionObjects,
         DbalConfiguration $dbalConfiguration,
-        ?string $consoleInvocationPrefix,
     ): void {
         $isConfigured = self::isConfiguredBy($annotationFinder, $extensionObjects);
         $connectionReference = $dbalConfiguration->getDeadLetterConnectionReference();
-        $configuration->registerServiceDefinition(
-            DeadLetterPartitionsTableManager::class,
-            new Definition(DeadLetterPartitionsTableManager::class, [
-                DeadLetterPartitionsTableManager::DEFAULT_TABLE,
-                $isConfigured && $dbalConfiguration->deadLetterEnabled && ! $dbalConfiguration->deadLetterInMemory,
-                $consoleInvocationPrefix,
-                $connectionReference,
-            ])
-        );
-
         if (! $isConfigured) {
             $configuration->registerServiceDefinition(DeadLetterReplayOrder::class, new Definition(AnyDeadLetterReplayOrder::class));
 
@@ -136,7 +125,7 @@ final class PartitionDeadLetterRegistration
                 ? new Definition(InMemoryHeldPartitions::class)
                 : new Definition(DbalHeldPartitions::class, [
                     CachedConnectionFactory::registerIn($configuration, $connectionReference, DbalReconnectableConnectionFactory::definitionFor($connectionReference)),
-                    Reference::to(DeadLetterPartitionsTableManager::class),
+                    Reference::to(DeadLetterTableManager::class),
                 ])
         );
         $configuration->registerServiceDefinition(

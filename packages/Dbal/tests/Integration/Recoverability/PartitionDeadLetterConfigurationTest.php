@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Recoverability;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\Asynchronous;
@@ -545,6 +547,32 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         );
 
         $this->bootstrap([$projection::class], [$projection]);
+    }
+
+    public function test_holding_a_partition_key_in_a_dead_letter_table_created_without_the_partition_columns_is_refused_naming_how_to_add_them(): void
+    {
+        $deadLetterTableOfAnEarlierRelease = new Table('ecotone_error_messages');
+        $deadLetterTableOfAnEarlierRelease->addColumn('message_id', Types::STRING, ['length' => 255]);
+        $deadLetterTableOfAnEarlierRelease->addColumn('failed_at', Types::DATETIME_MUTABLE);
+        $deadLetterTableOfAnEarlierRelease->addColumn('payload', Types::TEXT);
+        $deadLetterTableOfAnEarlierRelease->addColumn('headers', Types::TEXT);
+        $deadLetterTableOfAnEarlierRelease->setPrimaryKey(['message_id']);
+        $this->getConnectionFactory()->createContext()->getDbalConnection()->createSchemaManager()->createTable($deadLetterTableOfAnEarlierRelease);
+        $handler = $this->partitionedHandler(failing: true);
+        $ecotone = $this->bootstrap([$handler::class], [$handler], dbalConfiguration: DbalConfiguration::createWithDefaults()->withDeadLetter(true));
+        $ecotone->sendCommandWithRouting('partitionConfiguration.place', 'coffee', metadata: ['orderId' => '1']);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            "The 'ecotone_error_messages' table has no 'partition_tracking_name', 'partition_key' and 'partition_place' columns, which holding partition keys in the dead letter (#[PartitionDeadLetter], PartitionDeadLetterConfiguration) writes and reads. The table was created before these columns were part of it. Ecotone never alters a table while it handles a message.\n\n"
+            . "Add the columns with the statement for your database:\n"
+            . "  PostgreSQL: ALTER TABLE ecotone_error_messages ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_error_messages ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_error_messages ADD COLUMN partition_place BIGINT DEFAULT NULL; CREATE INDEX ecotone_error_messages_partition_idx ON ecotone_error_messages (partition_tracking_name, partition_key, partition_place);\n"
+            . "  MySQL and MariaDB: ALTER TABLE ecotone_error_messages ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL, ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL, ADD COLUMN partition_place BIGINT DEFAULT NULL, ADD INDEX ecotone_error_messages_partition_idx (partition_tracking_name, partition_key, partition_place);\n"
+            . "  SQLite: ALTER TABLE ecotone_error_messages ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_error_messages ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_error_messages ADD COLUMN partition_place BIGINT DEFAULT NULL; CREATE INDEX ecotone_error_messages_partition_idx ON ecotone_error_messages (partition_tracking_name, partition_key, partition_place);\n\n"
+            . 'Or stop holding partition keys: remove #[PartitionDeadLetter] and PartitionDeadLetterConfiguration.'
+        );
+
+        $ecotone->run('partitionConfiguration.orders', ExecutionPollingMetadata::createWithTestingSetup());
     }
 
     public function test_holding_partition_keys_is_refused_without_an_enterprise_licence(): void

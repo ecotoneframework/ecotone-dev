@@ -8,7 +8,8 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Connection\DbalContext;
-use Ecotone\Dbal\Database\DeadLetterPartitionsTableManager;
+use Ecotone\Dbal\Database\DeadLetterTableManager;
+use Ecotone\Dbal\Database\MissingColumnFailure;
 use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Throwable;
@@ -33,58 +34,69 @@ use Throwable;
  */
 final class DbalHeldPartitions implements HeldPartitions
 {
-    private const PLACE = 'COALESCE(kept_place, position)';
+    private const COLUMNS = ['partition_tracking_name', 'partition_key', 'partition_place'];
 
     public function __construct(
         private CachedConnectionFactory $connectionFactory,
-        private DeadLetterPartitionsTableManager $tableManager,
+        private DeadLetterTableManager $tableManager,
     ) {
     }
 
     public function hold(DeadLetterPartition $partition, string $deadLetterId): void
     {
-        $this->onTable(fn () => $this->connection()->insert(
-            $this->tableManager->getTableName(),
-            ['dead_letter_id' => $deadLetterId, 'tracking_name' => $partition->trackingName, 'partition_key' => $partition->partitionKey],
-            ['dead_letter_id' => Types::STRING, 'tracking_name' => Types::STRING, 'partition_key' => Types::STRING],
+        $table = $this->tableManager->getTableName();
+        $this->onTable(fn () => $this->connection()->executeStatement(
+            "UPDATE {$table} SET partition_tracking_name = :trackingName, partition_key = :partitionKey, partition_place = ("
+            . "SELECT next_place FROM (SELECT COALESCE(MAX(partition_place), 0) + 1 AS next_place FROM {$table} WHERE partition_tracking_name = :trackingName AND partition_key = :partitionKey) AS places"
+            . ') WHERE message_id = :deadLetterId',
+            ['trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'deadLetterId' => $deadLetterId],
+            ['trackingName' => Types::STRING, 'partitionKey' => Types::STRING, 'deadLetterId' => Types::STRING],
         ));
     }
 
     public function holdAtPlace(DeadLetterPartition $partition, string $deadLetterId, int $place): void
     {
-        $this->onTable(fn () => $this->connection()->insert(
+        $this->onTable(fn () => $this->connection()->update(
             $this->tableManager->getTableName(),
-            ['dead_letter_id' => $deadLetterId, 'tracking_name' => $partition->trackingName, 'partition_key' => $partition->partitionKey, 'kept_place' => $place],
-            ['dead_letter_id' => Types::STRING, 'tracking_name' => Types::STRING, 'partition_key' => Types::STRING, 'kept_place' => Types::BIGINT],
+            ['partition_tracking_name' => $partition->trackingName, 'partition_key' => $partition->partitionKey, 'partition_place' => $place],
+            ['message_id' => $deadLetterId],
+            ['partition_tracking_name' => Types::STRING, 'partition_key' => Types::STRING, 'partition_place' => Types::BIGINT, 'message_id' => Types::STRING],
         ));
     }
 
     public function forget(string $deadLetterId): void
     {
-        $this->onTable(fn () => $this->connection()->delete(
+        $this->onTable(fn () => $this->connection()->update(
             $this->tableManager->getTableName(),
-            ['dead_letter_id' => $deadLetterId],
-            ['dead_letter_id' => Types::STRING],
+            ['partition_tracking_name' => null, 'partition_key' => null, 'partition_place' => null],
+            ['message_id' => $deadLetterId],
+            ['message_id' => Types::STRING],
         ));
     }
 
     public function forgetAll(): void
     {
-        $this->onTable(fn () => $this->connection()->createQueryBuilder()->delete($this->tableManager->getTableName())->executeStatement());
+        $this->onTable(fn () => $this->connection()->createQueryBuilder()
+            ->update($this->tableManager->getTableName())
+            ->set('partition_tracking_name', 'NULL')
+            ->set('partition_key', 'NULL')
+            ->set('partition_place', 'NULL')
+            ->andWhere('partition_key IS NOT NULL')
+            ->executeStatement());
     }
 
     public function partitionOf(string $deadLetterId): ?DeadLetterPartition
     {
         $held = $this->heldAs($deadLetterId);
 
-        return $held ? new DeadLetterPartition(trackingName: (string) $held['tracking_name'], partitionKey: (string) $held['partition_key']) : null;
+        return $held ? new DeadLetterPartition(trackingName: (string) $held['partition_tracking_name'], partitionKey: (string) $held['partition_key']) : null;
     }
 
     public function placeOf(string $deadLetterId): ?int
     {
         $held = $this->heldAs($deadLetterId);
 
-        return $held ? (int) $held['place'] : null;
+        return $held ? (int) $held['partition_place'] : null;
     }
 
     public function oldestOf(DeadLetterPartition $partition): ?string
@@ -102,16 +114,15 @@ final class DbalHeldPartitions implements HeldPartitions
     public function summary(): array
     {
         $summary = [];
-        $held = $this->onTable(fn () => $this->connection()->createQueryBuilder()
-            ->select('dead_letter_id', 'tracking_name', 'partition_key')
+        $held = $this->onTable(fn () => $this->inOrder($this->connection()->createQueryBuilder()
+            ->select('message_id', 'partition_tracking_name', 'partition_key')
             ->from($this->tableManager->getTableName())
-            ->orderBy(self::PLACE, 'ASC')
-            ->addOrderBy('position', 'ASC')
+            ->andWhere('partition_key IS NOT NULL'))
             ->executeQuery()
             ->fetchAllAssociative());
         foreach ($held as $row) {
-            $partition = $row['tracking_name'] . "\0" . $row['partition_key'];
-            $summary[$partition] ??= ['trackingName' => (string) $row['tracking_name'], 'partitionKey' => (string) $row['partition_key'], 'waiting' => 0, 'oldestDeadLetterId' => (string) $row['dead_letter_id']];
+            $partition = $row['partition_tracking_name'] . "\0" . $row['partition_key'];
+            $summary[$partition] ??= ['trackingName' => (string) $row['partition_tracking_name'], 'partitionKey' => (string) $row['partition_key'], 'waiting' => 0, 'oldestDeadLetterId' => (string) $row['message_id']];
             $summary[$partition]['waiting']++;
         }
 
@@ -119,14 +130,15 @@ final class DbalHeldPartitions implements HeldPartitions
     }
 
     /**
-     * @return array{tracking_name: string, partition_key: string, place: int|string}|false
+     * @return array{partition_tracking_name: string, partition_key: string, partition_place: int|string}|false
      */
     private function heldAs(string $deadLetterId): array|false
     {
         return $this->onTable(fn () => $this->connection()->createQueryBuilder()
-            ->select('tracking_name', 'partition_key', self::PLACE . ' AS place')
+            ->select('partition_tracking_name', 'partition_key', 'partition_place')
             ->from($this->tableManager->getTableName())
-            ->andWhere('dead_letter_id = :deadLetterId')
+            ->andWhere('message_id = :deadLetterId')
+            ->andWhere('partition_key IS NOT NULL')
             ->setParameter('deadLetterId', $deadLetterId, Types::STRING)
             ->executeQuery()
             ->fetchAssociative());
@@ -134,15 +146,18 @@ final class DbalHeldPartitions implements HeldPartitions
 
     private function deadLetterIdsOf(DeadLetterPartition $partition): QueryBuilder
     {
-        return $this->connection()->createQueryBuilder()
-            ->select('dead_letter_id')
+        return $this->inOrder($this->connection()->createQueryBuilder()
+            ->select('message_id')
             ->from($this->tableManager->getTableName())
-            ->andWhere('tracking_name = :trackingName')
+            ->andWhere('partition_tracking_name = :trackingName')
             ->andWhere('partition_key = :partitionKey')
             ->setParameter('trackingName', $partition->trackingName, Types::STRING)
-            ->setParameter('partitionKey', $partition->partitionKey, Types::STRING)
-            ->orderBy(self::PLACE, 'ASC')
-            ->addOrderBy('position', 'ASC');
+            ->setParameter('partitionKey', $partition->partitionKey, Types::STRING));
+    }
+
+    private function inOrder(QueryBuilder $held): QueryBuilder
+    {
+        return $held->orderBy('partition_place', 'ASC')->addOrderBy('failed_at', 'ASC')->addOrderBy('message_id', 'ASC');
     }
 
     private function onTable(callable $statement): mixed
@@ -150,7 +165,10 @@ final class DbalHeldPartitions implements HeldPartitions
         try {
             return $statement();
         } catch (Throwable $failure) {
-            throw MissingTableFailure::explained($failure, $this->tableManager);
+            throw MissingTableFailure::explained(
+                MissingColumnFailure::ofColumns(failure: $failure, columns: self::COLUMNS, instructions: $this->tableManager->getMissingPartitionColumnsInstructions()),
+                $this->tableManager,
+            );
         }
     }
 

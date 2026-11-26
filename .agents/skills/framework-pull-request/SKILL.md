@@ -180,12 +180,15 @@ changed page into the state the change is about, and take a Playwright screensho
 when an existing page changed. The body references each image by its local path under `var/` (git-ignored), and
 `gh pr create` or `gh pr edit` uploads it with `--attach`, which needs `gh` 2.99 or newer. No image, screenshot or
 `.mmd` file is committed, and no image is hosted on another service.
+CI refuses a body with a ```` ```mermaid ```` block or an image reference that was not uploaded; which images a
+change needs, and that none is committed, need judgement (the screenshots under `apps/Pulse/docs/screenshots` are
+committed on purpose), so the eval case grades those.
 [references/pr-images.md](references/pr-images.md) has the commands. Load it when the body needs a diagram or the
 change touches Pulse.
 - **Expected:** a PR body for a changed message flow or a changed Pulse page embeds images uploaded with
   `gh ... --attach`, contains no ```` ```mermaid ```` block, and the branch adds no image file; for a Pulse change
   the agent runs the demo and screenshots the changed page with Playwright.
-- **Verified by:** `eval:open-pr-pulse`
+- **Verified by:** `check:pull-request-body-images`, `eval:open-pr-pulse`
 
 ### P5. Changed skills are evaluated in the local review, before the PR
 CI never runs a model: it runs only the deterministic `php bin/check-agent-skills.php`. So when the branch changes

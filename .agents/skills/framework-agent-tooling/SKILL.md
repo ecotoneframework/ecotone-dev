@@ -83,6 +83,7 @@ service"), never by naming the rule, so the case also proves the skill is found 
 | `flow-catalogue` | `php bin/check-flow-catalogue.php` (its own tests: `php bin/test-check-flow-catalogue.php`) | every scenario method of the flow scenario catalogue is listed by its class's `all()`, every scenario class is in `FlowScenarioCatalogue::all()`, every scenario name is used once, and every scenario of a coroutine message channel is marked as needing a coroutine runtime |
 | `phpstan` | `vendor/bin/phpstan` | level 3 over `src` and `Api/` |
 | `contribution-terms` | `.github/workflows/contribution-check.yml` | the PR body's contribution checkbox |
+| `pull-request-body-images` | `.github/workflows/contribution-check.yml` (job `check-body-images`) | the PR body has no ```` ```mermaid ```` block and no image reference that was not uploaded |
 
 ## References
 

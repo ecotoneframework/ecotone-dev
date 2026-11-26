@@ -24,6 +24,7 @@ const DETERMINISTIC_CHECKS = [
     'flow-catalogue' => '.github/workflows/file-licence.yml: php bin/check-flow-catalogue.php',
     'phpstan' => 'composer tests:phpstan in every package CI run',
     'contribution-terms' => '.github/workflows/contribution-check.yml',
+    'pull-request-body-images' => '.github/workflows/contribution-check.yml: check-body-images',
 ];
 
 const SKILL_ROOTS = [

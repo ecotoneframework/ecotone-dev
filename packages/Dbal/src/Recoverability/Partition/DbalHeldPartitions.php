@@ -186,10 +186,23 @@ final class DbalHeldPartitions implements HeldPartitions
             return $statement();
         } catch (Throwable $failure) {
             throw MissingTableFailure::explained(
-                MissingColumnFailure::ofColumns(failure: $failure, columns: self::COLUMNS, instructions: $this->tableManager->getMissingPartitionColumnsInstructions()),
+                MissingColumnFailure::ofColumns(failure: $failure, columns: self::COLUMNS, instructions: $this->missingColumnsInstructions()),
                 $this->tableManager,
             );
         }
+    }
+
+    private function missingColumnsInstructions(): string
+    {
+        $table = $this->tableManager->getTableName();
+        $index = $this->tableManager->getPartitionIndexName();
+
+        return "The '{$table}' table has no 'partition_tracking_name', 'partition_key' and 'partition_place' columns, which holding partition keys in the dead letter (#[PartitionDeadLetter], PartitionDeadLetterConfiguration) writes and reads. The table was created before these columns were part of it. Ecotone never alters a table while it handles a message.\n\n"
+            . "Add the columns with the statement for your database:\n"
+            . "  PostgreSQL: ALTER TABLE {$table} ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_place BIGINT DEFAULT NULL; CREATE INDEX {$index} ON {$table} (partition_tracking_name, partition_key, partition_place);\n"
+            . "  MySQL and MariaDB: ALTER TABLE {$table} ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL, ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL, ADD COLUMN partition_place BIGINT DEFAULT NULL, ADD INDEX {$index} (partition_tracking_name, partition_key, partition_place);\n"
+            . "  SQLite: ALTER TABLE {$table} ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_place BIGINT DEFAULT NULL; CREATE INDEX {$index} ON {$table} (partition_tracking_name, partition_key, partition_place);\n\n"
+            . 'Or stop holding partition keys: remove #[PartitionDeadLetter] and PartitionDeadLetterConfiguration.';
     }
 
     private function connection(): Connection

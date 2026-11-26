@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Pulse;
 
+use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -93,6 +95,23 @@ final class PulseHeldPartitionsTest extends DbalMessagingTestCase
         self::assertSame(2, $reply['deadLetterAction']['affected']);
         self::assertEqualsCanonicalizing(['broken', 'coffee', 'broken', 'tea'], $this->orders->placed);
         self::assertSame(0, $this->orderService->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    public function test_a_dead_letter_table_created_by_ecotone_1x_is_reported_on_the_snapshot_naming_how_to_add_the_partition_columns(): void
+    {
+        $table = new Table('ecotone_error_messages');
+        $table->addColumn('message_id', Types::STRING, ['length' => 255]);
+        $table->addColumn('failed_at', Types::DATETIME_MUTABLE);
+        $table->addColumn('payload', Types::TEXT);
+        $table->addColumn('headers', Types::TEXT);
+        $table->setPrimaryKey(['message_id']);
+        $this->getConnectionFactory()->createContext()->getDbalConnection()->createSchemaManager()->createTable($table);
+        $this->bootstrap('dbal');
+
+        $snapshot = $this->ask('ecotone.pulse.snapshot', '{}');
+
+        self::assertStringStartsWith("The 'ecotone_error_messages' table has no 'partition_tracking_name', 'partition_key' and 'partition_place' columns", $snapshot['sectionErrors']['deadLetterPartitions']);
+        self::assertStringContainsString('ALTER TABLE ecotone_error_messages ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL', $snapshot['sectionErrors']['deadLetterPartitions']);
     }
 
     private function place(string $item, string $orderId, ?string $messageId = null): void

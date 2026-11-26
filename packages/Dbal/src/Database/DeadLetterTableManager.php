@@ -77,19 +77,6 @@ class DeadLetterTableManager implements DbalTableManager
         return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix, $this->connectionReferenceName);
     }
 
-    public function getMissingPartitionColumnsInstructions(): string
-    {
-        $table = $this->tableName;
-        $index = $this->partitionIndexName();
-
-        return "The '{$table}' table has no 'partition_tracking_name', 'partition_key' and 'partition_place' columns, which holding partition keys in the dead letter (#[PartitionDeadLetter], PartitionDeadLetterConfiguration) writes and reads. The table was created before these columns were part of it. Ecotone never alters a table while it handles a message.\n\n"
-            . "Add the columns with the statement for your database:\n"
-            . "  PostgreSQL: ALTER TABLE {$table} ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_place BIGINT DEFAULT NULL; CREATE INDEX {$index} ON {$table} (partition_tracking_name, partition_key, partition_place);\n"
-            . "  MySQL and MariaDB: ALTER TABLE {$table} ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL, ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL, ADD COLUMN partition_place BIGINT DEFAULT NULL, ADD INDEX {$index} (partition_tracking_name, partition_key, partition_place);\n"
-            . "  SQLite: ALTER TABLE {$table} ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_place BIGINT DEFAULT NULL; CREATE INDEX {$index} ON {$table} (partition_tracking_name, partition_key, partition_place);\n\n"
-            . 'Or stop holding partition keys: remove #[PartitionDeadLetter] and PartitionDeadLetterConfiguration.';
-    }
-
     public function dropTable(Connection $connection): void
     {
         $schemaManager = $connection->createSchemaManager();
@@ -129,11 +116,11 @@ class DeadLetterTableManager implements DbalTableManager
 
         $table->setPrimaryKey(['message_id']);
         $table->addIndex(['failed_at']);
-        $table->addIndex(['partition_tracking_name', 'partition_key', 'partition_place'], $this->partitionIndexName());
+        $table->addIndex(['partition_tracking_name', 'partition_key', 'partition_place'], $this->getPartitionIndexName());
         return $table;
     }
 
-    private function partitionIndexName(): string
+    public function getPartitionIndexName(): string
     {
         return $this->tableName . '_partition_idx';
     }

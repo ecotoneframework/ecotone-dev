@@ -44,6 +44,11 @@ trait MultiTenantServicesTrait
 
     private object $tenantKickoffProjections;
 
+    /**
+     * @var list<object>
+     */
+    private array $additionalTenantHandlers = [];
+
     private function multiTenantService(string $service, ?DbalConnectionFactory $unpreparedTenantB = null): FlowTestSupport
     {
         $this->tenantWork = $work = new class () {
@@ -113,8 +118,8 @@ trait MultiTenantServicesTrait
             'tenant_b_connection' => OpenedConnections::factory((string) getenv('SECONDARY_DATABASE_DSN')),
         ];
         $bootstrap = fn (array $connections): FlowTestSupport => EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$work::class, $projections::class, $kickoffProjections::class],
-            containerOrAvailableServices: [$work, $projections, $kickoffProjections, ...$connections],
+            classesToResolve: [$work::class, $projections::class, $kickoffProjections::class, ...array_map(static fn (object $handler): string => $handler::class, $this->additionalTenantHandlers)],
+            containerOrAvailableServices: [$work, $projections, $kickoffProjections, ...$this->additionalTenantHandlers, ...$connections],
             extensionObjects: [
                 DbalBackedMessageChannelBuilder::create($this->serviceChannels[$service], 'pulse_connection')->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create($this->pulseChannel, 'pulse_connection'),

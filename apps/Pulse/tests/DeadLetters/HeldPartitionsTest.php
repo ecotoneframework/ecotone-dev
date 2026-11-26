@@ -92,14 +92,36 @@ final class HeldPartitionsTest extends ReleasingWebTestCase
         $traceOfTheReplay = $client->followRedirect()->filter('[data-notice] a[data-replay-trace]')->attr('href');
         $this->deliver($client);
         $this->replayWorkOf($this->services['orders']);
-        $client->request('GET', $traceOfTheReplay);
-        $this->deliver($client);
 
         self::assertSame(
             ['receive pulse_dead_letter_work|ok', 'process class@anonymous::dispatch|ok', 'send pulse_dead_letter_work|ok', 'receive pulse_dead_letter_work|ok', 'process class@anonymous::dispatch|ok'],
-            $client->request('GET', $traceOfTheReplay)->filter('[data-span]')->each(static fn (Crawler $step) => trim($step->filter('[data-column="name"]')->text()) . '|' . $step->filter('[data-column="status"]')->text()),
+            $this->stepsOfTrace($client, $traceOfTheReplay),
         );
         self::assertSame([1, 3], $this->shipments->handled);
+    }
+
+    public function test_the_notice_of_a_replayed_partition_key_that_fails_again_links_to_the_trace_showing_the_failure(): void
+    {
+        $client = $this->pulseWithHeldPartitionKeys(storingTraces: true);
+        $list = $this->freshView($client, '/dead-letters');
+
+        $client->request('POST', '/dead-letters/actions', ['scope' => 'ids', 'replayPartition' => $list->filter('[data-held-partition][data-partition-key="o-1"] [data-held-replay]')->attr('value')]);
+        $traceOfTheReplay = $client->followRedirect()->filter('[data-notice] a[data-replay-trace]')->attr('href');
+        $this->deliver($client);
+        $this->replayWorkOf($this->services['orders']);
+
+        self::assertSame(['receive pulse_dead_letter_work|failed', 'process class@anonymous::dispatch|failed'], $this->stepsOfTrace($client, $traceOfTheReplay));
+        self::assertSame('2 waiting', $this->freshView($client, '/dead-letters')->filter('[data-held-partition][data-partition-key="o-1"] [data-held-messages]')->text());
+    }
+
+    public function test_the_notice_with_the_trace_of_a_replayed_partition_key_stays_on_the_page(): void
+    {
+        $client = $this->pulseWithHeldPartitionKeys(storingTraces: true);
+        $list = $this->freshView($client, '/dead-letters');
+
+        $client->request('POST', '/dead-letters/actions', ['scope' => 'ids', 'replayPartition' => $list->filter('[data-held-partition][data-partition-key="o-1"] [data-held-replay]')->attr('value')]);
+
+        self::assertCount(1, $client->followRedirect()->filter('[data-notice][data-notice-stays] a[data-replay-trace]'));
     }
 
     public function test_the_notice_of_a_replayed_partition_key_has_no_trace_link_when_the_service_stores_no_traces(): void
@@ -110,8 +132,9 @@ final class HeldPartitionsTest extends ReleasingWebTestCase
         $client->request('POST', '/dead-letters/actions', ['scope' => 'ids', 'replayPartition' => $list->filter('[data-held-partition][data-partition-key="o-1"] [data-held-replay]')->attr('value')]);
         $notice = $client->followRedirect();
 
-        self::assertCount(1, $notice->filter('[data-notice]'));
         self::assertCount(0, $notice->filter('a[data-replay-trace]'));
+        self::assertCount(0, $notice->filter('[data-notice-stays]'));
+        self::assertSame('orders does not record traces, so this replay cannot be followed in Pulse. Enable flow tracking (FlowTrackingConfiguration) in the service to follow the next one.', $notice->filter('[data-notice] [data-replay-not-traced]')->text());
     }
 
     public function test_deleting_a_held_partition_key_asks_to_confirm_and_then_removes_its_failed_messages(): void
@@ -167,6 +190,17 @@ final class HeldPartitionsTest extends ReleasingWebTestCase
     {
         $service->sendCommandWithRouting($routingKey, ['orderId' => $orderId], metadata: ['heldBy' => $partitionKey]);
         $service->run(self::WORK_CHANNEL, ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function stepsOfTrace(KernelBrowser $client, string $traceUri): array
+    {
+        $client->request('GET', $traceUri);
+        $this->deliver($client);
+
+        return $client->request('GET', $traceUri)->filter('[data-span]')->each(static fn (Crawler $step) => trim($step->filter('[data-column="name"]')->text()) . '|' . $step->filter('[data-column="status"]')->text());
     }
 
     private function freshView(KernelBrowser $client, string $uri): Crawler

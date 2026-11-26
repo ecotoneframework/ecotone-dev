@@ -70,13 +70,15 @@ final class DeadLetterActionController extends AbstractController
 
         $failureLabel = $byFailure ? DeadLetterOverview::failureLabel($this->failureOf($failure !== '' ? $failure : $deleteFailure)) : '';
         $replayTrace = '';
+        $replayNotTracedBy = '';
         $failed = [];
         $results = [];
         foreach ($actions as $service => $action) {
             $result = $this->requester->send(ServiceScope::fromKey($service), $action);
             $results[] = $result;
-            if ($replayPartition !== '' && $result->tracingId !== null && $this->storesTraces($service)) {
-                $replayTrace = $result->tracingId;
+            if ($replayPartition !== '' && $result->tracingId !== null) {
+                $replayTrace = $this->storesTraces($service) ? $result->tracingId : '';
+                $replayNotTracedBy = $replayTrace === '' ? $service : '';
             }
             if ($result->failed) {
                 $failed[] = $service;
@@ -85,7 +87,7 @@ final class DeadLetterActionController extends AbstractController
         $this->awaiter->await($results);
 
         return $this->back($filter, $failed === []
-            ? DeadLetterNotice::actionSent($replay ? 'replay' : 'delete', array_keys($actions), $this->affectedBy(array_keys($actions)), $failureLabel, $replayTrace)
+            ? DeadLetterNotice::actionSent(action: $replay ? 'replay' : 'delete', services: array_keys($actions), affected: $this->affectedBy(array_keys($actions)), failure: $failureLabel, replayTrace: $replayTrace, replayNotTracedBy: $replayNotTracedBy)
             : DeadLetterNotice::sendFailed($failed));
     }
 

@@ -71,6 +71,7 @@ final class DeadLetterNoticeTest extends ReleasingWebTestCase
 
         self::assertCount(1, $crawler->filter('[data-notice]'));
         self::assertCount(0, $crawler->filter('a[data-replay-trace]'));
+        self::assertCount(0, $crawler->filter('[data-notice-stays]'));
     }
 
     public function test_the_date_filters_are_labelled_as_utc_with_second_precision(): void

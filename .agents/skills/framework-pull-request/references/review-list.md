@@ -122,7 +122,7 @@ them.
 | `framework-agent-tooling A3`, `framework-orientation O3` | enforced by `php bin/check-agent-skills.php` in CI |
 | `framework-dev-environment 21`, `framework-dev-environment E1`, `framework-dev-environment E2`, `framework-dev-environment 20`, `framework-dev-environment E3` | how commands are run, which leaves nothing in the change |
 | `framework-orientation O1` | which skills the implementing session loaded |
-| `framework-pull-request P2`, `framework-pull-request P3`, `framework-pull-request P3a`, `framework-pull-request P3b`, `framework-pull-request P4`, `framework-pull-request P5` | the push process this list is part of |
+| `framework-pull-request P2`, `framework-pull-request P3`, `framework-pull-request P3a`, `framework-pull-request P3b`, `framework-pull-request P3c`, `framework-pull-request P4`, `framework-pull-request P5` | the push process this list is part of |
 
 ## Breaking changes
 

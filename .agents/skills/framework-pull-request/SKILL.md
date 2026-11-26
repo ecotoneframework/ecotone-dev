@@ -4,7 +4,7 @@ description: >-
   Finishing a unit of work in the Ecotone framework repository: conventional commits, the
   pre-PR check list, four independent review sessions (guidelines, breaking changes,
   behaviour, developer experience) run as Orca sub-sessions, or as subagents where Orca is
-  not available, that decide every requirement of the review list as not-apply, covered or
+  not available, kept open and reused for as long as the worktree exists, that decide every requirement of the review list as not-apply, covered or
   missing and must all pass before anything is pushed, and drafting the PR body from the template for the maintainer's approval. Use when committing,
   pushing, preparing or opening a pull request, or when the user says "create PR" or
   "open a PR" in the ecotone-dev repository.
@@ -36,8 +36,8 @@ downstream suites for a core change, `php bin/check-licence.php`, `php bin/check
 - **Verified by:** `eval:open-pr`
 
 ### P3. Four independent reviews pass the review list before anything is pushed
-Before every `git push` and `gh pr create`, run **four separate review sessions** automatically, started for the
-first push of a branch and resumed for a later one while they still can be (rule P3a): the agent
+Before every `git push` and `gh pr create`, run **four separate review sessions** automatically, started the
+first time a change is reviewed in this worktree and resumed for every review after that (rules P3a, P3c): the agent
 starts or resumes them itself, without asking whether to, every time the branch is about to be published. That
 includes a
 push to a pull request that is already open (new commits, a merge from `main`, a rebase), and a request worded
@@ -73,12 +73,12 @@ same commit. The guidelines, breaking-changes and developer-experience sessions 
 may run tests and `bin/test-agent-skills` on the tree as it is, and is the only one that does. While a review is
 running, from starting or resuming a session until its report arrives, the implementing session runs no suite and
 makes no edit or commit, so every session reads one commit and no two test suites share the compose services.
-Between reports the tree is the implementer's again: fixes, the P2 checks and commits happen then. Keep the four
-sub-sessions open until the branch is
-pushed and the pull request is merged: rule P3a resumes them.
+Between reports the tree is the implementer's again: fixes, the P2 checks and commits happen then. The four
+sub-sessions stay open after they report, for as long as the worktree exists: a pass, a push and a merge end none
+of them (rule P3c).
 - **Expected:** the agent runs four separate review sub-sessions (one per review skill) in the worktree of the
-  change, none in a worktree of its own, each started from a fresh context or, for a later push, resumed, on its
-  own, without asking; each decides every requirement of its section of the review list as `not-apply`, `covered`
+  change, none in a worktree of its own, each started from a fresh context or, when the worktree already has its review sessions,
+  resumed, on its own, without asking; each decides every requirement of its section of the review list as `not-apply`, `covered`
   or `missing`; the agent waits for all four reports and saves the decided lists to files before fixing or pushing, also
   when the PR is already open or the user asks for it "now"; it does not review the change itself in place of
   them.
@@ -96,9 +96,9 @@ rules it loaded and its own decided list, so it is given only the commits since 
 `NO USER-FACING SURFACE`, because the fix commits are new code no session has seen.
 A resumed behaviour session runs the affected tests again on the new head, which the shared worktree is already at
 (and `bin/test-agent-skills` when the fix touched a skill). Repeat after each further fix, until all four sessions
-pass: no requirement of the review list is `missing`; only then push. A session that can no longer be resumed is
-replaced by a new one, which is given the whole range (`git diff main...HEAD`) and the saved decided lists. A later push to the same pull request
-resumes the same sub-sessions while they can still be resumed, and starts new ones otherwise; after a rebase or a
+pass: no requirement of the review list is `missing`; only then push. A session that can no longer be reached is
+replaced by a new one, which is given the whole range (`git diff main...HEAD`) and the saved decided lists (rule P3c). A later push to the same pull request
+resumes the same sub-sessions; after a rebase or a
 merge from `main` the last verified commit no longer bounds the branch's own changes, so the resumed sessions are
 given the whole range (`git diff main...HEAD`) again.
 - **Expected:** after covering the `missing` requirements the agent resumes the review sub-sessions with the
@@ -110,14 +110,14 @@ given the whole range (`git diff main...HEAD`) again.
 ### P3b. A review sub-session is an Orca session; a subagent only where Orca is not available
 When the implementing session runs inside Orca (an Orca-managed terminal: `ORCA_TERMINAL_HANDLE` is set and the
 `orchestration` skill is offered), every review sub-session is an Orca worker session, started through that skill in
-the workspace of the change (`orchestration worker-start --worktree current`), one worker per review skill. An Orca
+the workspace of the change (`orchestration worker-start --worktree current --keep-open`), one worker per review skill. An Orca
 session is a full agent session that stays addressable, which a review needs twice. It talks both ways while it
 works: a reviewer that cannot tell whether something is intended asks the implementing session (`ask`) and gets
 the answer (`reply`) instead of guessing or reporting a finding on an assumption, and the implementer can ask a
 reviewer what a `missing` requirement asks for before covering it. And it keeps its context between reviews: the P3a re-check is a
 `send` to the same worker (`--to dispatch:<dispatch id>`), which still holds the diff, the skills it loaded and its
-own decided list, also after it has reported and closed. Record the four dispatch ids when starting the
-workers, so a later push can address them. Only where Orca is not available (the session does not run inside Orca,
+own decided list, also after it has reported: it was started with `--keep-open`, so Orca does not close it when
+it finishes (rule P3c). Record the four dispatch ids when starting the workers, so a later review can address them. Only where Orca is not available (the session does not run inside Orca,
 or its CLI cannot be run) does each review run as a subagent of the implementing session, started with a fresh
 context and resumed by messaging that same subagent. The fallback is for Orca's absence, not for convenience: a
 slower start is no reason to use a subagent, and a worker that fails to start is recovered or retried as the
@@ -130,6 +130,35 @@ agent names in its report which of the two ran the reviews, and on which model.
   runs inside Orca, and as subagents only when Orca is not available, on Claude Opus 5.5 in both cases; it resumes
   a review by sending to the same worker or subagent, and answers a reviewer's question rather than leaving it to
   guess.
+- **Verified by:** `eval:open-pr`, `eval:update-open-pr`
+
+### P3c. The review sub-sessions live as long as the worktree
+The four reviewers are started once in a worktree and reused for every review there: the re-check of a fix, a
+later push to the open pull request, and the next change made in the same worktree after this one passed, was
+pushed or was merged. A passed review ends nothing. A reviewer that has reported still holds the rules it loaded,
+the review list and the code it read, and a new session would read all of it again before deciding one requirement.
+- **Kept open.** Orca closes a finished worker on its own and releases its terminal, so every review worker is
+  started with `--keep-open`; one started without it is kept with `orchestration worker-keep-open --dispatch <dispatch id>`.
+  The implementing session never stops or releases a reviewer (`worker-stop`, `worker-release`): not after a pass,
+  a push or a merge, and not to tidy up. They end with the worktree, or when the maintainer says so.
+- **Recorded.** The four reviewers are written to `docs/reviews/sessions.md` (ignored, like the decided lists)
+  when they are started: per review, the dispatch id, the model and the last commit it verified, updated after each
+  report. The implementing session of the next change is another conversation, and this file is how it finds them.
+- **Looked for before any is started.** Before a review, read `docs/reviews/sessions.md`. A reviewer it names is
+  resumed with a `send`; a new one is started only for a review the file does not name, or whose reviewer cannot be
+  reached (the `send` is refused, or the worker is exited, lost or released). Only that one is replaced, and the
+  file is updated.
+- **Told when the change is a new one.** For the same change a resumed reviewer gets the commits since the last one
+  it verified (rule P3a). For a new change (another branch, or the branch after its pull request was merged) it gets
+  what a new session gets: the whole range (`git diff main...HEAD`), the problem this change solves and, for the
+  behaviour session, the red-first evidence. It is told that this is a new change, so the decided list of the
+  previous one does not carry over and every requirement of its section is decided again.
+
+A subagent lives only as long as the implementing conversation, so where Orca is not available the four subagents
+are kept and resumed for that long, and a new conversation starts new ones and gives them the saved decided lists.
+- **Expected:** the plan keeps the Orca review workers open after they report (`--keep-open`), records their
+  dispatch ids in `docs/reviews/sessions.md`, looks there for reviewers the worktree already has and resumes them
+  before starting any, and stops or releases no reviewer after a pass, a push or a merge.
 - **Verified by:** `eval:open-pr`, `eval:update-open-pr`
 
 ### P4. The PR body is drafted from the template and agreed before publishing

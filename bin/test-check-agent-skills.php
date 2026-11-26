@@ -34,6 +34,7 @@ $cases = [
     'broken link' => [fn (string $root) => append($root, FRAMEWORK_SKILL, "\n[x](references/missing.md)\n"), 'links to references/missing.md, which does not exist'],
     'broken anchor' => [fn (string $root) => append($root, FRAMEWORK_SKILL, "\n[x](references/detail.md#nowhere)\n"), 'no heading in'],
     'framework skill linking into docs/' => [fn (string $root) => write($root, 'docs/old.md', "# Old\n") || append($root, FRAMEWORK_SKILL, "\n[x](../../../docs/old.md)\n"), 'under docs/'],
+    'backticked path of a review file a session writes' => [fn (string $root) => append($root, FRAMEWORK_SKILL, "\nRecord them in `docs/reviews/sessions.md`.\n"), null],
     'stale backticked path' => [fn (string $root) => append($root, FRAMEWORK_SKILL, "\nSee `docs/dev-workflow.md`.\n"), 'names `docs/dev-workflow.md`, which does not exist'],
     'public skill linking outside api/' => [fn (string $root) => append($root, PUBLIC_SKILL, "\n[x](../../../.agents/skills/framework-demo/SKILL.md)\n"), 'outside api/'],
     'public skill mentioning internals' => [fn (string $root) => append($root, PUBLIC_SKILL, "\nRead packages/Ecotone/src/Foo.php.\n"), "mentions 'packages/Ecotone/src/'"],

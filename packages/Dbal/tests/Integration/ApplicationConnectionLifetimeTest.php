@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -56,8 +57,8 @@ final class ApplicationConnectionLifetimeTest extends DbalMessagingTestCase
         $ecotoneLite = $this->bootstrapApplicationOn(new DbalConnectionFactory(self::databaseDsn()));
         $ecotoneLite->sendCommandWithRouting('order.place', 'order-1');
         $ecotoneLite->sendCommandWithRouting('order.place', 'order-2');
-        $ecotoneLite->run('orders');
-        $ecotoneLite->run('shipments');
+        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $ecotoneLite->run('shipments', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $this->assertSame(['order-1', 'order-2'], $ecotoneLite->sendQueryWithRouting('order.shipped'));
         $this->assertOpenConnectionsSettleAt($connectionsBefore + 1);

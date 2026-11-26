@@ -7,6 +7,7 @@ namespace App\Storage;
 use Closure;
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Throwable;
 
 final readonly class InternalDatabase
 {
@@ -26,11 +27,21 @@ final readonly class InternalDatabase
      */
     public function inTransaction(Closure $work): mixed
     {
-        return $this->connection()->transactional(function (Connection $connection) use ($work): mixed {
-            $this->takeWriteLock($connection);
+        $connection = $this->connection();
+        $startsTheTransaction = ! $connection->isTransactionActive();
+        try {
+            return $connection->transactional(function (Connection $connection) use ($work): mixed {
+                $this->takeWriteLock($connection);
 
-            return $work($connection);
-        });
+                return $work($connection);
+            });
+        } catch (Throwable $exception) {
+            if ($startsTheTransaction && $connection->isTransactionActive()) {
+                $connection->close();
+            }
+
+            throw $exception;
+        }
     }
 
     private function takeWriteLock(Connection $connection): void

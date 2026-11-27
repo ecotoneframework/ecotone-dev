@@ -4217,7 +4217,7 @@ The table is created by the migration setup feature `pulse_tracking` only, in th
 **Before:** `ecotone_error_messages` had four columns: `message_id`, `failed_at`, `payload` and `headers`.
 
 **Now:** the table Ecotone creates also has the nullable columns `partition_tracking_name`, `partition_key` and
-`partition_place`, and one index over them. They are written and read only when partition keys are held in the dead
+`partition_position`, and one index over them. They are written and read only when partition keys are held in the dead
 letter, with `#[PartitionDeadLetter]` or `PartitionDeadLetterConfiguration`: the messages of a partition key whose
 message failed follow it into the dead letter and are replayed in the order they failed.
 
@@ -4236,8 +4236,8 @@ PostgreSQL and SQLite:
 ```sql
 ALTER TABLE ecotone_error_messages ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL;
 ALTER TABLE ecotone_error_messages ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL;
-ALTER TABLE ecotone_error_messages ADD COLUMN partition_place BIGINT DEFAULT NULL;
-CREATE INDEX ecotone_error_messages_partition_idx ON ecotone_error_messages (partition_tracking_name, partition_key, partition_place);
+ALTER TABLE ecotone_error_messages ADD COLUMN partition_position BIGINT DEFAULT NULL;
+CREATE INDEX ecotone_error_messages_partition_idx ON ecotone_error_messages (partition_tracking_name, partition_key, partition_position);
 ```
 
 MySQL and MariaDB:
@@ -4246,8 +4246,8 @@ MySQL and MariaDB:
 ALTER TABLE ecotone_error_messages
     ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL,
     ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL,
-    ADD COLUMN partition_place BIGINT DEFAULT NULL,
-    ADD INDEX ecotone_error_messages_partition_idx (partition_tracking_name, partition_key, partition_place);
+    ADD COLUMN partition_position BIGINT DEFAULT NULL,
+    ADD INDEX ecotone_error_messages_partition_idx (partition_tracking_name, partition_key, partition_position);
 ```
 
 ### A channel can refuse to create its destination on send: `withRequiredExistingDestination()`

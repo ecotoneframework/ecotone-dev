@@ -34,7 +34,7 @@ use Throwable;
  */
 final class DbalHeldPartitions implements HeldPartitions
 {
-    private const COLUMNS = ['partition_tracking_name', 'partition_key', 'partition_place'];
+    private const COLUMNS = ['partition_tracking_name', 'partition_key', 'partition_position'];
 
     public function __construct(
         private CachedConnectionFactory $connectionFactory,
@@ -46,8 +46,8 @@ final class DbalHeldPartitions implements HeldPartitions
     {
         $table = $this->tableManager->getTableName();
         $this->onTable(fn () => $this->connection()->executeStatement(
-            "UPDATE {$table} SET partition_tracking_name = :trackingName, partition_key = :partitionKey, partition_place = ("
-            . "SELECT next_place FROM (SELECT COALESCE(MAX(partition_place), 0) + 1 AS next_place FROM {$table} WHERE partition_tracking_name = :trackingName AND partition_key = :partitionKey) AS places"
+            "UPDATE {$table} SET partition_tracking_name = :trackingName, partition_key = :partitionKey, partition_position = ("
+            . "SELECT next_place FROM (SELECT COALESCE(MAX(partition_position), 0) + 1 AS next_place FROM {$table} WHERE partition_tracking_name = :trackingName AND partition_key = :partitionKey) AS places"
             . ') WHERE message_id = :deadLetterId',
             ['trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'deadLetterId' => $deadLetterId],
             ['trackingName' => Types::STRING, 'partitionKey' => Types::STRING, 'deadLetterId' => Types::STRING],
@@ -60,16 +60,16 @@ final class DbalHeldPartitions implements HeldPartitions
         $this->onTable(function () use ($table, $partition, $deadLetterId, $place): void {
             if ($this->isPlaceTaken($partition, $place)) {
                 $this->connection()->executeStatement(
-                    "UPDATE {$table} SET partition_place = partition_place + 1 WHERE partition_tracking_name = :trackingName AND partition_key = :partitionKey AND partition_place >= :place",
+                    "UPDATE {$table} SET partition_position = partition_position + 1 WHERE partition_tracking_name = :trackingName AND partition_key = :partitionKey AND partition_position >= :place",
                     ['trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'place' => $place],
                     ['trackingName' => Types::STRING, 'partitionKey' => Types::STRING, 'place' => Types::BIGINT],
                 );
             }
             $this->connection()->update(
                 $table,
-                ['partition_tracking_name' => $partition->trackingName, 'partition_key' => $partition->partitionKey, 'partition_place' => $place],
+                ['partition_tracking_name' => $partition->trackingName, 'partition_key' => $partition->partitionKey, 'partition_position' => $place],
                 ['message_id' => $deadLetterId],
-                ['partition_tracking_name' => Types::STRING, 'partition_key' => Types::STRING, 'partition_place' => Types::BIGINT, 'message_id' => Types::STRING],
+                ['partition_tracking_name' => Types::STRING, 'partition_key' => Types::STRING, 'partition_position' => Types::BIGINT, 'message_id' => Types::STRING],
             );
         });
     }
@@ -78,7 +78,7 @@ final class DbalHeldPartitions implements HeldPartitions
     {
         $this->onTable(fn () => $this->connection()->update(
             $this->tableManager->getTableName(),
-            ['partition_tracking_name' => null, 'partition_key' => null, 'partition_place' => null],
+            ['partition_tracking_name' => null, 'partition_key' => null, 'partition_position' => null],
             ['message_id' => $deadLetterId],
             ['message_id' => Types::STRING],
         ));
@@ -90,7 +90,7 @@ final class DbalHeldPartitions implements HeldPartitions
             ->update($this->tableManager->getTableName())
             ->set('partition_tracking_name', 'NULL')
             ->set('partition_key', 'NULL')
-            ->set('partition_place', 'NULL')
+            ->set('partition_position', 'NULL')
             ->andWhere('partition_key IS NOT NULL')
             ->executeStatement());
     }
@@ -106,7 +106,7 @@ final class DbalHeldPartitions implements HeldPartitions
     {
         $held = $this->heldAs($deadLetterId);
 
-        return $held ? (int) $held['partition_place'] : null;
+        return $held ? (int) $held['partition_position'] : null;
     }
 
     public function oldestOf(DeadLetterPartition $partition): ?string
@@ -140,12 +140,12 @@ final class DbalHeldPartitions implements HeldPartitions
     }
 
     /**
-     * @return array{partition_tracking_name: string, partition_key: string, partition_place: int|string}|false
+     * @return array{partition_tracking_name: string, partition_key: string, partition_position: int|string}|false
      */
     private function heldAs(string $deadLetterId): array|false
     {
         return $this->onTable(fn () => $this->connection()->createQueryBuilder()
-            ->select('partition_tracking_name', 'partition_key', 'partition_place')
+            ->select('partition_tracking_name', 'partition_key', 'partition_position')
             ->from($this->tableManager->getTableName())
             ->andWhere('message_id = :deadLetterId')
             ->andWhere('partition_key IS NOT NULL')
@@ -168,7 +168,7 @@ final class DbalHeldPartitions implements HeldPartitions
     private function isPlaceTaken(DeadLetterPartition $partition, int $place): bool
     {
         return $this->deadLetterIdsOf($partition)
-            ->andWhere('partition_place = :place')
+            ->andWhere('partition_position = :place')
             ->setParameter('place', $place, Types::BIGINT)
             ->setMaxResults(1)
             ->executeQuery()
@@ -177,7 +177,7 @@ final class DbalHeldPartitions implements HeldPartitions
 
     private function inOrder(QueryBuilder $held): QueryBuilder
     {
-        return $held->orderBy('partition_place', 'ASC')->addOrderBy('failed_at', 'ASC')->addOrderBy('message_id', 'ASC');
+        return $held->orderBy('partition_position', 'ASC')->addOrderBy('failed_at', 'ASC')->addOrderBy('message_id', 'ASC');
     }
 
     private function onTable(callable $statement): mixed
@@ -197,11 +197,11 @@ final class DbalHeldPartitions implements HeldPartitions
         $table = $this->tableManager->getTableName();
         $index = $this->tableManager->getPartitionIndexName();
 
-        return "The '{$table}' table has no 'partition_tracking_name', 'partition_key' and 'partition_place' columns, which holding partition keys in the dead letter (#[PartitionDeadLetter], PartitionDeadLetterConfiguration) writes and reads. The table was created before these columns were part of it. Ecotone never alters a table while it handles a message.\n\n"
+        return "The '{$table}' table has no 'partition_tracking_name', 'partition_key' and 'partition_position' columns, which holding partition keys in the dead letter (#[PartitionDeadLetter], PartitionDeadLetterConfiguration) writes and reads. The table was created before these columns were part of it. Ecotone never alters a table while it handles a message.\n\n"
             . "Add the columns with the statement for your database:\n"
-            . "  PostgreSQL: ALTER TABLE {$table} ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_place BIGINT DEFAULT NULL; CREATE INDEX {$index} ON {$table} (partition_tracking_name, partition_key, partition_place);\n"
-            . "  MySQL and MariaDB: ALTER TABLE {$table} ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL, ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL, ADD COLUMN partition_place BIGINT DEFAULT NULL, ADD INDEX {$index} (partition_tracking_name, partition_key, partition_place);\n"
-            . "  SQLite: ALTER TABLE {$table} ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_place BIGINT DEFAULT NULL; CREATE INDEX {$index} ON {$table} (partition_tracking_name, partition_key, partition_place);\n\n"
+            . "  PostgreSQL: ALTER TABLE {$table} ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_position BIGINT DEFAULT NULL; CREATE INDEX {$index} ON {$table} (partition_tracking_name, partition_key, partition_position);\n"
+            . "  MySQL and MariaDB: ALTER TABLE {$table} ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL, ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL, ADD COLUMN partition_position BIGINT DEFAULT NULL, ADD INDEX {$index} (partition_tracking_name, partition_key, partition_position);\n"
+            . "  SQLite: ALTER TABLE {$table} ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN partition_position BIGINT DEFAULT NULL; CREATE INDEX {$index} ON {$table} (partition_tracking_name, partition_key, partition_position);\n\n"
             . 'Or stop holding partition keys: remove #[PartitionDeadLetter] and PartitionDeadLetterConfiguration.';
     }
 

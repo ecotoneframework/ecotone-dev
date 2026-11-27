@@ -110,7 +110,7 @@ final class PulseHeldPartitionsTest extends DbalMessagingTestCase
 
         $snapshot = $this->ask('ecotone.pulse.snapshot', '{}');
 
-        self::assertStringStartsWith("The 'ecotone_error_messages' table has no 'partition_tracking_name', 'partition_key' and 'partition_place' columns", $snapshot['sectionErrors']['deadLetterPartitions']);
+        self::assertStringStartsWith("The 'ecotone_error_messages' table has no 'partition_tracking_name', 'partition_key' and 'partition_position' columns", $snapshot['sectionErrors']['deadLetterPartitions']);
         self::assertStringContainsString('ALTER TABLE ecotone_error_messages ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL', $snapshot['sectionErrors']['deadLetterPartitions']);
     }
 

@@ -32,12 +32,23 @@ final class InMemoryHeldPartitions implements HeldPartitions
 
     public function hold(DeadLetterPartition $partition, string $deadLetterId): void
     {
-        $sequence = ++$this->lastSequence;
-        $this->held[] = ['deadLetterId' => $deadLetterId, 'trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'position' => $sequence, 'sequence' => $sequence];
+        $positions = [0];
+        foreach ($this->held as $held) {
+            if ($held['trackingName'] === $partition->trackingName && $held['partitionKey'] === $partition->partitionKey) {
+                $positions[] = $held['position'];
+            }
+        }
+        $this->held[] = ['deadLetterId' => $deadLetterId, 'trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'position' => max($positions) + 1, 'sequence' => ++$this->lastSequence];
+        usort($this->held, static fn (array $held, array $other): int => [$held['position'], $held['sequence']] <=> [$other['position'], $other['sequence']]);
     }
 
     public function holdAtPosition(DeadLetterPartition $partition, string $deadLetterId, int $position): void
     {
+        $isOfPartitionFromPosition = static fn (array $held): bool => $held['trackingName'] === $partition->trackingName && $held['partitionKey'] === $partition->partitionKey && $held['position'] >= $position;
+        $isPositionTaken = array_filter($this->held, static fn (array $held): bool => $isOfPartitionFromPosition($held) && $held['position'] === $position) !== [];
+        if ($isPositionTaken) {
+            $this->held = array_map(static fn (array $held): array => $isOfPartitionFromPosition($held) ? [...$held, 'position' => $held['position'] + 1] : $held, $this->held);
+        }
         $this->held[] = ['deadLetterId' => $deadLetterId, 'trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'position' => $position, 'sequence' => ++$this->lastSequence];
         usort($this->held, static fn (array $held, array $other): int => [$held['position'], $held['sequence']] <=> [$other['position'], $other['sequence']]);
     }
@@ -67,6 +78,18 @@ final class InMemoryHeldPartitions implements HeldPartitions
     public function oldestOf(DeadLetterPartition $partition): ?string
     {
         return $this->waitingOf($partition)[0] ?? null;
+    }
+
+    public function heldAmong(array $deadLetterIds): array
+    {
+        $heldAmong = [];
+        foreach ($this->held as $held) {
+            if (in_array($held['deadLetterId'], $deadLetterIds, true)) {
+                $heldAmong[$held['deadLetterId']] = ['trackingName' => $held['trackingName'], 'partitionKey' => $held['partitionKey'], 'position' => $held['position']];
+            }
+        }
+
+        return $heldAmong;
     }
 
     public function waitingOf(DeadLetterPartition $partition): array

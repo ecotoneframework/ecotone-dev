@@ -7,6 +7,7 @@ namespace Ecotone\Dbal\Recoverability\Partition;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Recoverability\DeadLetterReplayOrder;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
@@ -32,6 +33,7 @@ final class PartitionDeadLetterReplayOrder implements DeadLetterReplayOrder
     public function __construct(
         private HeldPartitions $heldPartitions,
         private MessageBuilder $messageBuilder,
+        private LoggingGateway $logger,
     ) {
     }
 
@@ -44,7 +46,33 @@ final class PartitionDeadLetterReplayOrder implements DeadLetterReplayOrder
         }));
     }
 
+    public function startOf(string $deadLetterId): string
+    {
+        $partition = $this->heldPartitions->partitionOf($deadLetterId);
+        $oldestDeadLetterId = $partition === null ? null : $this->heldPartitions->oldestOf($partition);
+        if ($oldestDeadLetterId === null || $oldestDeadLetterId === $deadLetterId) {
+            return $deadLetterId;
+        }
+
+        $this->logger->info(
+            "Replaying dead letter message `{$deadLetterId}` starts with message `{$oldestDeadLetterId}`, the oldest one of partition key `{$partition->partitionKey}` of `{$partition->trackingName}` in the dead letter, so the messages of the partition key are handled in the order they failed. "
+            . "To replay only message `{$deadLetterId}`, out of that order, pass ignorePartitionOrder: true to DeadLetterGateway::replay() or --ignorePartitionOrder to the ecotone:deadletter:replay console command."
+        );
+
+        return $oldestDeadLetterId;
+    }
+
     public function releasing(string $deadLetterId, Message $message): Message
+    {
+        return $this->returningToItsPosition(deadLetterId: $deadLetterId, message: $message, positionHeader: MessageHeaders::DEAD_LETTER_PARTITION_RELEASE);
+    }
+
+    public function ignoringPartitionOrder(string $deadLetterId, Message $message): Message
+    {
+        return $this->returningToItsPosition(deadLetterId: $deadLetterId, message: $message, positionHeader: MessageHeaders::DEAD_LETTER_PARTITION_ORDER_IGNORED);
+    }
+
+    private function returningToItsPosition(string $deadLetterId, Message $message, string $positionHeader): Message
     {
         $position = $this->heldPartitions->positionOf($deadLetterId);
         if ($position === null) {
@@ -52,7 +80,8 @@ final class PartitionDeadLetterReplayOrder implements DeadLetterReplayOrder
         }
 
         return $this->messageBuilder->fromMessage($message)
-            ->setHeader(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE, (string) $position)
+            ->removeHeaders([MessageHeaders::DEAD_LETTER_PARTITION_TRACKING_NAME, MessageHeaders::DEAD_LETTER_PARTITION_KEY, MessageHeaders::DEAD_LETTER_PARTITION_POSITION])
+            ->setHeader($positionHeader, (string) $position)
             ->build();
     }
 }

@@ -111,7 +111,50 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_a_message_replayed_before_the_older_ones_of_its_partition_key_is_handled_and_the_older_ones_follow_it(string $implementation): void
+    public function test_the_dead_letter_listing_names_the_partition_key_and_the_position_of_each_held_message(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->place($ecotone, 'broken', orderId: '2', messageId: 'm-3');
+        $ecotone->sendCommandWithRouting('partitionDeadLetter.place', 'broken', metadata: ['id' => 'm-4']);
+        $this->consume($ecotone);
+
+        $listed = [];
+        foreach ($ecotone->getGateway(DeadLetterGateway::class)->list(100, 0) as $errorContext) {
+            $listed[$errorContext->getMessageId()] = [$errorContext->partitionTrackingName, $errorContext->partitionKey, $errorContext->partitionPosition];
+        }
+        ksort($listed);
+
+        self::assertSame(
+            [
+                'm-1' => [PartitionedOrders::class, '1', 1],
+                'm-2' => [PartitionedOrders::class, '1', 2],
+                'm-3' => [PartitionedOrders::class, '2', 1],
+                'm-4' => [null, null, null],
+            ],
+            $listed,
+        );
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_shown_dead_letter_names_its_partition_key_and_position_in_its_headers(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->consume($ecotone);
+
+        $headers = $ecotone->getGateway(DeadLetterGateway::class)->show('m-2')->getHeaders();
+
+        self::assertSame(
+            [PartitionedOrders::class, '1', 2],
+            [$headers->get(MessageHeaders::DEAD_LETTER_PARTITION_TRACKING_NAME), $headers->get(MessageHeaders::DEAD_LETTER_PARTITION_KEY), $headers->get(MessageHeaders::DEAD_LETTER_PARTITION_POSITION)],
+        );
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_a_later_message_of_a_held_partition_key_handles_its_key_from_the_oldest(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation);
         $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
@@ -123,8 +166,137 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
         $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2');
         $this->consume($ecotone);
 
-        self::assertSame(['1:coffee', '1:broken', '1:tea'], $this->orders->placed);
+        self::assertSame(['1:broken', '1:coffee', '1:tea'], $this->orders->placed);
         self::assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_a_later_message_ignoring_the_partition_order_handles_only_that_message(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->consume($ecotone);
+
+        $this->orders->broken = [];
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2', ignorePartitionOrder: true);
+        $this->consume($ecotone);
+
+        self::assertSame(['1:coffee'], $this->orders->placed);
+        self::assertSame(['1' => ['m-1']], $this->heldMessageIdsByPartitionKey($ecotone));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_several_messages_of_a_held_partition_key_starts_the_key_once_from_its_oldest(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->place($ecotone, 'tea', orderId: '1', messageId: 'm-3');
+        $this->consume($ecotone);
+
+        $this->orders->broken = [];
+        $ecotone->getGateway(DeadLetterGateway::class)->replay(['m-3', 'm-1', 'm-2']);
+        $this->consume($ecotone);
+
+        self::assertSame(['1:broken', '1:coffee', '1:tea'], $this->orders->placed);
+        self::assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_partition_key_stays_held_after_one_of_its_messages_was_replayed_ignoring_the_partition_order(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->consume($ecotone);
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2', ignorePartitionOrder: true);
+        $this->consume($ecotone);
+
+        $this->place($ecotone, 'tea', orderId: '1', messageId: 'm-3');
+        $this->consume($ecotone);
+
+        self::assertSame(['1:coffee'], $this->orders->placed);
+        self::assertSame(['1' => ['m-1', 'm-3']], $this->heldMessageIdsByPartitionKey($ecotone));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_the_oldest_message_ignoring_the_partition_order_leaves_the_rest_of_its_key_held(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->consume($ecotone);
+
+        $this->orders->broken = [];
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-1', ignorePartitionOrder: true);
+        $this->consume($ecotone);
+
+        self::assertSame(['1:broken'], $this->orders->placed);
+        self::assertSame(['1' => ['m-2']], $this->heldMessageIdsByPartitionKey($ecotone));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_message_replayed_ignoring_the_partition_order_that_fails_again_returns_to_its_position(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->orders->broken = ['broken', 'coffee'];
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->place($ecotone, 'tea', orderId: '1', messageId: 'm-3');
+        $this->consume($ecotone);
+
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2', ignorePartitionOrder: true);
+        $this->consume($ecotone);
+
+        self::assertSame([], $this->orders->placed);
+        self::assertSame(['1' => ['m-1', 'm-2', 'm-3']], $this->heldMessageIdsByPartitionKey($ecotone));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_message_that_holds_no_partition_key_is_replayed_ignoring_the_partition_order_as_any_other(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $ecotone->sendCommandWithRouting('partitionDeadLetter.place', 'broken', metadata: ['id' => 'm-1']);
+        $this->consume($ecotone);
+
+        $this->orders->broken = [];
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-1', ignorePartitionOrder: true);
+        $this->consume($ecotone);
+
+        self::assertSame([':broken'], $this->orders->placed);
+        self::assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    #[DataProvider('implementations')]
+    public function test_the_console_replays_a_later_message_of_a_held_partition_key_from_the_oldest(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->consume($ecotone);
+
+        $this->orders->broken = [];
+        $ecotone->runConsoleCommand('ecotone:deadletter:replay', ['messageId' => 'm-2']);
+        $this->consume($ecotone);
+
+        self::assertSame(['1:broken', '1:coffee'], $this->orders->placed);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_the_console_replays_only_the_given_message_with_the_ignore_partition_order_option(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->consume($ecotone);
+
+        $this->orders->broken = [];
+        $ecotone->runConsoleCommand('ecotone:deadletter:replay', ['messageId' => 'm-2', 'ignorePartitionOrder' => true]);
+        $this->consume($ecotone);
+
+        self::assertSame(['1:coffee'], $this->orders->placed);
+        self::assertSame(['1' => ['m-1']], $this->heldMessageIdsByPartitionKey($ecotone));
     }
 
     #[DataProvider('implementations')]
@@ -424,6 +596,26 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
 
         self::assertSame(['1:broken', '1:coffee'], $this->orders->placed);
         self::assertSame([], $ecotone->getGateway(PartitionDeadLetterGateway::class)->list());
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    private function heldMessageIdsByPartitionKey(FlowTestSupport $ecotone): array
+    {
+        $held = [];
+        foreach ($ecotone->getGateway(DeadLetterGateway::class)->list(100, 0) as $errorContext) {
+            if ($errorContext->partitionKey !== null) {
+                $held[$errorContext->partitionKey][$errorContext->partitionPosition] = $errorContext->getMessageId();
+            }
+        }
+        ksort($held);
+
+        return array_map(static function (array $messageIdsByPosition): array {
+            ksort($messageIdsByPosition);
+
+            return array_values($messageIdsByPosition);
+        }, $held);
     }
 
     private function place(FlowTestSupport $ecotone, string $item, string $orderId, ?string $messageId = null, ?int $sentAt = null): void

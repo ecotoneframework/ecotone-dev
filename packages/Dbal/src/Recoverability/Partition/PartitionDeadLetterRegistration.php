@@ -51,6 +51,7 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
@@ -142,7 +143,7 @@ final class PartitionDeadLetterRegistration
         );
         $configuration->registerServiceDefinition(
             DeadLetterReplayOrder::class,
-            new Definition(PartitionDeadLetterReplayOrder::class, [Reference::to(HeldPartitions::class), Reference::to(MessageBuilder::class)])
+            new Definition(PartitionDeadLetterReplayOrder::class, [Reference::to(HeldPartitions::class), Reference::to(MessageBuilder::class), Reference::to(LoggingGateway::class)])
         );
         $configuration->registerServiceDefinition(
             PartitionReplay::class,
@@ -274,6 +275,7 @@ final class PartitionDeadLetterRegistration
         return new Definition(PartitionDeadLetterStore::class, [
             Reference::to($storeReference . self::PARTITION_KEY_STORE_SUFFIX),
             Reference::to(PartitionedHandlers::class),
+            Reference::to(HeldPartitions::class),
             Reference::to(MessageBuilder::class),
         ]);
     }

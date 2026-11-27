@@ -175,6 +175,10 @@ final class FrameworkHeaders
             MessageHeaders::TRACESTATE,
             MessageHeaders::TRACING_DELIVERY,
             MessageHeaders::DEAD_LETTER_PARTITION_RELEASE,
+            MessageHeaders::DEAD_LETTER_PARTITION_ORDER_IGNORED,
+            MessageHeaders::DEAD_LETTER_PARTITION_TRACKING_NAME,
+            MessageHeaders::DEAD_LETTER_PARTITION_KEY,
+            MessageHeaders::DEAD_LETTER_PARTITION_POSITION,
         ];
     }
 }

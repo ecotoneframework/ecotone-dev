@@ -22,7 +22,7 @@ class DbalDeadLetterConsoleCommand
             [
                 [DbalDeadLetterModule::LIST_COMMAND_NAME . ' {page:int}', 'List all dead messages'],
                 [DbalDeadLetterModule::SHOW_COMMAND_NAME . ' {messageId:string} {fullDetails:bool}', 'Show more details about specific message'],
-                [DbalDeadLetterModule::REPLAY_COMMAND_NAME . ' {messageId:string} {--targetChannel=}', 'Replay chosen dead message, to its source channel or to the target channel'],
+                [DbalDeadLetterModule::REPLAY_COMMAND_NAME . ' {messageId:string} {--targetChannel=} {--ignorePartitionOrder}', 'Replay chosen dead message, to its source channel or to the target channel. A message of a held partition key starts its key from the oldest message, unless the partition order is ignored'],
                 [DbalDeadLetterModule::REPLAY_ALL_COMMAND_NAME . ' {--targetChannel=}', 'Replay ALL dead messages, to their source channels or to the target channel'],
                 [DbalDeadLetterModule::DELETE_COMMAND_NAME . ' {messageId:string}', 'Delete chosen dead message'],
             ]
@@ -66,9 +66,9 @@ class DbalDeadLetterConsoleCommand
         );
     }
 
-    public function replay(DeadLetterGateway $deadLetterGateway, string $messageId, #[ConsoleParameterOption] ?string $targetChannel = null): void
+    public function replay(DeadLetterGateway $deadLetterGateway, string $messageId, #[ConsoleParameterOption] ?string $targetChannel = null, #[ConsoleParameterOption] bool $ignorePartitionOrder = false): void
     {
-        $deadLetterGateway->replay($messageId, $targetChannel);
+        $deadLetterGateway->replay(messageId: $messageId, targetChannel: $targetChannel, ignorePartitionOrder: $ignorePartitionOrder);
     }
 
     public function delete(DeadLetterGateway $deadLetterGateway, string $messageId): void

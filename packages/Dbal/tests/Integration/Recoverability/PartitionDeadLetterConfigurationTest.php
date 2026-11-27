@@ -42,7 +42,9 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
+use Psr\Log\AbstractLogger;
 use RuntimeException;
+use Stringable;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
@@ -345,6 +347,27 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         self::assertSame(['2:tea'], $handler->shipped);
         self::assertSame(1, $ecotone->getGateway(DeadLetterGateway::class)->count());
         self::assertSame([], $ecotone->getGateway(PartitionDeadLetterGateway::class)->list());
+    }
+
+    public function test_replaying_a_later_message_of_a_held_partition_key_logs_the_message_its_key_is_started_from(): void
+    {
+        $handler = $this->partitionedHandler(failing: true);
+        $logger = $this->collectingLogger();
+        $ecotone = $this->bootstrap([$handler::class], [$handler, 'logger' => $logger]);
+        $ecotone->sendCommandWithRouting('partitionConfiguration.place', 'coffee', metadata: ['orderId' => '1', 'id' => 'm-1']);
+        $ecotone->sendCommandWithRouting('partitionConfiguration.place', 'tea', metadata: ['orderId' => '1', 'id' => 'm-2']);
+        $this->consume($ecotone, 'partitionConfiguration.orders');
+
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2');
+
+        self::assertContains(
+            [
+                'info',
+                'Replaying dead letter message `m-2` starts with message `m-1`, the oldest one of partition key `1` of `' . $handler::class . '` in the dead letter, so the messages of the partition key are handled in the order they failed. '
+                . 'To replay only message `m-2`, out of that order, pass ignorePartitionOrder: true to DeadLetterGateway::replay() or --ignorePartitionOrder to the ecotone:deadletter:replay console command.',
+            ],
+            $logger->logged,
+        );
     }
 
     public function test_a_replayed_message_that_passes_on_a_delayed_retry_lets_the_next_one_of_its_partition_key_follow(): void
@@ -794,6 +817,18 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
                 if ($this->failing) {
                     throw new RuntimeException('cannot place');
                 }
+            }
+        };
+    }
+
+    private function collectingLogger(): AbstractLogger
+    {
+        return new class () extends AbstractLogger {
+            public array $logged = [];
+
+            public function log($level, string|Stringable $message, array $context = []): void
+            {
+                $this->logged[] = [$level, (string) $message];
             }
         };
     }

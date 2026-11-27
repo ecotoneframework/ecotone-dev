@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Recoverability\Partition;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Types\Types;
@@ -61,6 +62,28 @@ final class DbalHeldPartitions implements HeldPartitions
         $deadLetterId = $this->onTable(fn () => $this->deadLetterIdsOf($partition)->setMaxResults(1)->executeQuery()->fetchOne());
 
         return $deadLetterId === false ? null : (string) $deadLetterId;
+    }
+
+    public function heldAmong(array $deadLetterIds): array
+    {
+        if ($deadLetterIds === []) {
+            return [];
+        }
+
+        $heldAmong = [];
+        $held = $this->onTable(fn () => $this->connection()->createQueryBuilder()
+            ->select('message_id', 'partition_tracking_name', 'partition_key', 'partition_position')
+            ->from($this->tableManager->getTableName())
+            ->andWhere('message_id IN (:deadLetterIds)')
+            ->andWhere('partition_key IS NOT NULL')
+            ->setParameter('deadLetterIds', $deadLetterIds, ArrayParameterType::STRING)
+            ->executeQuery()
+            ->fetchAllAssociative());
+        foreach ($held as $row) {
+            $heldAmong[(string) $row['message_id']] = ['trackingName' => (string) $row['partition_tracking_name'], 'partitionKey' => (string) $row['partition_key'], 'position' => (int) $row['partition_position']];
+        }
+
+        return $heldAmong;
     }
 
     public function waitingOf(DeadLetterPartition $partition): array

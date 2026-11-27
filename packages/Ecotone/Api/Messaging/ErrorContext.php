@@ -33,8 +33,11 @@ class ErrorContext
     public readonly string $line;
     private string $code;
     private string $message;
+    public readonly ?string $partitionTrackingName;
+    public readonly ?string $partitionKey;
+    public readonly ?int $partitionPosition;
 
-    private function __construct(string $messageId, int $failedTimestamp, string $exceptionClass, string $message, string $stackTrace, string $code, string $file, string $line)
+    private function __construct(string $messageId, int $failedTimestamp, string $exceptionClass, string $message, string $stackTrace, string $code, string $file, string $line, ?string $partitionTrackingName, ?string $partitionKey, ?int $partitionPosition)
     {
         $this->messageId = $messageId;
         $this->failedTimestamp = $failedTimestamp;
@@ -44,6 +47,9 @@ class ErrorContext
         $this->line       = $line;
         $this->code       = $code;
         $this->message    = $message;
+        $this->partitionTrackingName = $partitionTrackingName;
+        $this->partitionKey = $partitionKey;
+        $this->partitionPosition = $partitionPosition;
     }
 
     public static function fromHeaders(array $messageHeaders): self
@@ -56,7 +62,10 @@ class ErrorContext
             $messageHeaders[self::EXCEPTION_STACKTRACE],
             $messageHeaders[self::EXCEPTION_CODE],
             $messageHeaders[self::EXCEPTION_FILE],
-            $messageHeaders[self::EXCEPTION_LINE]
+            $messageHeaders[self::EXCEPTION_LINE],
+            $messageHeaders[MessageHeaders::DEAD_LETTER_PARTITION_TRACKING_NAME] ?? null,
+            $messageHeaders[MessageHeaders::DEAD_LETTER_PARTITION_KEY] ?? null,
+            $messageHeaders[MessageHeaders::DEAD_LETTER_PARTITION_POSITION] ?? null,
         );
     }
 

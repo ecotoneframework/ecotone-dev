@@ -16,7 +16,17 @@ final class AnyDeadLetterReplayOrder implements DeadLetterReplayOrder
         return $deadLetterIds;
     }
 
+    public function startOf(string $deadLetterId): string
+    {
+        return $deadLetterId;
+    }
+
     public function releasing(string $deadLetterId, Message $message): Message
+    {
+        return $message;
+    }
+
+    public function ignoringPartitionOrder(string $deadLetterId, Message $message): Message
     {
         return $message;
     }

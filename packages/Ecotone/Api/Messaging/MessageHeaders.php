@@ -68,6 +68,10 @@ final class MessageHeaders
     public const REPLY_CONTENT_TYPE = 'ecotone_messaging_reply_content_type';
     public const REVISION = 'revision';
     public const DEAD_LETTER_PARTITION_RELEASE = 'ecotone_dbal_deadletter_partition_release';
+    public const DEAD_LETTER_PARTITION_ORDER_IGNORED = 'ecotone_dbal_deadletter_partition_order_ignored';
+    public const DEAD_LETTER_PARTITION_TRACKING_NAME = 'ecotone_dbal_deadletter_partition_tracking_name';
+    public const DEAD_LETTER_PARTITION_KEY = 'ecotone_dbal_deadletter_partition_key';
+    public const DEAD_LETTER_PARTITION_POSITION = 'ecotone_dbal_deadletter_partition_position';
 
     public const TRACING_ID = 'tracingId';
     public const TRACEPARENT = 'traceparent';

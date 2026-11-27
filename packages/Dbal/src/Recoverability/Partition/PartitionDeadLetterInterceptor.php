@@ -49,6 +49,9 @@ final class PartitionDeadLetterInterceptor
             return $methodInvocation->proceed();
         }
 
+        if ($message->getHeaders()->containsKey(MessageHeaders::DEAD_LETTER_PARTITION_ORDER_IGNORED)) {
+            return $methodInvocation->proceed();
+        }
         if ($message->getHeaders()->containsKey(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE)) {
             $result = $methodInvocation->proceed();
             $this->headersPropagator->storeHeaders(fn (): bool => $this->partitionReplay->continueWith($partition), $message);

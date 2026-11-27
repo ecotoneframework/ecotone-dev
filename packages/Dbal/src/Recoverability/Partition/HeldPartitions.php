@@ -31,6 +31,12 @@ interface HeldPartitions
     public function oldestOf(DeadLetterPartition $partition): ?string;
 
     /**
+     * @param list<string> $deadLetterIds
+     * @return array<string, array{trackingName: string, partitionKey: string, position: int}>
+     */
+    public function heldAmong(array $deadLetterIds): array;
+
+    /**
      * @return list<string>
      */
     public function waitingOf(DeadLetterPartition $partition): array;

@@ -295,6 +295,7 @@ final class DbalDeadLetterModule implements AnnotationModule
                 )
                     ->withParameterConverters([
                         GatewayHeaderBuilder::create('targetChannel', DbalDeadLetterBuilder::TARGET_CHANNEL_HEADER),
+                        GatewayHeaderBuilder::create('ignorePartitionOrder', DbalDeadLetterBuilder::IGNORE_PARTITION_ORDER_HEADER),
                     ])
             )
             ->registerGatewayBuilder(

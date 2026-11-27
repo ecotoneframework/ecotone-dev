@@ -17,5 +17,9 @@ interface DeadLetterReplayOrder
      */
     public function replayableOf(array $deadLetterIds): array;
 
+    public function startOf(string $deadLetterId): string;
+
     public function releasing(string $deadLetterId, Message $message): Message;
+
+    public function ignoringPartitionOrder(string $deadLetterId, Message $message): Message;
 }

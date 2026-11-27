@@ -31,7 +31,7 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
  */
 final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
 {
-    private object $orders;
+    private PartitionedOrders $orders;
 
     public static function implementations(): iterable
     {
@@ -88,7 +88,7 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
         $this->consume($ecotone);
 
         self::assertSame(
-            'Partition key `1` of `partitionDeadLetter.place.endpoint` is held in the dead letter since message `m-1` failed, so this message follows it there without being handled. Replay the partition key to handle its messages in order with PartitionDeadLetterGateway::replay(\'partitionDeadLetter.place.endpoint\', \'1\') or the ecotone:deadletter:replayPartition console command, or delete its messages from the dead letter to let new ones through.',
+            'Partition key `1` of `' . PartitionedOrders::class . '` is held in the dead letter since message `m-1` failed, so this message follows it there without being handled. Replay the partition key to handle its messages in order with PartitionDeadLetterGateway::replay(\'' . PartitionedOrders::class . '\', \'1\') or the ecotone:deadletter:replayPartition console command, or delete its messages from the dead letter to let new ones through.',
             $ecotone->getGateway(DeadLetterGateway::class)->show('m-2')->getHeaders()->get(ErrorContext::EXCEPTION_MESSAGE),
         );
     }
@@ -155,7 +155,7 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
         $ecotone->getGateway(DeadLetterGateway::class)->replay('m-1');
 
         self::assertEquals(
-            [new HeldPartition(trackingName: 'partitionDeadLetter.place.endpoint', partitionKey: '1', waitingMessages: 1, oldestMessageId: 'm-2')],
+            [new HeldPartition(trackingName: PartitionedOrders::class, partitionKey: '1', waitingMessages: 1, oldestMessageId: 'm-2')],
             $ecotone->getGateway(PartitionDeadLetterGateway::class)->list(),
         );
     }
@@ -249,7 +249,7 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
 
         $this->consume($ecotone);
         self::assertEquals(
-            [new HeldPartition(trackingName: 'partitionDeadLetter.place.endpoint', partitionKey: '1', waitingMessages: 1, oldestMessageId: 'm-1')],
+            [new HeldPartition(trackingName: PartitionedOrders::class, partitionKey: '1', waitingMessages: 1, oldestMessageId: 'm-1')],
             $ecotone->getGateway(PartitionDeadLetterGateway::class)->list(),
         );
     }
@@ -353,8 +353,8 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
 
         self::assertEquals(
             [
-                new HeldPartition(trackingName: 'partitionDeadLetter.place.endpoint', partitionKey: '1', waitingMessages: 2, oldestMessageId: 'm-1'),
-                new HeldPartition(trackingName: 'partitionDeadLetter.place.endpoint', partitionKey: '2', waitingMessages: 1, oldestMessageId: 'm-3'),
+                new HeldPartition(trackingName: PartitionedOrders::class, partitionKey: '1', waitingMessages: 2, oldestMessageId: 'm-1'),
+                new HeldPartition(trackingName: PartitionedOrders::class, partitionKey: '2', waitingMessages: 1, oldestMessageId: 'm-3'),
             ],
             $ecotone->getGateway(PartitionDeadLetterGateway::class)->list(),
         );
@@ -370,7 +370,7 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
         $this->consume($ecotone);
 
         $this->orders->broken = [];
-        $ecotone->getGateway(PartitionDeadLetterGateway::class)->replay('partitionDeadLetter.place.endpoint', '1');
+        $ecotone->getGateway(PartitionDeadLetterGateway::class)->replay(PartitionedOrders::class, '1');
         $this->consume($ecotone);
 
         self::assertSame(['1:broken', '1:coffee'], $this->orders->placed);
@@ -383,11 +383,11 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrap($implementation);
 
         $this->expectExceptionMessage(
-            'The dead letter holds no message for partition key `7` of `partitionDeadLetter.place.endpoint`: its messages were replayed or deleted already, or the tracking name and the partition key do not name a held one. '
+            'The dead letter holds no message for partition key `7` of `' . PartitionedOrders::class . '`: its messages were replayed or deleted already, or the tracking name and the partition key do not name a held one. '
             . 'List the held partition keys with PartitionDeadLetterGateway::list() or the ecotone:deadletter:listPartitions console command.'
         );
 
-        $ecotone->getGateway(PartitionDeadLetterGateway::class)->replay('partitionDeadLetter.place.endpoint', '7');
+        $ecotone->getGateway(PartitionDeadLetterGateway::class)->replay(PartitionedOrders::class, '7');
     }
 
     #[DataProvider('implementations')]
@@ -398,7 +398,7 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
         $this->place($ecotone, 'coffee', orderId: '1');
         $this->consume($ecotone);
 
-        $ecotone->getGateway(PartitionDeadLetterGateway::class)->delete('partitionDeadLetter.place.endpoint', '1');
+        $ecotone->getGateway(PartitionDeadLetterGateway::class)->delete(PartitionedOrders::class, '1');
         $this->place($ecotone, 'tea', orderId: '1');
         $this->consume($ecotone);
 
@@ -418,8 +418,8 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
 
         $this->orders->broken = [];
         $ecotone->runConsoleCommand('ecotone:deadletter:listPartitions');
-        $ecotone->runConsoleCommand('ecotone:deadletter:replayPartition', ['trackingName' => 'partitionDeadLetter.place.endpoint', 'partitionKey' => '1']);
-        $ecotone->runConsoleCommand('ecotone:deadletter:deletePartition', ['trackingName' => 'partitionDeadLetter.place.endpoint', 'partitionKey' => '2']);
+        $ecotone->runConsoleCommand('ecotone:deadletter:replayPartition', ['trackingName' => PartitionedOrders::class, 'partitionKey' => '1']);
+        $ecotone->runConsoleCommand('ecotone:deadletter:deletePartition', ['trackingName' => PartitionedOrders::class, 'partitionKey' => '2']);
         $this->consume($ecotone);
 
         self::assertSame(['1:broken', '1:coffee'], $this->orders->placed);
@@ -442,27 +442,10 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
 
     private function bootstrap(string $implementation): FlowTestSupport
     {
-        $this->orders = new class () {
-            public array $attempted = [];
-            public array $placed = [];
-            public array $broken = ['broken'];
-
-            #[PartitionDeadLetter(partitionHeaderName: 'orderId')]
-            #[Asynchronous('partitionDeadLetter.orders')]
-            #[CommandHandler('partitionDeadLetter.place', endpointId: 'partitionDeadLetter.place.endpoint')]
-            public function place(string $item, #[Header('orderId')] ?string $orderId = null): void
-            {
-                $this->attempted[] = $item;
-                if (in_array($item, $this->broken, true)) {
-                    throw new RuntimeException("cannot place {$item}");
-                }
-
-                $this->placed[] = $orderId . ':' . $item;
-            }
-        };
+        $this->orders = new PartitionedOrders();
 
         $ecotone = $this->bootstrapFlowTesting(
-            classesToResolve: [$this->orders::class],
+            classesToResolve: [PartitionedOrders::class],
             containerOrAvailableServices: [$this->orders, DbalConnectionFactory::class => $this->getConnectionFactory()],
             extensionObjects: [
                 ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'),
@@ -474,5 +457,25 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
         );
 
         return $implementation === 'in-memory' ? $ecotone : $ecotone->setupDatabaseTables();
+    }
+}
+
+final class PartitionedOrders
+{
+    public array $attempted = [];
+    public array $placed = [];
+    public array $broken = ['broken'];
+
+    #[PartitionDeadLetter(partitionHeaderName: 'orderId')]
+    #[Asynchronous('partitionDeadLetter.orders')]
+    #[CommandHandler('partitionDeadLetter.place', endpointId: 'partitionDeadLetter.place.endpoint')]
+    public function place(string $item, #[Header('orderId')] ?string $orderId = null): void
+    {
+        $this->attempted[] = $item;
+        if (in_array($item, $this->broken, true)) {
+            throw new RuntimeException("cannot place {$item}");
+        }
+
+        $this->placed[] = $orderId . ':' . $item;
     }
 }

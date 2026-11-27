@@ -145,7 +145,7 @@ final class PulseHeldPartitionsTest extends DbalMessagingTestCase
             public array $placed = [];
             public array $broken = ['broken'];
 
-            #[PartitionDeadLetter(partitionHeaderName: 'orderId')]
+            #[PartitionDeadLetter(partitionHeaderName: 'orderId', trackingName: 'pulsePartition.place.endpoint')]
             #[Asynchronous('pulsePartition.orders')]
             #[CommandHandler('pulsePartition.place', endpointId: 'pulsePartition.place.endpoint')]
             public function place(string $item): void

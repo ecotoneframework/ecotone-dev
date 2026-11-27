@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Recoverability\Partition;
 
-use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Support\MessageBuilder;

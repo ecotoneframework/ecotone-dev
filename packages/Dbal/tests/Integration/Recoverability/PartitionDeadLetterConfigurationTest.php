@@ -122,11 +122,40 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         self::assertSame(PartitionedOrder::class, $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->trackingName);
     }
 
-    public function test_a_handler_does_not_hold_the_partition_key_of_another_handler(): void
+    public function test_a_message_of_another_handler_of_the_same_class_follows_the_dead_lettered_partition_key(): void
     {
         $handlers = new class () {
             public array $handled = [];
 
+            #[PartitionDeadLetter(partitionHeaderName: 'orderId')]
+            #[Asynchronous('partitionConfiguration.orders')]
+            #[CommandHandler('partitionConfiguration.place', endpointId: 'partitionConfiguration.place.endpoint')]
+            public function place(string $item): void
+            {
+                throw new RuntimeException("cannot place {$item}");
+            }
+
+            #[PartitionDeadLetter(partitionHeaderName: 'orderId')]
+            #[Asynchronous('partitionConfiguration.orders')]
+            #[CommandHandler('partitionConfiguration.pay', endpointId: 'partitionConfiguration.pay.endpoint')]
+            public function pay(string $payment): void
+            {
+                $this->handled[] = "paid {$payment}";
+            }
+        };
+        $ecotone = $this->bootstrap([$handlers::class], [$handlers]);
+
+        $ecotone->sendCommandWithRouting('partitionConfiguration.place', 'broken', metadata: ['orderId' => '1']);
+        $ecotone->sendCommandWithRouting('partitionConfiguration.pay', 'card', metadata: ['orderId' => '1']);
+        $this->consume($ecotone, 'partitionConfiguration.orders');
+
+        self::assertSame([], $handlers->handled);
+        self::assertSame($handlers::class, $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->trackingName);
+    }
+
+    public function test_a_handler_does_not_hold_the_partition_key_of_a_handler_of_another_class(): void
+    {
+        $charging = new class () {
             #[PartitionDeadLetter(partitionHeaderName: 'orderId')]
             #[Asynchronous('partitionConfiguration.orders')]
             #[CommandHandler('partitionConfiguration.charge', endpointId: 'partitionConfiguration.charge.endpoint')]
@@ -134,8 +163,41 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
             {
                 throw new RuntimeException('charging is down');
             }
+        };
+        $packing = new class () {
+            public array $handled = [];
 
             #[PartitionDeadLetter(partitionHeaderName: 'orderId')]
+            #[Asynchronous('partitionConfiguration.orders')]
+            #[CommandHandler('partitionConfiguration.pack', endpointId: 'partitionConfiguration.pack.endpoint')]
+            public function pack(string $item): void
+            {
+                $this->handled[] = "packed {$item}";
+            }
+        };
+        $ecotone = $this->bootstrap([$charging::class, $packing::class], [$charging, $packing]);
+
+        $ecotone->sendCommandWithRouting('partitionConfiguration.charge', 'coffee', metadata: ['orderId' => '1']);
+        $ecotone->sendCommandWithRouting('partitionConfiguration.pack', 'coffee', metadata: ['orderId' => '1']);
+        $this->consume($ecotone, 'partitionConfiguration.orders');
+
+        self::assertSame(['packed coffee'], $packing->handled);
+    }
+
+    public function test_handlers_of_one_class_with_their_own_tracking_names_do_not_hold_the_partition_key_of_each_other(): void
+    {
+        $handlers = new class () {
+            public array $handled = [];
+
+            #[PartitionDeadLetter(partitionHeaderName: 'orderId', trackingName: 'order_charging')]
+            #[Asynchronous('partitionConfiguration.orders')]
+            #[CommandHandler('partitionConfiguration.charge', endpointId: 'partitionConfiguration.charge.endpoint')]
+            public function charge(string $item): void
+            {
+                throw new RuntimeException('charging is down');
+            }
+
+            #[PartitionDeadLetter(partitionHeaderName: 'orderId', trackingName: 'order_packing')]
             #[Asynchronous('partitionConfiguration.orders')]
             #[CommandHandler('partitionConfiguration.pack', endpointId: 'partitionConfiguration.pack.endpoint')]
             public function pack(string $item): void
@@ -400,7 +462,7 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $this->consume($ecotone, 'partitionConfiguration.orders');
 
         $held = $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0];
-        self::assertSame(['partitionConfiguration.place.endpoint', '1'], [$held->trackingName, $held->partitionKey]);
+        self::assertSame([$handler::class, '1'], [$held->trackingName, $held->partitionKey]);
     }
 
     public function test_a_handler_without_a_partition_key_on_a_configured_message_channel_is_handled_as_before(): void
@@ -454,7 +516,7 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $this->consume($ecotone, 'partitionConfiguration.orders');
 
         self::assertEqualsCanonicalizing(
-            ['partitionConfiguration.notifyAboutOrder', PartitionedOrder::class],
+            [$notifications::class, PartitionedOrder::class],
             array_map(static fn (HeldPartition $held): string => $held->trackingName, $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()),
         );
     }
@@ -553,6 +615,63 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         );
 
         $this->bootstrap([$handler::class], [$handler]);
+    }
+
+    public function test_handlers_of_one_class_taking_the_partition_key_from_different_sources_under_its_default_tracking_name_are_refused(): void
+    {
+        $handlers = new class () {
+            #[PartitionDeadLetter(partitionHeaderName: 'orderId')]
+            #[Asynchronous('partitionConfiguration.orders')]
+            #[CommandHandler('partitionConfiguration.place', endpointId: 'partitionConfiguration.place.endpoint')]
+            public function place(string $item): void
+            {
+            }
+
+            #[PartitionDeadLetter(partitionHeaderName: 'customerId')]
+            #[Asynchronous('partitionConfiguration.orders')]
+            #[CommandHandler('partitionConfiguration.invoice', endpointId: 'partitionConfiguration.invoice.endpoint')]
+            public function invoice(string $item): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            $handlers::class . '::place takes the partition key from the header `orderId` and ' . $handlers::class . '::invoice takes it from the header `customerId`, yet both hold it under the tracking name `' . $handlers::class . '`, the default for the handlers of one class, so the same value of two different things would hold the messages of each other. '
+            . "Take the partition key from the same source in both handlers, or give each handler its own tracking name with #[PartitionDeadLetter(trackingName: '...')]."
+        );
+
+        $this->bootstrap([$handlers::class], [$handlers]);
+    }
+
+    public function test_handlers_of_one_class_taking_the_partition_key_from_different_sources_share_a_tracking_name_they_both_name(): void
+    {
+        $handlers = new class () {
+            public array $handled = [];
+
+            #[PartitionDeadLetter(partitionHeaderName: 'orderId', trackingName: 'orders')]
+            #[Asynchronous('partitionConfiguration.orders')]
+            #[CommandHandler('partitionConfiguration.place', endpointId: 'partitionConfiguration.place.endpoint')]
+            public function place(string $item): void
+            {
+                throw new RuntimeException("cannot place {$item}");
+            }
+
+            #[PartitionDeadLetter(expression: "headers['order']", trackingName: 'orders')]
+            #[Asynchronous('partitionConfiguration.orders')]
+            #[CommandHandler('partitionConfiguration.pay', endpointId: 'partitionConfiguration.pay.endpoint')]
+            public function pay(string $payment): void
+            {
+                $this->handled[] = "paid {$payment}";
+            }
+        };
+        $ecotone = $this->bootstrap([$handlers::class], [$handlers]);
+
+        $ecotone->sendCommandWithRouting('partitionConfiguration.place', 'broken', metadata: ['orderId' => '1']);
+        $ecotone->sendCommandWithRouting('partitionConfiguration.pay', 'card', metadata: ['order' => '1']);
+        $this->consume($ecotone, 'partitionConfiguration.orders');
+
+        self::assertSame([], $handlers->handled);
     }
 
     public function test_the_attribute_naming_no_partition_key_is_refused_on_a_handler_that_has_none_by_default(): void

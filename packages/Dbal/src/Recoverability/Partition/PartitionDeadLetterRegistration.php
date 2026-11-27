@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Recoverability\Partition;
 
+use Closure;
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Aggregate;
@@ -11,8 +12,8 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\ErrorChannel;
-use Ecotone\Api\Attribute\IgnorePayload;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\IgnorePayload;
 use Ecotone\Api\Attribute\PartitionDeadLetter;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
@@ -297,10 +298,15 @@ final class PartitionDeadLetterRegistration
         self::assertEveryConfiguredAggregateIsHandledAsynchronously($aggregates, $handlers);
 
         $partitionedHandlers = [];
+        $firstHandlerUnderDefaultTrackingName = [];
         foreach ($handlers as $handler) {
             $partitionedHandler = self::partitionedHandlerOf(handler: $handler, messageChannels: $messageChannels, aggregates: $aggregates, interfaceToCallRegistry: $interfaceToCallRegistry);
             if ($partitionedHandler === null) {
                 continue;
+            }
+            if (self::attributeOf($handler)?->trackingName === null) {
+                $firstHandlerUnderDefaultTrackingName[$handler->getClassName()] ??= $handler;
+                self::assertThePartitionKeyComesFromOneSource($firstHandlerUnderDefaultTrackingName[$handler->getClassName()], $handler);
             }
 
             /** @var EndpointAnnotation $endpointAnnotation */
@@ -431,13 +437,47 @@ final class PartitionDeadLetterRegistration
             return null;
         }
 
-        /** @var EndpointAnnotation $endpointAnnotation */
-        $endpointAnnotation = $handler->getAnnotationForMethod();
-
         return new Definition(PartitionedHandler::class, [
-            $attribute?->trackingName ?? ($methodAttribute === null && ($classAttribute !== null || $isOfConfiguredAggregate) ? $handler->getClassName() : $endpointAnnotation->getEndpointId()),
+            $attribute?->trackingName ?? $handler->getClassName(),
             $partitionKey,
         ]);
+    }
+
+    private static function attributeOf(AnnotatedFinding $handler): ?PartitionDeadLetter
+    {
+        return self::firstOf($handler->getMethodAnnotations(), PartitionDeadLetter::class) ?? self::firstOf($handler->getClassAnnotations(), PartitionDeadLetter::class);
+    }
+
+    private static function assertThePartitionKeyComesFromOneSource(AnnotatedFinding $handler, AnnotatedFinding $otherHandler): void
+    {
+        $source = self::partitionKeySourceOf($handler);
+        $otherSource = self::partitionKeySourceOf($otherHandler);
+        if ($source === $otherSource) {
+            return;
+        }
+
+        throw ConfigurationException::create(
+            "{$handler->getClassName()}::{$handler->getMethodName()} takes the partition key from {$source} and {$otherHandler->getClassName()}::{$otherHandler->getMethodName()} takes it from {$otherSource}, yet both hold it under the tracking name `{$handler->getClassName()}`, the default for the handlers of one class, so the same value of two different things would hold the messages of each other. "
+            . "Take the partition key from the same source in both handlers, or give each handler its own tracking name with #[PartitionDeadLetter(trackingName: '...')]."
+        );
+    }
+
+    private static function partitionKeySourceOf(AnnotatedFinding $handler): string
+    {
+        $methodAttribute = self::firstOf($handler->getMethodAnnotations(), PartitionDeadLetter::class);
+        $attribute = self::attributeOf($handler);
+        $expression = $attribute?->getExpression();
+        if ($expression instanceof Closure) {
+            return 'the closure on ' . ($methodAttribute !== null ? "{$handler->getClassName()}::{$handler->getMethodName()}" : "class {$handler->getClassName()}");
+        }
+        if ($expression !== null && $expression !== '') {
+            return "the expression `{$expression}`";
+        }
+        if ($attribute !== null && $attribute->partitionHeaderName !== '') {
+            return "the header `{$attribute->partitionHeaderName}`";
+        }
+
+        return $handler->hasClassAnnotation(Aggregate::class) ? 'the identifier of the aggregate' : 'the aggregate that published the event';
     }
 
     private static function partitionKeyOf(AnnotatedFinding $handler, ?PartitionDeadLetter $attribute, bool $isOnMethod, InterfaceToCallRegistry $interfaceToCallRegistry): ?Definition

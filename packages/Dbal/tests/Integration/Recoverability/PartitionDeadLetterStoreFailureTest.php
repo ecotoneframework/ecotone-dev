@@ -102,7 +102,7 @@ final class PartitionDeadLetterStoreFailureTest extends DbalMessagingTestCase
             public array $placed = [];
             public array $broken = ['broken'];
 
-            #[PartitionDeadLetter(partitionHeaderName: 'orderId')]
+            #[PartitionDeadLetter(partitionHeaderName: 'orderId', trackingName: 'partitionStore.place.endpoint')]
             #[Asynchronous('partitionStore.orders')]
             #[CommandHandler('partitionStore.place', endpointId: 'partitionStore.place.endpoint')]
             public function place(string $item): void

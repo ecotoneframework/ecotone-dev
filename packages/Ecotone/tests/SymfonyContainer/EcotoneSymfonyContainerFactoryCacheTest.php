@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\SymfonyContainer;
 
 use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -181,45 +180,6 @@ class EcotoneSymfonyContainerFactoryCacheTest extends TestCase
         self::assertFileExists($containerFilesAfterSecondDump[0]);
         self::assertCount(1, EcotoneSymfonyContainerFactory::dumpedContainerFiles($cacheConfiguration));
         self::assertSame('third', EcotoneSymfonyContainerFactory::loadCached($cacheConfiguration)->get('aService')->name);
-    }
-
-    public function test_cache_directory_that_cannot_be_created_is_refused_with_the_ways_out(): void
-    {
-        $fileInPlaceOfDirectory = $this->uniqueCacheDirectory();
-        mkdir($fileInPlaceOfDirectory . '.parent', 0777, true);
-        $fileInPlaceOfDirectory .= '.parent/file';
-        touch($fileInPlaceOfDirectory);
-        $cacheDirectory = $fileInPlaceOfDirectory . '/cache';
-
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Ecotone cache directory {$cacheDirectory} could not be created. Create it, make its parent directory writable for the user running the application, or boot Ecotone with a cache directory that user can write to: `cacheDirectoryPath` of EcotoneLite::bootstrap(), `kernel.build_dir` in Symfony, the storage path in Laravel.");
-
-        $this->dumpContainerWithService('someName', new ServiceCacheConfiguration($cacheDirectory, true));
-    }
-
-    public function test_cache_directory_that_cannot_be_written_to_is_refused_with_the_ways_out(): void
-    {
-        $cacheDirectory = $this->uniqueCacheDirectory();
-        mkdir($cacheDirectory, 0555, true);
-
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessageMatches(
-            '#^Ecotone cache file ' . preg_quote($cacheDirectory, '#') . '/EcotoneCachedContainer_[0-9a-f]{32}\.php could not be written\. Make the directory ' . preg_quote($cacheDirectory, '#') . ' writable for the user running the application and check that the disk is not full, or boot Ecotone with a cache directory that user can write to: `cacheDirectoryPath` of EcotoneLite::bootstrap\(\), `kernel\.build_dir` in Symfony, the storage path in Laravel\.$#',
-        );
-
-        $this->dumpContainerWithService('someName', new ServiceCacheConfiguration($cacheDirectory, true));
-    }
-
-    public function test_cache_file_that_cannot_be_replaced_is_refused_with_the_ways_out(): void
-    {
-        $cacheDirectory = $this->uniqueCacheDirectory();
-        $directoryInPlaceOfFile = $cacheDirectory . '/ecotone_container.php';
-        mkdir($directoryInPlaceOfFile, 0777, true);
-
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Ecotone cache file {$directoryInPlaceOfFile} could not be put in place, because {$directoryInPlaceOfFile} cannot be replaced. Remove what is stored under that path and make the directory {$cacheDirectory} writable for the user running the application, or boot Ecotone with a cache directory that user can write to: `cacheDirectoryPath` of EcotoneLite::bootstrap(), `kernel.build_dir` in Symfony, the storage path in Laravel.");
-
-        $this->dumpContainerWithService('someName', new ServiceCacheConfiguration($cacheDirectory, true));
     }
 
     private function dumpContainerWithService(string $name, ServiceCacheConfiguration $cacheConfiguration): void

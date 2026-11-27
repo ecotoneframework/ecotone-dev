@@ -54,7 +54,7 @@ final class EcotoneSymfonyContainerFactory
             $builder->addCompilerPass(new RegisterInterfaceToCallReferences());
             $builder->addCompilerPass(new ValidityCheckPass());
 
-            return self::buildAndDumpWhenCached(
+            return self::build(
                 builder: $builder,
                 serviceCacheConfiguration: $serviceCacheConfiguration,
                 externalContainer: $externalContainer,
@@ -84,40 +84,6 @@ final class EcotoneSymfonyContainerFactory
         ?ContainerInterface $externalContainer = null,
         array $runtimeServices = [],
         ?string $configHash = null,
-    ): EcotoneContainer {
-        if (! $serviceCacheConfiguration->shouldUseCache()) {
-            return self::buildAndDumpWhenCached(
-                builder: $builder,
-                serviceCacheConfiguration: $serviceCacheConfiguration,
-                externalContainer: $externalContainer,
-                runtimeServices: $runtimeServices,
-                configHash: $configHash,
-            );
-        }
-
-        AtomicFile::createDirectory($serviceCacheConfiguration->getPath());
-
-        return self::whileNoOtherProcessDumps(
-            $serviceCacheConfiguration,
-            static fn (): EcotoneContainer => self::buildAndDumpWhenCached(
-                builder: $builder,
-                serviceCacheConfiguration: $serviceCacheConfiguration,
-                externalContainer: $externalContainer,
-                runtimeServices: $runtimeServices,
-                configHash: $configHash,
-            ),
-        );
-    }
-
-    /**
-     * @param array<string, object> $runtimeServices
-     */
-    private static function buildAndDumpWhenCached(
-        ContainerBuilder $builder,
-        ServiceCacheConfiguration $serviceCacheConfiguration,
-        ?ContainerInterface $externalContainer,
-        array $runtimeServices,
-        ?string $configHash,
     ): EcotoneContainer {
         $symfonyBuilder = new ResilientContainerBuilder();
         $implementation = new SymfonyContainerImplementation(
@@ -181,7 +147,7 @@ final class EcotoneSymfonyContainerFactory
         array $runtimeServices = [],
     ): ?EcotoneContainer {
         $containerFile = self::containerFilePath($serviceCacheConfiguration);
-        if (! file_exists($containerFile)) {
+        if (! is_file($containerFile)) {
             return null;
         }
 

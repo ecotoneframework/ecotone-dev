@@ -11,7 +11,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
  */
 final class AtomicFile
 {
-    private const ANOTHER_CACHE_DIRECTORY = ' or boot Ecotone with a cache directory that user can write to: `cacheDirectoryPath` of EcotoneLite::bootstrap(), `kernel.build_dir` in Symfony, the storage path in Laravel.';
+    private const ANOTHER_CACHE_DIRECTORY = ' or boot Ecotone with a cache directory that user can write to: `cacheDirectoryPath` of EcotoneLite::bootstrap(), `kernel.build_dir` in Symfony, the storage path in Laravel, the system temporary directory in Tempest.';
 
     public static function write(string $filePath, string $content): void
     {

@@ -37,9 +37,6 @@ final class ConcurrentColdBootRaceTest extends TestCase
         self::assertSame([], array_count_values($failures));
     }
 
-    /**
-     * @return string[]
-     */
     private function bootInProcessesStartedTogether(string $cacheDirectory): array
     {
         $startGate = $this->uniqueDirectory() . '.gate';
@@ -88,8 +85,8 @@ final class ConcurrentColdBootRaceTest extends TestCase
             flock(fopen($startGate, 'c'), LOCK_SH);
             $handler = new RacedCommandHandler();
             EcotoneLite::bootstrap(
-                [],
-                [RacedCommandHandler::class => $handler],
+                classesToResolve: [],
+                containerOrAvailableServices: [RacedCommandHandler::class => $handler],
                 enabledModules: [],
                 useCachedVersion: true,
                 cacheDirectoryPath: $cacheDirectory,

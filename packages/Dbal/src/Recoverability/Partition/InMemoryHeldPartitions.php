@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Recoverability\Partition;
 
+use Ecotone\Dbal\Recoverability\InMemoryDeadLetterStore;
+
 /**
  * licence Enterprise
  *
@@ -24,32 +26,8 @@ namespace Ecotone\Dbal\Recoverability\Partition;
  */
 final class InMemoryHeldPartitions implements HeldPartitions
 {
-    /**
-     * @var list<array{deadLetterId: string, trackingName: string, partitionKey: string, position: int, sequence: int}>
-     */
-    private array $held = [];
-    private int $lastSequence = 0;
-
-    public function hold(DeadLetterPartition $partition, string $deadLetterId): void
+    public function __construct(private InMemoryDeadLetterStore $deadLetterStore)
     {
-        $sequence = ++$this->lastSequence;
-        $this->held[] = ['deadLetterId' => $deadLetterId, 'trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'position' => $sequence, 'sequence' => $sequence];
-    }
-
-    public function holdAtPosition(DeadLetterPartition $partition, string $deadLetterId, int $position): void
-    {
-        $this->held[] = ['deadLetterId' => $deadLetterId, 'trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'position' => $position, 'sequence' => ++$this->lastSequence];
-        usort($this->held, static fn (array $held, array $other): int => [$held['position'], $held['sequence']] <=> [$other['position'], $other['sequence']]);
-    }
-
-    public function forget(string $deadLetterId): void
-    {
-        $this->held = array_values(array_filter($this->held, static fn (array $held): bool => $held['deadLetterId'] !== $deadLetterId));
-    }
-
-    public function forgetAll(): void
-    {
-        $this->held = [];
     }
 
     public function partitionOf(string $deadLetterId): ?DeadLetterPartition
@@ -72,7 +50,7 @@ final class InMemoryHeldPartitions implements HeldPartitions
     public function waitingOf(DeadLetterPartition $partition): array
     {
         $deadLetterIds = [];
-        foreach ($this->held as $held) {
+        foreach ($this->deadLetterStore->storedUnderPartitionKeys() as $held) {
             if ($held['trackingName'] === $partition->trackingName && $held['partitionKey'] === $partition->partitionKey) {
                 $deadLetterIds[] = $held['deadLetterId'];
             }
@@ -84,7 +62,7 @@ final class InMemoryHeldPartitions implements HeldPartitions
     public function summary(): array
     {
         $summary = [];
-        foreach ($this->held as $held) {
+        foreach ($this->deadLetterStore->storedUnderPartitionKeys() as $held) {
             $partition = $held['trackingName'] . "\0" . $held['partitionKey'];
             $summary[$partition] ??= ['trackingName' => $held['trackingName'], 'partitionKey' => $held['partitionKey'], 'waiting' => 0, 'oldestDeadLetterId' => $held['deadLetterId']];
             $summary[$partition]['waiting']++;
@@ -98,7 +76,7 @@ final class InMemoryHeldPartitions implements HeldPartitions
      */
     private function heldAs(string $deadLetterId): ?array
     {
-        foreach ($this->held as $held) {
+        foreach ($this->deadLetterStore->storedUnderPartitionKeys() as $held) {
             if ($held['deadLetterId'] === $deadLetterId) {
                 return $held;
             }

@@ -31,9 +31,10 @@ use function usort;
 final class InMemoryDeadLetterStore implements DeadLetterStore
 {
     /**
-     * @var array<string, array{payload: mixed, headers: array<string, mixed>, failedAt: int}>
+     * @var array<string, array{payload: mixed, headers: array<string, mixed>, failedAt: int, partition?: array{trackingName: string, partitionKey: string, position: int, sequence: int}}>
      */
     private array $messages = [];
+    private int $lastSequenceOfPartitionKeys = 0;
 
     public function __construct(
         private HeaderMapper $headerMapper,
@@ -57,6 +58,31 @@ final class InMemoryDeadLetterStore implements DeadLetterStore
         ];
 
         return $messageId;
+    }
+
+    public function storeUnderPartitionKey(Message $message, string $partitionTrackingName, string $partitionKey, ?int $partitionPosition): string
+    {
+        $messageId = $this->store($message);
+        $sequence = ++$this->lastSequenceOfPartitionKeys;
+        $this->messages[$messageId]['partition'] = ['trackingName' => $partitionTrackingName, 'partitionKey' => $partitionKey, 'position' => $partitionPosition ?? $sequence, 'sequence' => $sequence];
+
+        return $messageId;
+    }
+
+    /**
+     * @return list<array{deadLetterId: string, trackingName: string, partitionKey: string, position: int, sequence: int}>
+     */
+    public function storedUnderPartitionKeys(): array
+    {
+        $stored = [];
+        foreach ($this->messages as $messageId => $message) {
+            if (isset($message['partition'])) {
+                $stored[] = ['deadLetterId' => (string) $messageId] + $message['partition'];
+            }
+        }
+        usort($stored, static fn (array $one, array $other): int => [$one['position'], $one['sequence']] <=> [$other['position'], $other['sequence']]);
+
+        return $stored;
     }
 
     public function list(int $limit, int $offset): array

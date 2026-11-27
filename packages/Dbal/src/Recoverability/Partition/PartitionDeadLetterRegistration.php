@@ -122,7 +122,7 @@ final class PartitionDeadLetterRegistration
         $configuration->registerServiceDefinition(
             HeldPartitions::class,
             $dbalConfiguration->deadLetterInMemory
-                ? new Definition(InMemoryHeldPartitions::class)
+                ? new Definition(InMemoryHeldPartitions::class, [Reference::to(DbalDeadLetterBuilder::storeReferenceFor(DeadLetterGateway::class) . self::UNDIVIDED_STORE_SUFFIX)])
                 : new Definition(DbalHeldPartitions::class, [
                     CachedConnectionFactory::registerIn($configuration, $connectionReference, DbalReconnectableConnectionFactory::definitionFor($connectionReference)),
                     Reference::to(DeadLetterTableManager::class),
@@ -256,7 +256,6 @@ final class PartitionDeadLetterRegistration
         return new Definition(PartitionDeadLetterStore::class, [
             Reference::to($storeReference . self::UNDIVIDED_STORE_SUFFIX),
             Reference::to(PartitionedHandlers::class),
-            Reference::to(HeldPartitions::class),
             Reference::to(MessageBuilder::class),
         ]);
     }

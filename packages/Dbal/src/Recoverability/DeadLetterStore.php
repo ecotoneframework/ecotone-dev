@@ -14,6 +14,8 @@ interface DeadLetterStore
 {
     public function store(Message $message): string;
 
+    public function storeUnderPartitionKey(Message $message, string $partitionTrackingName, string $partitionKey, ?int $partitionPosition): string;
+
     /**
      * @return ErrorContext[]
      */

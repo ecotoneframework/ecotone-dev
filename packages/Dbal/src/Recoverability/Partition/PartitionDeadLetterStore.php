@@ -32,7 +32,6 @@ final class PartitionDeadLetterStore implements DeadLetterStore
     public function __construct(
         private DeadLetterStore $deadLetterStore,
         private PartitionedHandlers $partitionedHandlers,
-        private HeldPartitions $heldPartitions,
         private MessageBuilder $messageBuilder,
     ) {
     }
@@ -45,18 +44,20 @@ final class PartitionDeadLetterStore implements DeadLetterStore
         }
 
         if (! $message->getHeaders()->containsKey(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE)) {
-            $deadLetterId = $this->deadLetterStore->store($message);
-            $this->heldPartitions->hold($partition, $deadLetterId);
-
-            return $deadLetterId;
+            return $this->deadLetterStore->storeUnderPartitionKey($message, $partition->trackingName, $partition->partitionKey, null);
         }
 
-        $deadLetterId = $this->deadLetterStore->store(
-            $this->messageBuilder->fromMessage($message)->removeHeader(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE)->build()
+        return $this->deadLetterStore->storeUnderPartitionKey(
+            $this->messageBuilder->fromMessage($message)->removeHeader(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE)->build(),
+            $partition->trackingName,
+            $partition->partitionKey,
+            (int) $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE),
         );
-        $this->heldPartitions->holdAtPosition(partition: $partition, deadLetterId: $deadLetterId, position: (int) $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE));
+    }
 
-        return $deadLetterId;
+    public function storeUnderPartitionKey(Message $message, string $partitionTrackingName, string $partitionKey, ?int $partitionPosition): string
+    {
+        return $this->deadLetterStore->storeUnderPartitionKey($message, $partitionTrackingName, $partitionKey, $partitionPosition);
     }
 
     public function list(int $limit, int $offset): array
@@ -81,13 +82,11 @@ final class PartitionDeadLetterStore implements DeadLetterStore
 
     public function delete(string $messageId): void
     {
-        $this->heldPartitions->forget($messageId);
         $this->deadLetterStore->delete($messageId);
     }
 
     public function deleteAll(): void
     {
         $this->deadLetterStore->deleteAll();
-        $this->heldPartitions->forgetAll();
     }
 }

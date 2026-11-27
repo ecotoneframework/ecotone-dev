@@ -42,59 +42,6 @@ final class DbalHeldPartitions implements HeldPartitions
     ) {
     }
 
-    public function hold(DeadLetterPartition $partition, string $deadLetterId): void
-    {
-        $table = $this->tableManager->getTableName();
-        $this->onTable(fn () => $this->connection()->executeStatement(
-            "UPDATE {$table} SET partition_tracking_name = :trackingName, partition_key = :partitionKey, partition_position = ("
-            . "SELECT next_position FROM (SELECT COALESCE(MAX(partition_position), 0) + 1 AS next_position FROM {$table} WHERE partition_tracking_name = :trackingName AND partition_key = :partitionKey) AS positions"
-            . ') WHERE message_id = :deadLetterId',
-            ['trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'deadLetterId' => $deadLetterId],
-            ['trackingName' => Types::STRING, 'partitionKey' => Types::STRING, 'deadLetterId' => Types::STRING],
-        ));
-    }
-
-    public function holdAtPosition(DeadLetterPartition $partition, string $deadLetterId, int $position): void
-    {
-        $table = $this->tableManager->getTableName();
-        $this->onTable(function () use ($table, $partition, $deadLetterId, $position): void {
-            if ($this->isPositionTaken($partition, $position)) {
-                $this->connection()->executeStatement(
-                    "UPDATE {$table} SET partition_position = partition_position + 1 WHERE partition_tracking_name = :trackingName AND partition_key = :partitionKey AND partition_position >= :position",
-                    ['trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'position' => $position],
-                    ['trackingName' => Types::STRING, 'partitionKey' => Types::STRING, 'position' => Types::BIGINT],
-                );
-            }
-            $this->connection()->update(
-                $table,
-                ['partition_tracking_name' => $partition->trackingName, 'partition_key' => $partition->partitionKey, 'partition_position' => $position],
-                ['message_id' => $deadLetterId],
-                ['partition_tracking_name' => Types::STRING, 'partition_key' => Types::STRING, 'partition_position' => Types::BIGINT, 'message_id' => Types::STRING],
-            );
-        });
-    }
-
-    public function forget(string $deadLetterId): void
-    {
-        $this->onTable(fn () => $this->connection()->update(
-            $this->tableManager->getTableName(),
-            ['partition_tracking_name' => null, 'partition_key' => null, 'partition_position' => null],
-            ['message_id' => $deadLetterId],
-            ['message_id' => Types::STRING],
-        ));
-    }
-
-    public function forgetAll(): void
-    {
-        $this->onTable(fn () => $this->connection()->createQueryBuilder()
-            ->update($this->tableManager->getTableName())
-            ->set('partition_tracking_name', 'NULL')
-            ->set('partition_key', 'NULL')
-            ->set('partition_position', 'NULL')
-            ->andWhere('partition_key IS NOT NULL')
-            ->executeStatement());
-    }
-
     public function partitionOf(string $deadLetterId): ?DeadLetterPartition
     {
         $held = $this->heldAs($deadLetterId);
@@ -163,16 +110,6 @@ final class DbalHeldPartitions implements HeldPartitions
             ->andWhere('partition_key = :partitionKey')
             ->setParameter('trackingName', $partition->trackingName, Types::STRING)
             ->setParameter('partitionKey', $partition->partitionKey, Types::STRING));
-    }
-
-    private function isPositionTaken(DeadLetterPartition $partition, int $position): bool
-    {
-        return $this->deadLetterIdsOf($partition)
-            ->andWhere('partition_position = :position')
-            ->setParameter('position', $position, Types::BIGINT)
-            ->setMaxResults(1)
-            ->executeQuery()
-            ->fetchOne() !== false;
     }
 
     private function inOrder(QueryBuilder $held): QueryBuilder

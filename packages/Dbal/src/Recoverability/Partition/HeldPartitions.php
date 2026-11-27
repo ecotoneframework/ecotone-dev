@@ -24,14 +24,6 @@ namespace Ecotone\Dbal\Recoverability\Partition;
  */
 interface HeldPartitions
 {
-    public function hold(DeadLetterPartition $partition, string $deadLetterId): void;
-
-    public function holdAtPosition(DeadLetterPartition $partition, string $deadLetterId, int $position): void;
-
-    public function forget(string $deadLetterId): void;
-
-    public function forgetAll(): void;
-
     public function partitionOf(string $deadLetterId): ?DeadLetterPartition;
 
     public function positionOf(string $deadLetterId): ?int;

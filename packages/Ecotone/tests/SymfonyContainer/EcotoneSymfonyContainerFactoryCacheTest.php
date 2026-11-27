@@ -161,6 +161,34 @@ class EcotoneSymfonyContainerFactoryCacheTest extends TestCase
         self::assertSame($runtimeDirectory, $loaded->get('aService')->dependency->getPath());
     }
 
+    public function test_container_replaced_by_a_dump_stays_on_disk_until_the_dump_after_it(): void
+    {
+        $cacheConfiguration = new ServiceCacheConfiguration($this->uniqueCacheDirectory(), true);
+        $this->dumpContainerWithService('first', $cacheConfiguration);
+        [$firstContainerFile] = EcotoneSymfonyContainerFactory::dumpedContainerFiles($cacheConfiguration);
+
+        $this->dumpContainerWithService('second', $cacheConfiguration);
+        $containerFilesAfterSecondDump = EcotoneSymfonyContainerFactory::dumpedContainerFiles($cacheConfiguration);
+
+        self::assertFileExists($firstContainerFile);
+        self::assertCount(1, $containerFilesAfterSecondDump);
+        self::assertNotContains($firstContainerFile, $containerFilesAfterSecondDump);
+
+        $this->dumpContainerWithService('third', $cacheConfiguration);
+
+        self::assertFileDoesNotExist($firstContainerFile);
+        self::assertFileExists($containerFilesAfterSecondDump[0]);
+        self::assertCount(1, EcotoneSymfonyContainerFactory::dumpedContainerFiles($cacheConfiguration));
+        self::assertSame('third', EcotoneSymfonyContainerFactory::loadCached($cacheConfiguration)->get('aService')->name);
+    }
+
+    private function dumpContainerWithService(string $name, ServiceCacheConfiguration $cacheConfiguration): void
+    {
+        $builder = new ContainerBuilder();
+        $builder->replace('aService', new Definition(ACachedService::class, [$name]));
+        EcotoneSymfonyContainerFactory::build($builder, $cacheConfiguration);
+    }
+
     private function relocate(string $buildDirectory, string $runtimeDirectory): void
     {
         mkdir($runtimeDirectory, 0777, true);

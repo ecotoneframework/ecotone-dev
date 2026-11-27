@@ -76,6 +76,7 @@ use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\AtomicFile;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\DatabaseTransaction\ManagesOwnTransaction;
@@ -1289,14 +1290,7 @@ final class MessagingSystemConfiguration implements Configuration
             return;
         }
 
-        $cacheDirectoryPath = $serviceCacheConfiguration->getPath();
-        if (! is_dir($cacheDirectoryPath)) {
-            $mkdirResult = @mkdir($cacheDirectoryPath, 0775, true);
-            Assert::isTrue(
-                $mkdirResult,
-                "Not enough permissions to create cache directory {$cacheDirectoryPath}"
-            );
-        }
+        AtomicFile::createDirectory($serviceCacheConfiguration->getPath());
     }
 
     public function getRegisteredConsoleCommands(): array

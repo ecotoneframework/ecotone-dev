@@ -7,6 +7,7 @@ namespace Ecotone\Tempest;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
+use Ecotone\Messaging\Support\AtomicFile;
 
 /**
  * licence Apache-2.0
@@ -21,9 +22,7 @@ final class ConsoleCommandProxyGenerator
      */
     public function generate(array $commandConfigurations, string $outputDirectory, ?string $configHash = null): array
     {
-        if (! is_dir($outputDirectory)) {
-            mkdir($outputDirectory, 0777, true);
-        }
+        AtomicFile::createDirectory($outputDirectory);
 
         $generatedFiles = $this->resolveExpectedFilePaths($commandConfigurations, $outputDirectory);
 
@@ -38,7 +37,7 @@ final class ConsoleCommandProxyGenerator
         }
 
         if ($configHash !== null) {
-            file_put_contents($outputDirectory . DIRECTORY_SEPARATOR . self::HASH_MARKER_FILE, $configHash);
+            AtomicFile::write($outputDirectory . DIRECTORY_SEPARATOR . self::HASH_MARKER_FILE, $configHash);
         }
 
         return $generatedFiles;
@@ -81,7 +80,7 @@ final class ConsoleCommandProxyGenerator
         $className = $this->buildClassName($commandName);
         $filePath = $outputDirectory . DIRECTORY_SEPARATOR . $className . '.php';
 
-        file_put_contents($filePath, $this->buildProxyClassCode($className, $commandName, $configuration->getDescription(), ...$this->parameterNamesByKind($configuration)));
+        AtomicFile::write($filePath, $this->buildProxyClassCode($className, $commandName, $configuration->getDescription(), ...$this->parameterNamesByKind($configuration)));
 
         return $filePath;
     }

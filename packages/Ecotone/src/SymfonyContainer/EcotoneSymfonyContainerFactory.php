@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
+use Ecotone\Messaging\Support\AtomicFile;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\DependencyInjection\Container as SymfonyBaseContainer;
 use Symfony\Component\DependencyInjection\ContainerBuilder as SymfonyContainerBuilder;
@@ -24,6 +25,8 @@ use Symfony\Component\DependencyInjection\Dumper\PhpDumper;
  */
 final class EcotoneSymfonyContainerFactory
 {
+    private const REPLACED_CONTAINER_MARKER = '.replaced';
+
     /**
      * @param callable(): CompilerPass $messagingConfigurationFactory invoked only on cache miss
      * @param array<string, object> $additionalRuntimeServices
@@ -45,16 +48,31 @@ final class EcotoneSymfonyContainerFactory
             }
         }
 
-        $builder = new ContainerBuilder();
-        $builder->addCompilerPass($messagingConfigurationFactory());
-        $builder->addCompilerPass(new RegisterInterfaceToCallReferences());
-        $builder->addCompilerPass(new ValidityCheckPass());
+        $buildFromConfiguration = static function () use ($messagingConfigurationFactory, $serviceCacheConfiguration, $externalContainer, $runtimeServices, $configHash): EcotoneContainer {
+            $builder = new ContainerBuilder();
+            $builder->addCompilerPass($messagingConfigurationFactory());
+            $builder->addCompilerPass(new RegisterInterfaceToCallReferences());
+            $builder->addCompilerPass(new ValidityCheckPass());
 
-        if ($serviceCacheConfiguration->shouldUseCache()) {
-            MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
+            return self::build(
+                builder: $builder,
+                serviceCacheConfiguration: $serviceCacheConfiguration,
+                externalContainer: $externalContainer,
+                runtimeServices: $runtimeServices,
+                configHash: $configHash,
+            );
+        };
+
+        if (! $serviceCacheConfiguration->shouldUseCache()) {
+            return $buildFromConfiguration();
         }
 
-        return self::build($builder, $serviceCacheConfiguration, $externalContainer, $runtimeServices, $configHash);
+        MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
+
+        return self::whileNoOtherProcessDumps(
+            $serviceCacheConfiguration,
+            static fn (): EcotoneContainer => self::loadCached($serviceCacheConfiguration, $externalContainer, $runtimeServices) ?? $buildFromConfiguration(),
+        );
     }
 
     /**
@@ -129,7 +147,7 @@ final class EcotoneSymfonyContainerFactory
         array $runtimeServices = [],
     ): ?EcotoneContainer {
         $containerFile = self::containerFilePath($serviceCacheConfiguration);
-        if (! file_exists($containerFile)) {
+        if (! is_file($containerFile)) {
             return null;
         }
 
@@ -148,7 +166,39 @@ final class EcotoneSymfonyContainerFactory
      */
     public static function dumpedContainerFiles(ServiceCacheConfiguration $serviceCacheConfiguration): array
     {
+        return array_values(array_filter(
+            self::containerClassFiles($serviceCacheConfiguration),
+            static fn (string $containerClassFile): bool => ! is_file($containerClassFile . self::REPLACED_CONTAINER_MARKER),
+        ));
+    }
+
+    /**
+     * @return string[]
+     */
+    private static function containerClassFiles(ServiceCacheConfiguration $serviceCacheConfiguration): array
+    {
         return glob($serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'EcotoneCachedContainer_*.php') ?: [];
+    }
+
+    /**
+     * @param callable(): EcotoneContainer $dumpOrLoad
+     */
+    private static function whileNoOtherProcessDumps(ServiceCacheConfiguration $serviceCacheConfiguration, callable $dumpOrLoad): EcotoneContainer
+    {
+        $lock = @fopen($serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'ecotone_container.lock', 'c');
+        $isLocked = $lock !== false
+            && (@flock($lock, LOCK_EX | LOCK_NB, $anotherProcessDumps) || @flock($lock, $anotherProcessDumps ? LOCK_SH : LOCK_EX));
+
+        try {
+            return $dumpOrLoad();
+        } finally {
+            if ($isLocked) {
+                @flock($lock, LOCK_UN);
+            }
+            if ($lock !== false) {
+                fclose($lock);
+            }
+        }
     }
 
     private static function dumpToCache(
@@ -156,9 +206,6 @@ final class EcotoneSymfonyContainerFactory
         ServiceCacheConfiguration $serviceCacheConfiguration,
     ): void {
         $cacheDirectory = $serviceCacheConfiguration->getPath();
-        if (! is_dir($cacheDirectory)) {
-            mkdir($cacheDirectory, 0777, true);
-        }
         $dumper = new PhpDumper($symfonyBuilder);
         $placeholderClassName = 'EcotoneCachedContainerPlaceholder';
         $containerCode = $dumper->dump([
@@ -168,11 +215,28 @@ final class EcotoneSymfonyContainerFactory
         $className = 'EcotoneCachedContainer_' . md5($containerCode);
         $containerCode = str_replace($placeholderClassName, $className, $containerCode);
 
-        foreach (self::dumpedContainerFiles($serviceCacheConfiguration) as $staleContainerFile) {
-            @unlink($staleContainerFile);
+        $containerClassFile = $cacheDirectory . DIRECTORY_SEPARATOR . $className . '.php';
+
+        AtomicFile::write($containerClassFile, $containerCode);
+        AtomicFile::write(self::containerFilePath($serviceCacheConfiguration), self::loaderStub($className));
+        self::removeContainersReplacedBeforeAndMarkTheOnesReplacedNow($serviceCacheConfiguration, $containerClassFile);
+    }
+
+    private static function removeContainersReplacedBeforeAndMarkTheOnesReplacedNow(
+        ServiceCacheConfiguration $serviceCacheConfiguration,
+        string $currentContainerClassFile,
+    ): void {
+        foreach (self::containerClassFiles($serviceCacheConfiguration) as $containerClassFile) {
+            $replacedMarker = $containerClassFile . self::REPLACED_CONTAINER_MARKER;
+            if ($containerClassFile === $currentContainerClassFile) {
+                @unlink($replacedMarker);
+            } elseif (is_file($replacedMarker)) {
+                @unlink($containerClassFile);
+                @unlink($replacedMarker);
+            } else {
+                @touch($replacedMarker);
+            }
         }
-        file_put_contents($cacheDirectory . DIRECTORY_SEPARATOR . $className . '.php', $containerCode);
-        file_put_contents(self::containerFilePath($serviceCacheConfiguration), self::loaderStub($className));
     }
 
     private static function loaderStub(string $className): string

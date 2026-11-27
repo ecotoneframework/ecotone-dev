@@ -4218,8 +4218,8 @@ The table is created by the migration setup feature `pulse_tracking` only, in th
 
 **Now:** the table Ecotone creates also has the nullable columns `partition_tracking_name`, `partition_key` and
 `partition_position`, and one index over them. They are written and read only when partition keys are held in the dead
-letter, with `#[PartitionDeadLetter]` or `PartitionDeadLetterConfiguration`: the messages of a partition key whose
-message failed follow it into the dead letter and are replayed in the order they failed.
+letter with `#[PartitionDeadLetter]`: the messages of a partition key whose message failed follow it into the dead
+letter and are replayed in the order they failed.
 
 A table created by Ecotone 1.x or an earlier 2.0 beta keeps working without the columns: the dead letter stores,
 lists, replays and deletes as before. `ecotone:migration:database:setup` does not add them, because it leaves a table

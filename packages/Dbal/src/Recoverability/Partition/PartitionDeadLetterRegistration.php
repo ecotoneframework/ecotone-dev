@@ -17,7 +17,6 @@ use Ecotone\Api\Attribute\IgnorePayload;
 use Ecotone\Api\Attribute\PartitionDeadLetter;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
-use Ecotone\Api\Dbal\ExtensionObject\PartitionDeadLetterConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\Dbal\Gateway\PartitionDeadLetterGateway;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
@@ -87,14 +86,10 @@ final class PartitionDeadLetterRegistration
     public const UNDIVIDED_STORE_SUFFIX = '.undivided';
     private const PARTITION_KEY_STORE_SUFFIX = '.partitionKeys';
 
-    /**
-     * @param object[] $extensionObjects
-     */
-    public static function isConfiguredBy(AnnotationFinder $annotationFinder, array $extensionObjects): bool
+    public static function isConfiguredBy(AnnotationFinder $annotationFinder): bool
     {
         return $annotationFinder->findAnnotatedMethods(PartitionDeadLetter::class) !== []
-            || $annotationFinder->findAnnotatedClasses(PartitionDeadLetter::class) !== []
-            || ExtensionObjectResolver::resolve(PartitionDeadLetterConfiguration::class, $extensionObjects) !== [];
+            || $annotationFinder->findAnnotatedClasses(PartitionDeadLetter::class) !== [];
     }
 
     /**
@@ -107,7 +102,7 @@ final class PartitionDeadLetterRegistration
         array $extensionObjects,
         DbalConfiguration $dbalConfiguration,
     ): void {
-        $isConfigured = self::isConfiguredBy($annotationFinder, $extensionObjects);
+        $isConfigured = self::isConfiguredBy($annotationFinder);
         $connectionReference = $dbalConfiguration->getDeadLetterConnectionReference();
         if (! $isConfigured) {
             $configuration->registerServiceDefinition(DeadLetterReplayOrder::class, new Definition(AnyDeadLetterReplayOrder::class));
@@ -117,15 +112,15 @@ final class PartitionDeadLetterRegistration
 
         if (! $configuration->isRunningForEnterpriseLicence()) {
             throw LicensingException::create(
-                'Holding the messages of a failed partition key in the dead letter (the #[PartitionDeadLetter] attribute and PartitionDeadLetterConfiguration) requires an Ecotone Enterprise licence. '
+                'Holding the messages of a failed partition key in the dead letter (the #[PartitionDeadLetter] attribute) requires an Ecotone Enterprise licence. '
                 . 'Provide your licence key as `licenceKey` in the Symfony, Laravel or Tempest Ecotone configuration, or as the `licenceKey:` argument of EcotoneLite, or start a trial at https://ecotone.tech/pricing. '
-                . 'Alternatively, remove #[PartitionDeadLetter] and PartitionDeadLetterConfiguration.'
+                . 'Alternatively, remove #[PartitionDeadLetter].'
             );
         }
         if (! $dbalConfiguration->deadLetterEnabled) {
             throw ConfigurationException::create(
-                'The #[PartitionDeadLetter] attribute or PartitionDeadLetterConfiguration is used, yet the Dbal dead letter is switched off, so there is nowhere to hold the messages of a failed partition key. '
-                . 'Switch it on with DbalConfiguration::createWithDefaults()->withDeadLetter(true), or remove the attribute and the configuration.'
+                'The #[PartitionDeadLetter] attribute is used, yet the Dbal dead letter is switched off, so there is nowhere to hold the messages of a failed partition key. '
+                . 'Switch it on with DbalConfiguration::createWithDefaults()->withDeadLetter(true), or remove the attribute.'
             );
         }
 
@@ -252,7 +247,7 @@ final class PartitionDeadLetterRegistration
      */
     public static function pulseSections(AnnotationFinder $annotationFinder, array $extensionObjects, DbalConfiguration $dbalConfiguration): array
     {
-        if (! $dbalConfiguration->deadLetterEnabled || ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) === [] || ! self::isConfiguredBy($annotationFinder, $extensionObjects)) {
+        if (! $dbalConfiguration->deadLetterEnabled || ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) === [] || ! self::isConfiguredBy($annotationFinder)) {
             return [];
         }
 
@@ -289,18 +284,14 @@ final class PartitionDeadLetterRegistration
      */
     private static function partitionedHandlers(Configuration $configuration, AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry, array $extensionObjects): array
     {
-        $messageChannels = self::configuredMessageChannels($extensionObjects);
-        $aggregates = self::configuredAggregates($extensionObjects);
         $handlers = self::handlers($annotationFinder);
 
         self::assertEveryAttributeIsOnAnAsynchronousHandler($annotationFinder, $handlers);
-        self::assertEveryConfiguredMessageChannelIsConsumed($messageChannels, $handlers);
-        self::assertEveryConfiguredAggregateIsHandledAsynchronously($aggregates, $handlers);
 
         $partitionedHandlers = [];
         $firstHandlerUnderDefaultTrackingName = [];
         foreach ($handlers as $handler) {
-            $partitionedHandler = self::partitionedHandlerOf(handler: $handler, messageChannels: $messageChannels, aggregates: $aggregates, interfaceToCallRegistry: $interfaceToCallRegistry);
+            $partitionedHandler = self::partitionedHandlerOf(handler: $handler, interfaceToCallRegistry: $interfaceToCallRegistry);
             if ($partitionedHandler === null) {
                 continue;
             }
@@ -317,30 +308,6 @@ final class PartitionDeadLetterRegistration
         }
 
         return $partitionedHandlers;
-    }
-
-    /**
-     * @param object[] $extensionObjects
-     * @return list<string>
-     */
-    private static function configuredMessageChannels(array $extensionObjects): array
-    {
-        return array_values(array_unique(array_merge([], ...array_map(
-            static fn (PartitionDeadLetterConfiguration $partitionConfiguration): array => $partitionConfiguration->messageChannels,
-            ExtensionObjectResolver::resolve(PartitionDeadLetterConfiguration::class, $extensionObjects),
-        ))));
-    }
-
-    /**
-     * @param object[] $extensionObjects
-     * @return list<class-string>
-     */
-    private static function configuredAggregates(array $extensionObjects): array
-    {
-        return array_values(array_unique(array_merge([], ...array_map(
-            static fn (PartitionDeadLetterConfiguration $partitionConfiguration): array => $partitionConfiguration->aggregates,
-            ExtensionObjectResolver::resolve(PartitionDeadLetterConfiguration::class, $extensionObjects),
-        ))));
     }
 
     /**
@@ -368,78 +335,26 @@ final class PartitionDeadLetterRegistration
         }
     }
 
-    /**
-     * @param list<string> $messageChannels
-     * @param AnnotatedFinding[] $handlers
-     */
-    private static function assertEveryConfiguredMessageChannelIsConsumed(array $messageChannels, array $handlers): void
+    private static function partitionedHandlerOf(AnnotatedFinding $handler, InterfaceToCallRegistry $interfaceToCallRegistry): ?Definition
     {
-        $consumedMessageChannels = array_merge([], ...array_map(self::asynchronousChannelsOf(...), $handlers));
-        foreach (array_diff($messageChannels, $consumedMessageChannels) as $unusedMessageChannel) {
-            throw ConfigurationException::create(
-                "PartitionDeadLetterConfiguration::withMessageChannels() names message channel `{$unusedMessageChannel}`, yet no handler is #[Asynchronous] on it, so no partition key would ever be held for it. "
-                . "Name a message channel a handler consumes with #[Asynchronous('{$unusedMessageChannel}')], or remove it from the configuration."
-            );
-        }
-    }
-
-    /**
-     * @param list<class-string> $aggregates
-     * @param AnnotatedFinding[] $handlers
-     */
-    private static function assertEveryConfiguredAggregateIsHandledAsynchronously(array $aggregates, array $handlers): void
-    {
-        $asynchronouslyHandledClasses = array_map(
-            static fn (AnnotatedFinding $handler): string => $handler->getClassName(),
-            array_filter($handlers, static fn (AnnotatedFinding $handler): bool => self::asynchronousChannelsOf($handler) !== []),
-        );
-        foreach (array_diff($aggregates, $asynchronouslyHandledClasses) as $unusedAggregate) {
-            throw ConfigurationException::create(
-                "PartitionDeadLetterConfiguration::withAggregates() names `{$unusedAggregate}`, yet it has no #[Asynchronous] handler, so no partition key would ever be held for it. "
-                . 'Name a class with an #[Asynchronous] command or event handler, or remove it from the configuration.'
-            );
-        }
-    }
-
-    /**
-     * @param list<string> $messageChannels
-     * @param list<class-string> $aggregates
-     */
-    private static function partitionedHandlerOf(AnnotatedFinding $handler, array $messageChannels, array $aggregates, InterfaceToCallRegistry $interfaceToCallRegistry): ?Definition
-    {
-        $asynchronousChannels = self::asynchronousChannelsOf($handler);
-        if ($asynchronousChannels === []) {
+        if (self::asynchronousChannelsOf($handler) === []) {
             return null;
         }
 
-        /** @var PartitionDeadLetter|null $methodAttribute */
-        $methodAttribute = self::firstOf($handler->getMethodAnnotations(), PartitionDeadLetter::class);
-        /** @var PartitionDeadLetter|null $classAttribute */
-        $classAttribute = self::firstOf($handler->getClassAnnotations(), PartitionDeadLetter::class);
-        $attribute = $methodAttribute ?? $classAttribute;
+        $attribute = self::attributeOf($handler);
+        if ($attribute === null) {
+            return null;
+        }
         if ($handler->hasClassAnnotation(Projection::class)) {
-            if ($attribute !== null) {
-                throw ConfigurationException::create(
-                    "#[PartitionDeadLetter] is placed on projection {$handler->getClassName()}, yet a projection is not held by partition key: it reads its stream from its own position and stops there when an event fails. "
-                    . 'Remove #[PartitionDeadLetter] from the projection; to keep a failing aggregate from stopping the others, partition the projection itself with #[Partitioned].'
-                );
-            }
-
-            return null;
-        }
-        $isOfConfiguredAggregate = in_array($handler->getClassName(), $aggregates, true);
-        if ($attribute === null && ! $isOfConfiguredAggregate && array_intersect($asynchronousChannels, $messageChannels) === []) {
-            return null;
-        }
-
-        $partitionKey = self::partitionKeyOf(handler: $handler, attribute: $attribute, isOnMethod: $methodAttribute !== null, interfaceToCallRegistry: $interfaceToCallRegistry);
-        if ($partitionKey === null) {
-            return null;
+            throw ConfigurationException::create(
+                "#[PartitionDeadLetter] is placed on projection {$handler->getClassName()}, yet a projection is not held by partition key: it reads its stream from its own position and stops there when an event fails. "
+                . 'Remove #[PartitionDeadLetter] from the projection; to keep a failing aggregate from stopping the others, partition the projection itself with #[Partitioned].'
+            );
         }
 
         return new Definition(PartitionedHandler::class, [
-            $attribute?->trackingName ?? $handler->getClassName(),
-            $partitionKey,
+            $attribute->trackingName ?? $handler->getClassName(),
+            self::partitionKeyOf(handler: $handler, attribute: $attribute, interfaceToCallRegistry: $interfaceToCallRegistry),
         ]);
     }
 
@@ -480,12 +395,13 @@ final class PartitionDeadLetterRegistration
         return $handler->hasClassAnnotation(Aggregate::class) ? 'the identifier of the aggregate' : 'the aggregate that published the event';
     }
 
-    private static function partitionKeyOf(AnnotatedFinding $handler, ?PartitionDeadLetter $attribute, bool $isOnMethod, InterfaceToCallRegistry $interfaceToCallRegistry): ?Definition
+    private static function partitionKeyOf(AnnotatedFinding $handler, PartitionDeadLetter $attribute, InterfaceToCallRegistry $interfaceToCallRegistry): Definition
     {
+        $isOnMethod = self::firstOf($handler->getMethodAnnotations(), PartitionDeadLetter::class) !== null;
         $placement = $isOnMethod ? "{$handler->getClassName()}::{$handler->getMethodName()}" : "class {$handler->getClassName()}";
-        $expression = $attribute?->getExpression();
+        $expression = $attribute->getExpression();
         $hasExpression = $expression !== null && $expression !== '';
-        $partitionHeaderName = $attribute === null ? '' : $attribute->partitionHeaderName;
+        $partitionHeaderName = $attribute->partitionHeaderName;
 
         if ($hasExpression && $partitionHeaderName !== '') {
             throw ConfigurationException::create(
@@ -515,9 +431,6 @@ final class PartitionDeadLetterRegistration
         }
         if ($handler->getAnnotationForMethod() instanceof EventHandler) {
             return new Definition(PublishingAggregatePartitionKey::class);
-        }
-        if ($attribute === null) {
-            return null;
         }
 
         throw ConfigurationException::create(
@@ -567,7 +480,7 @@ final class PartitionDeadLetterRegistration
             "{$handler->getClassName()}::{$handler->getMethodName()} holds failed partition keys in the dead letter, yet its failed messages " . ($deadLetterChannel === null ? 'are sent to no error channel' : "end in `{$deadLetterChannel}`")
             . ", not in the Dbal dead letter `{$storeChannel}`, so a failed partition key would never be held. "
             . "Send them there with ServiceConfiguration::withDefaultErrorChannel('{$storeChannel}'), with ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', \$retries, '{$storeChannel}') as the default error channel's handler, "
-            . "or on the handler with #[Asynchronous('{$asynchronousChannel}', asynchronousExecution: [new ErrorChannel('{$storeChannel}')])]; or remove #[PartitionDeadLetter] and PartitionDeadLetterConfiguration for this handler."
+            . "or on the handler with #[Asynchronous('{$asynchronousChannel}', asynchronousExecution: [new ErrorChannel('{$storeChannel}')])]; or remove #[PartitionDeadLetter] from this handler and its class."
         );
     }
 

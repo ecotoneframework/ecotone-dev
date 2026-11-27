@@ -21,7 +21,6 @@ use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
-use Ecotone\Api\Dbal\ExtensionObject\PartitionDeadLetterConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\Dbal\Gateway\HeldPartition;
 use Ecotone\Api\Dbal\Gateway\PartitionDeadLetterGateway;
@@ -53,16 +52,16 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
 final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
 {
     private const HOW_TO_ADD_THE_PARTITION_COLUMNS =
-        "The 'ecotone_error_messages' table has no 'partition_tracking_name', 'partition_key' and 'partition_position' columns, which holding partition keys in the dead letter (#[PartitionDeadLetter], PartitionDeadLetterConfiguration) writes and reads. The table was created before these columns were part of it. Ecotone never alters a table while it handles a message.\n\n"
+        "The 'ecotone_error_messages' table has no 'partition_tracking_name', 'partition_key' and 'partition_position' columns, which holding partition keys in the dead letter (#[PartitionDeadLetter]) writes and reads. The table was created before these columns were part of it. Ecotone never alters a table while it handles a message.\n\n"
         . "Add the columns with the statement for your database:\n"
         . "  PostgreSQL: ALTER TABLE ecotone_error_messages ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_error_messages ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_error_messages ADD COLUMN partition_position BIGINT DEFAULT NULL; CREATE INDEX ecotone_error_messages_partition_idx ON ecotone_error_messages (partition_tracking_name, partition_key, partition_position);\n"
         . "  MySQL and MariaDB: ALTER TABLE ecotone_error_messages ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL, ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL, ADD COLUMN partition_position BIGINT DEFAULT NULL, ADD INDEX ecotone_error_messages_partition_idx (partition_tracking_name, partition_key, partition_position);\n"
         . "  SQLite: ALTER TABLE ecotone_error_messages ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_error_messages ADD COLUMN partition_key VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_error_messages ADD COLUMN partition_position BIGINT DEFAULT NULL; CREATE INDEX ecotone_error_messages_partition_idx ON ecotone_error_messages (partition_tracking_name, partition_key, partition_position);\n\n"
-        . 'Or stop holding partition keys: remove #[PartitionDeadLetter] and PartitionDeadLetterConfiguration.';
+        . 'Or stop holding partition keys: remove #[PartitionDeadLetter].';
 
-    public function test_a_message_channel_holds_the_events_of_a_failed_aggregate_and_not_those_of_another_aggregate_with_the_same_identifier(): void
+    public function test_an_event_listener_class_holds_the_events_of_a_failed_aggregate_and_not_those_of_another_aggregate_with_the_same_identifier(): void
     {
-        $notifications = new class () {
+        $notifications = new #[PartitionDeadLetter] class () {
             public array $notified = [];
             public array $broken = [PartitionedOrderChanged::class];
 
@@ -87,7 +86,6 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrap(
             [$notifications::class, PartitionedOrder::class, PartitionedInvoice::class],
             [$notifications],
-            [PartitionDeadLetterConfiguration::create()->withMessageChannels(['partitionConfiguration.notifications'])],
         );
 
         $ecotone->sendCommandWithRouting('partitionConfiguration.order.place', '1');
@@ -104,11 +102,7 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
 
     public function test_an_aggregate_holds_every_asynchronous_command_of_the_instance_whose_command_failed(): void
     {
-        $ecotone = $this->bootstrap(
-            [PartitionedOrder::class],
-            [],
-            [PartitionDeadLetterConfiguration::create()->withAggregates([PartitionedOrder::class])],
-        );
+        $ecotone = $this->bootstrap([PartitionedOrder::class], []);
         $ecotone->sendCommandWithRouting('partitionConfiguration.order.place', '1');
         $ecotone->sendCommandWithRouting('partitionConfiguration.order.place', '2');
 
@@ -453,47 +447,9 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         self::assertSame(['order_placing', '1'], [$held->trackingName, $held->partitionKey]);
     }
 
-    public function test_the_attribute_is_used_instead_of_the_configuration_of_the_message_channel_its_handler_consumes(): void
+    public function test_an_aggregate_and_the_listener_of_its_events_hold_their_partition_keys_under_their_own_tracking_names(): void
     {
-        $handler = $this->partitionedHandler(failing: true);
-        $ecotone = $this->bootstrap([$handler::class], [$handler], [PartitionDeadLetterConfiguration::create()->withMessageChannels(['partitionConfiguration.orders'])]);
-
-        $ecotone->sendCommandWithRouting('partitionConfiguration.place', 'coffee', metadata: ['orderId' => '1']);
-        $this->consume($ecotone, 'partitionConfiguration.orders');
-
-        $held = $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0];
-        self::assertSame([$handler::class, '1'], [$held->trackingName, $held->partitionKey]);
-    }
-
-    public function test_a_handler_without_a_partition_key_on_a_configured_message_channel_is_handled_as_before(): void
-    {
-        $handler = new class () {
-            public array $handled = [];
-
-            #[Asynchronous('partitionConfiguration.orders')]
-            #[CommandHandler('partitionConfiguration.place', endpointId: 'partitionConfiguration.place.endpoint')]
-            public function place(string $item): void
-            {
-                if ($item === 'broken') {
-                    throw new RuntimeException('cannot place');
-                }
-
-                $this->handled[] = $item;
-            }
-        };
-        $ecotone = $this->bootstrap([$handler::class], [$handler], [PartitionDeadLetterConfiguration::create()->withMessageChannels(['partitionConfiguration.orders'])]);
-
-        $ecotone->sendCommandWithRouting('partitionConfiguration.place', 'broken');
-        $ecotone->sendCommandWithRouting('partitionConfiguration.place', 'coffee');
-        $this->consume($ecotone, 'partitionConfiguration.orders');
-
-        self::assertSame(['coffee'], $handler->handled);
-        self::assertSame([], $ecotone->getGateway(PartitionDeadLetterGateway::class)->list());
-    }
-
-    public function test_message_channels_and_aggregates_configured_separately_are_both_held(): void
-    {
-        $notifications = new class () {
+        $notifications = new #[PartitionDeadLetter] class () {
             #[Asynchronous('partitionConfiguration.notifications')]
             #[EventHandler(endpointId: 'partitionConfiguration.notifyAboutOrder')]
             public function notifyAboutOrder(PartitionedOrderChanged $event): void
@@ -504,10 +460,6 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrap(
             [$notifications::class, PartitionedOrder::class],
             [$notifications],
-            [
-                PartitionDeadLetterConfiguration::create()->withMessageChannels(['partitionConfiguration.notifications']),
-                PartitionDeadLetterConfiguration::create()->withAggregates([PartitionedOrder::class]),
-            ],
         );
 
         $ecotone->sendCommandWithRouting('partitionConfiguration.order.place', '1');
@@ -564,11 +516,12 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         self::assertSame(2, $ecotone->getGateway(DeadLetterGateway::class)->count());
     }
 
-    public function test_a_message_channel_holds_the_events_of_a_failed_event_sourced_aggregate(): void
+    public function test_an_event_handler_holds_the_events_of_a_failed_event_sourced_aggregate(): void
     {
         $ledger = new class () {
             public array $recorded = [];
 
+            #[PartitionDeadLetter]
             #[Asynchronous('partitionConfiguration.ledger')]
             #[EventHandler(endpointId: 'partitionConfiguration.recordInLedger')]
             public function record(PartitionedWalletCredited $event): void
@@ -583,7 +536,6 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrap(
             [$ledger::class, PartitionedWallet::class],
             [$ledger],
-            [PartitionDeadLetterConfiguration::create()->withMessageChannels(['partitionConfiguration.ledger'])],
         );
 
         $ecotone->sendCommandWithRouting('partitionConfiguration.wallet.open', '1');
@@ -761,9 +713,9 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
 
         $this->expectException(LicensingException::class);
         $this->expectExceptionMessage(
-            'Holding the messages of a failed partition key in the dead letter (the #[PartitionDeadLetter] attribute and PartitionDeadLetterConfiguration) requires an Ecotone Enterprise licence. '
+            'Holding the messages of a failed partition key in the dead letter (the #[PartitionDeadLetter] attribute) requires an Ecotone Enterprise licence. '
             . 'Provide your licence key as `licenceKey` in the Symfony, Laravel or Tempest Ecotone configuration, or as the `licenceKey:` argument of EcotoneLite, or start a trial at https://ecotone.tech/pricing. '
-            . 'Alternatively, remove #[PartitionDeadLetter] and PartitionDeadLetterConfiguration.'
+            . 'Alternatively, remove #[PartitionDeadLetter].'
         );
 
         $this->bootstrap([$handler::class], [$handler], licenceKey: null);
@@ -775,8 +727,8 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
-            'The #[PartitionDeadLetter] attribute or PartitionDeadLetterConfiguration is used, yet the Dbal dead letter is switched off, so there is nowhere to hold the messages of a failed partition key. '
-            . 'Switch it on with DbalConfiguration::createWithDefaults()->withDeadLetter(true), or remove the attribute and the configuration.'
+            'The #[PartitionDeadLetter] attribute is used, yet the Dbal dead letter is switched off, so there is nowhere to hold the messages of a failed partition key. '
+            . 'Switch it on with DbalConfiguration::createWithDefaults()->withDeadLetter(true), or remove the attribute.'
         );
 
         $this->bootstrap([$handler::class], [$handler], dbalConfiguration: DbalConfiguration::createWithDefaults()->withDeadLetter(false));
@@ -801,32 +753,6 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $this->bootstrap([$handler::class], [$handler]);
     }
 
-    public function test_a_configured_message_channel_no_handler_consumes_is_refused(): void
-    {
-        $handler = $this->partitionedHandler();
-
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(
-            'PartitionDeadLetterConfiguration::withMessageChannels() names message channel `partitionConfiguration.unknown`, yet no handler is #[Asynchronous] on it, so no partition key would ever be held for it. '
-            . "Name a message channel a handler consumes with #[Asynchronous('partitionConfiguration.unknown')], or remove it from the configuration."
-        );
-
-        $this->bootstrap([$handler::class], [$handler], [PartitionDeadLetterConfiguration::create()->withMessageChannels(['partitionConfiguration.unknown'])]);
-    }
-
-    public function test_a_configured_aggregate_without_an_asynchronous_handler_is_refused(): void
-    {
-        $handler = $this->partitionedHandler();
-
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(
-            'PartitionDeadLetterConfiguration::withAggregates() names `' . PartitionedInvoice::class . '`, yet it has no #[Asynchronous] handler, so no partition key would ever be held for it. '
-            . 'Name a class with an #[Asynchronous] command or event handler, or remove it from the configuration.'
-        );
-
-        $this->bootstrap([$handler::class, PartitionedInvoice::class], [$handler], [PartitionDeadLetterConfiguration::create()->withAggregates([PartitionedInvoice::class])]);
-    }
-
     public function test_a_handler_whose_failed_messages_do_not_end_in_the_dbal_dead_letter_is_refused(): void
     {
         $handler = $this->partitionedHandler();
@@ -835,7 +761,7 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $this->expectExceptionMessage(
             'holds failed partition keys in the dead letter, yet its failed messages end in `partitionConfiguration.errors`, not in the Dbal dead letter `dbal_dead_letter`, so a failed partition key would never be held. '
             . "Send them there with ServiceConfiguration::withDefaultErrorChannel('dbal_dead_letter'), with ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', \$retries, 'dbal_dead_letter') as the default error channel's handler, "
-            . "or on the handler with #[Asynchronous('partitionConfiguration.orders', asynchronousExecution: [new ErrorChannel('dbal_dead_letter')])]; or remove #[PartitionDeadLetter] and PartitionDeadLetterConfiguration for this handler."
+            . "or on the handler with #[Asynchronous('partitionConfiguration.orders', asynchronousExecution: [new ErrorChannel('dbal_dead_letter')])]; or remove #[PartitionDeadLetter] from this handler and its class."
         );
 
         $this->bootstrap([$handler::class], [$handler], errorChannel: 'partitionConfiguration.errors');
@@ -960,6 +886,7 @@ final class PartitionedInvoiceIssued
 }
 
 #[Aggregate]
+#[PartitionDeadLetter]
 final class PartitionedOrder
 {
     use WithEvents;

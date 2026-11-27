@@ -103,7 +103,7 @@ final class DbalDeadLetterModule implements AnnotationModule
             extensionObjects: $extensionObjects,
             dbalConfiguration: $dbalConfiguration,
         );
-        $holdsPartitions = PartitionDeadLetterRegistration::isConfiguredBy($this->annotationFinder, $extensionObjects);
+        $holdsPartitions = PartitionDeadLetterRegistration::isConfiguredBy($this->annotationFinder);
 
         if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) !== []) {
             $this->registerPulseActions($messagingConfiguration, $interfaceToCallRegistry, $isDeadLetterEnabled, $serviceConfiguration->serviceName);

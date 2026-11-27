@@ -9,9 +9,9 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\PartitionDeadLetter;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
-use Ecotone\Api\Dbal\ExtensionObject\PartitionDeadLetterConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\Dbal\Gateway\PartitionDeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -94,6 +94,7 @@ final class KafkaPartitionDeadLetterTest extends TestCase
             public array $notified = [];
             public bool $broken = true;
 
+            #[PartitionDeadLetter]
             #[Asynchronous('kafkaPartition.notifications')]
             #[EventHandler(endpointId: 'kafkaPartition.notifyAboutOrder')]
             public function notifyAboutOrder(KafkaPartitionedOrderChanged $event): void
@@ -116,7 +117,6 @@ final class KafkaPartitionDeadLetterTest extends TestCase
             ],
             extensionObjects: [
                 KafkaMessageChannelBuilder::create('kafkaPartition.notifications', topicName: 'kafka_partition_dead_letter_' . Uuid::v7()->toRfc4122()),
-                PartitionDeadLetterConfiguration::create()->withMessageChannels(['kafkaPartition.notifications']),
                 DbalConfiguration::createWithDefaults(),
                 InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'),

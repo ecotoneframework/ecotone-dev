@@ -8,6 +8,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Recoverability\DeadLetterStore;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -38,7 +39,7 @@ final class PartitionDeadLetterStore implements DeadLetterStore
 
     public function store(Message $message): string
     {
-        $partition = $this->partitionedHandlers->partitionOf($message);
+        $partition = $this->partitionToHoldFor($message);
         if ($partition === null) {
             return $this->deadLetterStore->store($message);
         }
@@ -52,6 +53,15 @@ final class PartitionDeadLetterStore implements DeadLetterStore
             partition: $partition,
             position: (int) $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE),
         );
+    }
+
+    private function partitionToHoldFor(Message $message): ?DeadLetterPartition
+    {
+        try {
+            return $this->partitionedHandlers->partitionOf($message);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     public function list(int $limit, int $offset): array

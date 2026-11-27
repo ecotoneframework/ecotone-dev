@@ -42,6 +42,7 @@ use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
+use InvalidArgumentException;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
@@ -264,6 +265,30 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
 
         self::assertSame(['2:tea'], $handler->placed);
         self::assertSame('1', $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->partitionKey);
+    }
+
+    public function test_a_message_whose_partition_key_cannot_be_calculated_is_dead_lettered_without_holding_a_key_and_the_next_ones_are_handled(): void
+    {
+        $handler = new class () {
+            public array $shipped = [];
+
+            #[PartitionDeadLetter(expression: 'payload.partitionKey()')]
+            #[Asynchronous('partitionConfiguration.orders')]
+            #[CommandHandler(endpointId: 'partitionConfiguration.ship.endpoint')]
+            public function ship(PartitionedShipOrder $command): void
+            {
+                $this->shipped[] = "{$command->orderId}:{$command->item}";
+            }
+        };
+        $ecotone = $this->bootstrapOnADbalChannel([$handler::class], [$handler], 'partitionConfiguration.orders');
+
+        $ecotone->sendCommand(new PartitionedShipOrder('', 'coffee'));
+        $ecotone->sendCommand(new PartitionedShipOrder('2', 'tea'));
+        $ecotone->run('partitionConfiguration.orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withHandledMessageLimit(10));
+
+        self::assertSame(['2:tea'], $handler->shipped);
+        self::assertSame(1, $ecotone->getGateway(DeadLetterGateway::class)->count());
+        self::assertSame([], $ecotone->getGateway(PartitionDeadLetterGateway::class)->list());
     }
 
     public function test_a_replayed_message_that_passes_on_a_delayed_retry_lets_the_next_one_of_its_partition_key_follow(): void
@@ -782,6 +807,22 @@ final class PartitionedPlaceOrder
 {
     public function __construct(public readonly string $orderId, public readonly string $item)
     {
+    }
+}
+
+final class PartitionedShipOrder
+{
+    public function __construct(public readonly string $orderId, public readonly string $item)
+    {
+    }
+
+    public function partitionKey(): string
+    {
+        if ($this->orderId === '') {
+            throw new InvalidArgumentException('the order to ship has no id');
+        }
+
+        return $this->orderId;
     }
 }
 

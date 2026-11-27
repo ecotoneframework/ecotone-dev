@@ -13,7 +13,6 @@ use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
-use Ecotone\Api\Dbal\Gateway\PartitionDeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -47,7 +46,6 @@ final class PartitionDeadLetterReleaseFailureTest extends DbalMessagingTestCase
 
         self::assertSame(['broken', 'coffee'], $this->orders->placed);
         self::assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
-        self::assertSame([], $ecotone->getGateway(PartitionDeadLetterGateway::class)->list());
     }
 
     public function test_a_replayed_message_dead_lettered_after_its_transaction_committed_is_not_handled_again_when_it_is_replayed_and_lets_the_next_one_follow(): void
@@ -62,7 +60,7 @@ final class PartitionDeadLetterReleaseFailureTest extends DbalMessagingTestCase
         self::assertSame(['broken'], $this->orders->placed);
         self::assertSame(2, $ecotone->getGateway(DeadLetterGateway::class)->count());
 
-        $ecotone->getGateway(PartitionDeadLetterGateway::class)->replay('partitionRelease.place.endpoint', '1');
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2');
         $this->consume($ecotone);
 
         self::assertSame(['broken', 'coffee'], $this->orders->placed);
@@ -81,6 +79,67 @@ final class PartitionDeadLetterReleaseFailureTest extends DbalMessagingTestCase
 
         self::assertSame(['broken', 'broken', 'coffee'], $this->orders->placed);
         self::assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    public function test_a_message_replayed_ignoring_the_partition_order_failing_after_its_transaction_committed_is_not_handled_again_and_its_partition_key_stays_held(): void
+    {
+        $ecotone = $this->bootstrap(DbalConfiguration::createWithDefaults());
+        $this->failTheFirstOfTwoMessagesOfOrder($ecotone);
+
+        $this->connectionLoss->failuresAfterCommit = 1;
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2', ignorePartitionOrder: true);
+        $this->consume($ecotone);
+
+        self::assertSame(['coffee'], $this->orders->placed);
+        self::assertSame(['m-1'], $this->heldMessageIds($ecotone));
+    }
+
+    public function test_a_message_replayed_ignoring_the_partition_order_dead_lettered_after_its_transaction_committed_returns_to_its_position_and_is_not_handled_again(): void
+    {
+        $ecotone = $this->bootstrap(DbalConfiguration::createWithDefaults(), instantRetries: false);
+        $this->failTheFirstOfTwoMessagesOfOrder($ecotone);
+
+        $this->connectionLoss->failuresAfterCommit = 1;
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2', ignorePartitionOrder: true);
+        $this->consume($ecotone);
+        self::assertSame(['coffee'], $this->orders->placed);
+        self::assertSame(['m-1', 'm-2'], $this->heldMessageIds($ecotone));
+
+        $this->orders->broken = [];
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-1');
+        $this->consume($ecotone);
+
+        self::assertSame(['coffee', 'broken'], $this->orders->placed);
+        self::assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    public function test_without_deduplication_a_message_replayed_ignoring_the_partition_order_failing_after_its_transaction_committed_is_handled_again_and_its_partition_key_stays_held(): void
+    {
+        $ecotone = $this->bootstrap(DbalConfiguration::createWithDefaults()->withDeduplication(false));
+        $this->failTheFirstOfTwoMessagesOfOrder($ecotone);
+
+        $this->connectionLoss->failuresAfterCommit = 1;
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2', ignorePartitionOrder: true);
+        $this->consume($ecotone);
+
+        self::assertSame(['coffee', 'coffee'], $this->orders->placed);
+        self::assertSame(['m-1'], $this->heldMessageIds($ecotone));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function heldMessageIds(FlowTestSupport $ecotone): array
+    {
+        $held = [];
+        foreach ($ecotone->getGateway(DeadLetterGateway::class)->list(100, 0) as $errorContext) {
+            if ($errorContext->partitionKey !== null) {
+                $held[$errorContext->partitionPosition] = $errorContext->getMessageId();
+            }
+        }
+        ksort($held);
+
+        return array_values($held);
     }
 
     private function failTheFirstOfTwoMessagesOfOrder(FlowTestSupport $ecotone): void

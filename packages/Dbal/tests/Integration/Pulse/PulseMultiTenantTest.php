@@ -220,17 +220,17 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         $this->orderService->sendCommandWithRouting('order.place', 'eggs', metadata: ['tenant' => 'tenant_a', 'orderId' => '1']);
         $this->orderService->sendCommandWithRouting('order.place', 'bread', metadata: ['tenant' => 'tenant_b', 'orderId' => '1']);
         $this->consumeAsync(2);
-        $heldInTenantA = $this->requestSnapshot('tenant_a')['deadLetterPartitions'];
+        $heldInTenantA = $this->requestSnapshot('tenant_a')['deadLetters']['heldPartitions'];
 
         self::assertSame([['bread', 'tenant_b']], $this->orders->replayed);
         self::assertSame([1, 2], [$heldInTenantA['total'], $heldInTenantA['partitions'][0]['waitingMessages']]);
-        self::assertSame(0, $this->requestSnapshot('tenant_b')['deadLetterPartitions']['total']);
+        self::assertSame(0, $this->requestSnapshot('tenant_b')['deadLetters']['heldPartitions']['total']);
 
         $this->ask('ecotone.pulse.dead_letter.replay', json_encode(['messageIds' => [$heldInTenantA['partitions'][0]['oldestMessageId']]]), 'tenant_a');
         $this->consumeAsync(2);
 
         self::assertSame([['bread', 'tenant_b'], ['milk', 'tenant_a'], ['eggs', 'tenant_a']], $this->orders->replayed);
-        self::assertSame(0, $this->requestSnapshot('tenant_a')['deadLetterPartitions']['total']);
+        self::assertSame(0, $this->requestSnapshot('tenant_a')['deadLetters']['heldPartitions']['total']);
     }
 
     public function test_deleting_dead_letters_deletes_them_from_the_tenant_that_was_asked(): void

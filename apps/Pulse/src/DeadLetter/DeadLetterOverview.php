@@ -144,7 +144,7 @@ final class DeadLetterOverview
      */
     private static function heldPartitionsOf(ServiceSnapshot $snapshot): array
     {
-        $partitions = $snapshot->snapshot['deadLetterPartitions']['partitions'] ?? [];
+        $partitions = $snapshot->snapshot['deadLetters']['heldPartitions']['partitions'] ?? [];
         $heldPartitions = [];
         foreach (is_array($partitions) ? $partitions : [] as $partition) {
             if (! is_array($partition) || ! is_string($partition['trackingName'] ?? null) || ! is_string($partition['partitionKey'] ?? null) || ! is_string($partition['oldestMessageId'] ?? null)) {

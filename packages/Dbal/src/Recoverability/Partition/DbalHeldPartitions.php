@@ -86,29 +86,6 @@ final class DbalHeldPartitions implements HeldPartitions
         return $heldAmong;
     }
 
-    public function waitingOf(DeadLetterPartition $partition): array
-    {
-        return array_map('strval', $this->onTable(fn () => $this->deadLetterIdsOf($partition)->executeQuery()->fetchFirstColumn()));
-    }
-
-    public function summary(): array
-    {
-        $summary = [];
-        $held = $this->onTable(fn () => $this->inOrder($this->connection()->createQueryBuilder()
-            ->select('message_id', 'partition_tracking_name', 'partition_key')
-            ->from($this->tableManager->getTableName())
-            ->andWhere('partition_key IS NOT NULL'))
-            ->executeQuery()
-            ->fetchAllAssociative());
-        foreach ($held as $row) {
-            $partition = $row['partition_tracking_name'] . "\0" . $row['partition_key'];
-            $summary[$partition] ??= ['trackingName' => (string) $row['partition_tracking_name'], 'partitionKey' => (string) $row['partition_key'], 'waiting' => 0, 'oldestDeadLetterId' => (string) $row['message_id']];
-            $summary[$partition]['waiting']++;
-        }
-
-        return array_values($summary);
-    }
-
     /**
      * @return array{partition_tracking_name: string, partition_key: string, partition_position: int|string}|false
      */

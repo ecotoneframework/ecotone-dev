@@ -7,10 +7,11 @@ namespace Test\Ecotone\Dbal\Integration\ClosureInAttribute;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
-use Ecotone\Api\Dbal\Gateway\PartitionDeadLetterGateway;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RequiresPhp;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -44,7 +45,7 @@ final class PartitionDeadLetterClosureTest extends DbalMessagingTestCase
         $ecotone->run('closurePartition.orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
 
         self::assertSame(['2:tea'], $handler->placed);
-        self::assertSame('1', $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->partitionKey);
+        self::assertSame(['1', '1'], array_map(static fn (ErrorContext $errorContext): ?string => $errorContext->partitionKey, $ecotone->getGateway(DeadLetterGateway::class)->list(100, 0)));
     }
 
     public function test_the_partition_key_is_calculated_by_a_closure_over_the_command_of_a_dbal_channel(): void
@@ -68,6 +69,6 @@ final class PartitionDeadLetterClosureTest extends DbalMessagingTestCase
         $ecotone->run('closurePartition.orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withHandledMessageLimit(10));
 
         self::assertSame(['2:tea'], $handler->placed);
-        self::assertSame('1', $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->partitionKey);
+        self::assertSame(['1', '1'], array_map(static fn (ErrorContext $errorContext): ?string => $errorContext->partitionKey, $ecotone->getGateway(DeadLetterGateway::class)->list(100, 0)));
     }
 }

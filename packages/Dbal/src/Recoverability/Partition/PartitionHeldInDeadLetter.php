@@ -30,7 +30,7 @@ final class PartitionHeldInDeadLetter extends RuntimeException
     {
         return new self(
             "Partition key `{$partition->partitionKey}` of `{$partition->trackingName}` is held in the dead letter since message `{$holdingDeadLetterId}` failed, so this message follows it there without being handled. "
-            . "Replay the partition key to handle its messages in order with PartitionDeadLetterGateway::replay('{$partition->trackingName}', '{$partition->partitionKey}') or the ecotone:deadletter:replayPartition console command, or delete its messages from the dead letter to let new ones through."
+            . "Replay any message of the partition key to handle them all in the order they failed, with DeadLetterGateway::replay('{$holdingDeadLetterId}') or the ecotone:deadletter:replay console command; replay only this message, out of that order, with ignorePartitionOrder: true or --ignorePartitionOrder; or delete the messages of the partition key from the dead letter to let new ones through."
         );
     }
 }

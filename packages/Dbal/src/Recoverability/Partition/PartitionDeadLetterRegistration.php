@@ -18,12 +18,10 @@ use Ecotone\Api\Attribute\PartitionDeadLetter;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
-use Ecotone\Api\Dbal\Gateway\PartitionDeadLetterGateway;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Projecting\Projection;
-use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Recoverability\AnyDeadLetterReplayOrder;
@@ -32,14 +30,12 @@ use Ecotone\Dbal\Recoverability\DeadLetterReplayOrder;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncEndpointAnnotationContext;
@@ -47,21 +43,16 @@ use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutorCompiler;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
-use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
-use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadConverter;
 use Ecotone\Messaging\Handler\Recoverability\DeadLetterChannels;
-use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 
 /**
@@ -174,85 +165,6 @@ final class PartitionDeadLetterRegistration
                 pointcut: AsynchronousRunningEndpoint::class,
             )
         );
-        self::registerGateway($configuration, $interfaceToCallRegistry);
-        $configuration->registerServiceDefinition(PulseHeldPartitions::class, new Definition(PulseHeldPartitions::class, [Reference::to(HeldPartitions::class)]));
-        self::registerConsoleCommands($configuration, $interfaceToCallRegistry);
-    }
-
-    private static function registerGateway(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry): void
-    {
-        $partition = [
-            HeaderBuilder::create('trackingName', PartitionDeadLetterActions::TRACKING_NAME_HEADER),
-            HeaderBuilder::create('partitionKey', PartitionDeadLetterActions::PARTITION_KEY_HEADER),
-        ];
-        $partitionOfGateway = [
-            GatewayHeaderBuilder::create('trackingName', PartitionDeadLetterActions::TRACKING_NAME_HEADER),
-            GatewayHeaderBuilder::create('partitionKey', PartitionDeadLetterActions::PARTITION_KEY_HEADER),
-        ];
-        $configuration->registerServiceDefinition(
-            PartitionDeadLetterActions::class,
-            new Definition(PartitionDeadLetterActions::class, [
-                Reference::to(HeldPartitions::class),
-                Reference::to(PartitionReplay::class),
-                Reference::to(DeadLetterHandler::class . '.' . DeadLetterGateway::class),
-            ])
-        );
-        $configuration
-            ->registerMessageHandler(
-                MessageProcessorActivatorBuilder::createForMethod(PartitionDeadLetterActions::class, $interfaceToCallRegistry->getFor(PartitionDeadLetterActions::class, 'list'))
-                    ->withInputChannelName(PartitionDeadLetterActions::LIST_CHANNEL)
-            )
-            ->registerMessageHandler(
-                MessageProcessorActivatorBuilder::createForMethod(PartitionDeadLetterActions::class, $interfaceToCallRegistry->getFor(PartitionDeadLetterActions::class, 'replay'))
-                    ->withInputChannelName(PartitionDeadLetterActions::REPLAY_CHANNEL)
-                    ->withMethodParameterConverters($partition)
-            )
-            ->registerMessageHandler(
-                MessageProcessorActivatorBuilder::createForMethod(PartitionDeadLetterActions::class, $interfaceToCallRegistry->getFor(PartitionDeadLetterActions::class, 'delete'))
-                    ->withInputChannelName(PartitionDeadLetterActions::DELETE_CHANNEL)
-                    ->withMethodParameterConverters($partition)
-            )
-            ->registerGatewayBuilder(GatewayProxyBuilder::create(referenceName: PartitionDeadLetterGateway::class, interfaceName: PartitionDeadLetterGateway::class, methodName: 'list', requestChannelName: PartitionDeadLetterActions::LIST_CHANNEL))
-            ->registerGatewayBuilder(
-                GatewayProxyBuilder::create(referenceName: PartitionDeadLetterGateway::class, interfaceName: PartitionDeadLetterGateway::class, methodName: 'replay', requestChannelName: PartitionDeadLetterActions::REPLAY_CHANNEL)
-                    ->withParameterConverters($partitionOfGateway)
-            )
-            ->registerGatewayBuilder(
-                GatewayProxyBuilder::create(referenceName: PartitionDeadLetterGateway::class, interfaceName: PartitionDeadLetterGateway::class, methodName: 'delete', requestChannelName: PartitionDeadLetterActions::DELETE_CHANNEL)
-                    ->withParameterConverters($partitionOfGateway)
-            );
-    }
-
-    private static function registerConsoleCommands(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry): void
-    {
-        $configuration->registerServiceDefinition(PartitionDeadLetterConsoleCommand::class, new Definition(PartitionDeadLetterConsoleCommand::class));
-        foreach ([
-            'listPartitions' => [PartitionDeadLetterConsoleCommand::LIST_COMMAND_NAME, 'Lists the partition keys held in the dead letter'],
-            'replayPartition' => [PartitionDeadLetterConsoleCommand::REPLAY_COMMAND_NAME, 'Replays the messages of a held partition key in the order they failed'],
-            'deletePartition' => [PartitionDeadLetterConsoleCommand::DELETE_COMMAND_NAME, 'Deletes the messages of a held partition key, letting new ones through'],
-        ] as $methodName => [$commandName, $description]) {
-            [$messageHandlerBuilder, $consoleCommand] = ConsoleCommandModule::prepareConsoleCommandForReference(
-                reference: new Reference(PartitionDeadLetterConsoleCommand::class),
-                interfaceToCallReference: new InterfaceToCallReference(PartitionDeadLetterConsoleCommand::class, $methodName),
-                commandName: $commandName,
-                interfaceToCallRegistry: $interfaceToCallRegistry,
-                description: $description,
-            );
-            $configuration->registerMessageHandler($messageHandlerBuilder)->registerConsoleCommand($consoleCommand);
-        }
-    }
-
-    /**
-     * @param object[] $extensionObjects
-     * @return PulseSnapshotSectionRegistration[]
-     */
-    public static function pulseSections(AnnotationFinder $annotationFinder, array $extensionObjects, DbalConfiguration $dbalConfiguration): array
-    {
-        if (! $dbalConfiguration->deadLetterEnabled || ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) === [] || ! self::isConfiguredBy($annotationFinder)) {
-            return [];
-        }
-
-        return [new PulseSnapshotSectionRegistration(sectionName: PulseHeldPartitions::SECTION_NAME, serviceReference: PulseHeldPartitions::class, tenantScoped: true)];
     }
 
     public static function dividing(Definition $deadLetterStore, string $storeReference, string $connectionFactoryReference, bool $isInMemory, Configuration $configuration): Definition

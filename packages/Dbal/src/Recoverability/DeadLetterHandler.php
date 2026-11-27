@@ -90,15 +90,6 @@ final class DeadLetterHandler
      * @param list<string> $messageIds
      * @return list<string>
      */
-    public function replayableOf(array $messageIds): array
-    {
-        return $this->replayOrder->replayableOf($messageIds);
-    }
-
-    /**
-     * @param list<string> $messageIds
-     * @return list<string>
-     */
     public function startsOf(array $messageIds): array
     {
         return array_values(array_unique(array_map($this->replayOrder->startOf(...), $messageIds)));

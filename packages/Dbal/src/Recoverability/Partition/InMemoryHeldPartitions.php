@@ -77,7 +77,13 @@ final class InMemoryHeldPartitions implements HeldPartitions
 
     public function oldestOf(DeadLetterPartition $partition): ?string
     {
-        return $this->waitingOf($partition)[0] ?? null;
+        foreach ($this->held as $held) {
+            if ($held['trackingName'] === $partition->trackingName && $held['partitionKey'] === $partition->partitionKey) {
+                return $held['deadLetterId'];
+            }
+        }
+
+        return null;
     }
 
     public function heldAmong(array $deadLetterIds): array
@@ -90,30 +96,6 @@ final class InMemoryHeldPartitions implements HeldPartitions
         }
 
         return $heldAmong;
-    }
-
-    public function waitingOf(DeadLetterPartition $partition): array
-    {
-        $deadLetterIds = [];
-        foreach ($this->held as $held) {
-            if ($held['trackingName'] === $partition->trackingName && $held['partitionKey'] === $partition->partitionKey) {
-                $deadLetterIds[] = $held['deadLetterId'];
-            }
-        }
-
-        return $deadLetterIds;
-    }
-
-    public function summary(): array
-    {
-        $summary = [];
-        foreach ($this->held as $held) {
-            $partition = $held['trackingName'] . "\0" . $held['partitionKey'];
-            $summary[$partition] ??= ['trackingName' => $held['trackingName'], 'partitionKey' => $held['partitionKey'], 'waiting' => 0, 'oldestDeadLetterId' => $held['deadLetterId']];
-            $summary[$partition]['waiting']++;
-        }
-
-        return array_values($summary);
     }
 
     /**

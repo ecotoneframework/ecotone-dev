@@ -19,8 +19,6 @@ use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
-use Ecotone\Api\Dbal\Gateway\HeldPartition;
-use Ecotone\Api\Dbal\Gateway\PartitionDeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -54,7 +52,7 @@ final class PartitionDeadLetterStoreFailureTest extends DbalMessagingTestCase
         $this->consume($ecotone);
 
         self::assertSame(1, $ecotone->getGateway(DeadLetterGateway::class)->count());
-        self::assertSame([['partitionStore.place.endpoint', '1', 1, 'm-1']], $this->heldPartitions($ecotone));
+        self::assertSame([['partitionStore.place.endpoint', '1', 'm-1']], $this->held($ecotone));
     }
 
     public function test_a_failed_message_delivered_again_after_its_store_kept_failing_is_in_the_dead_letter_once_and_handled_first_when_its_partition_key_is_replayed(): void
@@ -68,10 +66,10 @@ final class PartitionDeadLetterStoreFailureTest extends DbalMessagingTestCase
         $this->consume($ecotone);
 
         self::assertSame(2, $ecotone->getGateway(DeadLetterGateway::class)->count());
-        self::assertSame([['partitionStore.place.endpoint', '1', 2, 'm-1']], $this->heldPartitions($ecotone));
+        self::assertSame([['partitionStore.place.endpoint', '1', 'm-1'], ['partitionStore.place.endpoint', '1', 'm-2']], $this->held($ecotone));
 
         $this->orders->broken = [];
-        $ecotone->getGateway(PartitionDeadLetterGateway::class)->replay('partitionStore.place.endpoint', '1');
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2');
         $this->consume($ecotone);
 
         self::assertSame(['broken', 'coffee'], $this->orders->placed);
@@ -88,12 +86,20 @@ final class PartitionDeadLetterStoreFailureTest extends DbalMessagingTestCase
         $ecotone->run('partitionStore.orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
     }
 
-    private function heldPartitions(FlowTestSupport $ecotone): array
+    /**
+     * @return list<array{string, string, string}>
+     */
+    private function held(FlowTestSupport $ecotone): array
     {
-        return array_map(
-            static fn (HeldPartition $partition): array => [$partition->trackingName, $partition->partitionKey, $partition->waitingMessages, $partition->oldestMessageId],
-            $ecotone->getGateway(PartitionDeadLetterGateway::class)->list(),
-        );
+        $held = [];
+        foreach ($ecotone->getGateway(DeadLetterGateway::class)->list(100, 0) as $errorContext) {
+            if ($errorContext->partitionKey !== null) {
+                $held[$errorContext->partitionPosition] = [$errorContext->partitionTrackingName, $errorContext->partitionKey, $errorContext->getMessageId()];
+            }
+        }
+        ksort($held);
+
+        return array_values($held);
     }
 
     private function bootstrap(): FlowTestSupport

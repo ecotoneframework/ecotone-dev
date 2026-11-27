@@ -4224,8 +4224,8 @@ letter and are replayed in the order they failed.
 A table created by Ecotone 1.x or an earlier 2.0 beta keeps working without the columns: the dead letter stores,
 lists, replays and deletes as before. `ecotone:migration:database:setup` does not add them, because it leaves a table
 that already exists as it is. Once partition keys are held, the first failed message of a partitioned handler, and
-each listing of the held partition keys, fails on such a table with a `ConfigurationException` naming the statements
-below.
+each listing or showing of the dead letters such a table holds, fails with a `ConfigurationException` naming the
+statements below.
 
 **How to adapt:** nothing, unless you hold partition keys in the dead letter. Before you switch that on, add the
 columns and the index for your database, replacing `ecotone_error_messages` with your table name. The statements are

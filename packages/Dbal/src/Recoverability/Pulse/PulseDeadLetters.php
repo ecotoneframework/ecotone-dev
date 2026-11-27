@@ -32,21 +32,27 @@ use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSection;
 final class PulseDeadLetters implements PulseSnapshotSection
 {
     private const RECENT_LIMIT = 100;
+    private const HELD_PARTITIONS_LIMIT = 100;
 
     public function __construct(private DeadLetterStore $store)
     {
     }
 
     /**
-     * @return array{total: int, groups: list<array{failureId: string, messageName: string, exceptionClass: string, exceptionFile: string, exceptionLine: int, exceptionMessage: string, count: int, firstFailedAt: string, lastFailedAt: string}>, recent: array<array<string, mixed>>}
+     * @return array{total: int, heldPartitions: array{total: int, partitions: list<array{trackingName: string, partitionKey: string, waitingMessages: int, oldestMessageId: string, messageIds: list<string>}>}, groups: list<array{failureId: string, messageName: string, exceptionClass: string, exceptionFile: string, exceptionLine: int, exceptionMessage: string, count: int, firstFailedAt: string, lastFailedAt: string}>, recent: array<array<string, mixed>>}
      */
     public function snapshot(): array
     {
         $failures = [];
         $recent = [];
+        $held = [];
         foreach (PulseDeadLetterScan::newestFirst($this->store) as $entry) {
             $failureId = $entry->failureId();
             $failedAt = $entry->failedAt();
+            $heldPartition = $entry->heldPartition();
+            if ($heldPartition !== null) {
+                $held[$heldPartition['trackingName'] . "\0" . $heldPartition['partitionKey']][] = [$heldPartition['position'], $failedAt->format('U.u'), $entry->messageId(), $heldPartition];
+            }
             if (! isset($failures[$failureId])) {
                 $failures[$failureId] = [
                     'failureId' => $failureId,
@@ -74,7 +80,36 @@ final class PulseDeadLetters implements PulseSnapshotSection
         );
         usort($groups, fn (array $first, array $second): int => [$second['count'], $second['lastFailedAt'], $first['failureId']] <=> [$first['count'], $first['lastFailedAt'], $second['failureId']]);
 
-        return ['total' => $this->store->count(), 'groups' => $groups, 'recent' => $recent];
+        return ['total' => $this->store->count(), 'heldPartitions' => self::heldPartitionsOf($held), 'groups' => $groups, 'recent' => $recent];
+    }
+
+    /**
+     * @param array<string, list<array{int, string, string, array{trackingName: string, partitionKey: string, position: int}}>> $held
+     * @return array{total: int, partitions: list<array{trackingName: string, partitionKey: string, waitingMessages: int, oldestMessageId: string, messageIds: list<string>}>}
+     */
+    private static function heldPartitionsOf(array $held): array
+    {
+        $partitions = [];
+        foreach ($held as $waiting) {
+            sort($waiting);
+            $partitions[] = [
+                'trackingName' => $waiting[0][3]['trackingName'],
+                'partitionKey' => $waiting[0][3]['partitionKey'],
+                'waitingMessages' => count($waiting),
+                'oldestMessageId' => $waiting[0][2],
+                'messageIds' => array_column($waiting, 2),
+                'oldestFailedAt' => $waiting[0][1],
+            ];
+        }
+        usort($partitions, static fn (array $first, array $second): int => [$first['oldestFailedAt'], $first['trackingName'], $first['partitionKey']] <=> [$second['oldestFailedAt'], $second['trackingName'], $second['partitionKey']]);
+
+        return [
+            'total' => count($partitions),
+            'partitions' => array_map(
+                static fn (array $partition): array => array_diff_key($partition, ['oldestFailedAt' => true]),
+                array_slice($partitions, 0, self::HELD_PARTITIONS_LIMIT),
+            ),
+        ];
     }
 
     public function revision(): ?string

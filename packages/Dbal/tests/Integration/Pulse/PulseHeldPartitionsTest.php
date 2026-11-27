@@ -23,6 +23,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -58,7 +59,7 @@ final class PulseHeldPartitionsTest extends DbalMessagingTestCase
                 ['trackingName' => 'pulsePartition.place.endpoint', 'partitionKey' => '1', 'waitingMessages' => 2, 'oldestMessageId' => 'm-1', 'messageIds' => ['m-1', 'm-2']],
                 ['trackingName' => 'pulsePartition.place.endpoint', 'partitionKey' => '2', 'waitingMessages' => 1, 'oldestMessageId' => 'm-3', 'messageIds' => ['m-3']],
             ],
-            $this->ask('ecotone.pulse.snapshot', '{}')['deadLetterPartitions']['partitions'],
+            $this->ask('ecotone.pulse.snapshot', '{}')['deadLetters']['heldPartitions']['partitions'],
         );
     }
 
@@ -75,7 +76,42 @@ final class PulseHeldPartitionsTest extends DbalMessagingTestCase
         $this->consumeOrders();
 
         self::assertSame(['broken', 'coffee'], $this->orders->placed);
-        self::assertSame([], $this->ask('ecotone.pulse.snapshot', '{}')['deadLetterPartitions']['partitions']);
+        self::assertSame([], $this->ask('ecotone.pulse.snapshot', '{}')['deadLetters']['heldPartitions']['partitions']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_later_messages_of_a_held_partition_key_from_pulse_starts_the_key_once_with_its_oldest_message(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->place('broken', orderId: '1', messageId: 'm-1');
+        $this->place('coffee', orderId: '1', messageId: 'm-2');
+        $this->place('tea', orderId: '1', messageId: 'm-3');
+        $this->consumeOrders();
+
+        $this->orders->broken = [];
+        $reply = $this->ask('ecotone.pulse.dead_letter.replay', '{"messageIds": ["m-3", "m-2"]}');
+        $this->consumeOrders();
+
+        self::assertSame(1, $reply['deadLetterAction']['affected']);
+        self::assertSame(['broken', 'coffee', 'tea'], $this->orders->placed);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_by_a_filter_that_matches_only_the_messages_following_a_held_partition_key_starts_the_key_with_its_oldest_message(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->place('broken', orderId: '1', messageId: 'm-1');
+        $this->place('coffee', orderId: '1', messageId: 'm-2');
+        $this->consumeOrders();
+        $followingFailureId = $this->ask('ecotone.pulse.snapshot', '{}')['deadLetters']['recent'];
+        $followingFailureId = array_values(array_filter($followingFailureId, static fn (array $entry): bool => $entry['messageId'] === 'm-2'))[0]['failureId'];
+
+        $this->orders->broken = [];
+        $reply = $this->ask('ecotone.pulse.dead_letter.replay', json_encode(['filter' => ['failureId' => $followingFailureId]]));
+        $this->consumeOrders();
+
+        self::assertSame(1, $reply['deadLetterAction']['affected']);
+        self::assertSame(['broken', 'coffee'], $this->orders->placed);
     }
 
     #[DataProvider('implementations')]
@@ -107,11 +143,12 @@ final class PulseHeldPartitionsTest extends DbalMessagingTestCase
         $table->setPrimaryKey(['message_id']);
         $this->getConnectionFactory()->createContext()->getDbalConnection()->createSchemaManager()->createTable($table);
         $this->bootstrap('dbal');
+        $this->orderService->getGateway(DeadLetterGateway::class)->store(StaticMessageBuilder::withPayload('failed')->build());
 
         $snapshot = $this->ask('ecotone.pulse.snapshot', '{}');
 
-        self::assertStringStartsWith("The 'ecotone_error_messages' table has no 'partition_tracking_name', 'partition_key' and 'partition_position' columns", $snapshot['sectionErrors']['deadLetterPartitions']);
-        self::assertStringContainsString('ALTER TABLE ecotone_error_messages ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL', $snapshot['sectionErrors']['deadLetterPartitions']);
+        self::assertStringStartsWith("The 'ecotone_error_messages' table has no 'partition_tracking_name', 'partition_key' and 'partition_position' columns", $snapshot['sectionErrors']['deadLetters']);
+        self::assertStringContainsString('ALTER TABLE ecotone_error_messages ADD COLUMN partition_tracking_name VARCHAR(255) DEFAULT NULL', $snapshot['sectionErrors']['deadLetters']);
     }
 
     private function place(string $item, string $orderId, ?string $messageId = null): void

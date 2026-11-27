@@ -22,8 +22,6 @@ use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
-use Ecotone\Api\Dbal\Gateway\HeldPartition;
-use Ecotone\Api\Dbal\Gateway\PartitionDeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
@@ -32,6 +30,7 @@ use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Modelling\WithEvents;
@@ -41,6 +40,7 @@ use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticMessageBuilder;
 use InvalidArgumentException;
 use Psr\Log\AbstractLogger;
 use RuntimeException;
@@ -115,7 +115,7 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
 
         self::assertSame(['placed'], $ecotone->getAggregate(PartitionedOrder::class, '1')->changes);
         self::assertSame(['placed', 'cancelled'], $ecotone->getAggregate(PartitionedOrder::class, '2')->changes);
-        self::assertSame(PartitionedOrder::class, $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->trackingName);
+        self::assertSame(PartitionedOrder::class, $this->held($ecotone)[0]->partitionTrackingName);
     }
 
     public function test_a_message_of_another_handler_of_the_same_class_follows_the_dead_lettered_partition_key(): void
@@ -146,7 +146,7 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $this->consume($ecotone, 'partitionConfiguration.orders');
 
         self::assertSame([], $handlers->handled);
-        self::assertSame($handlers::class, $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->trackingName);
+        self::assertSame($handlers::class, $this->held($ecotone)[0]->partitionTrackingName);
     }
 
     public function test_a_handler_does_not_hold_the_partition_key_of_a_handler_of_another_class(): void
@@ -238,7 +238,7 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $this->consume($ecotone, 'partitionConfiguration.orders');
 
         self::assertSame([], $handlers->handled);
-        self::assertSame('order_fulfilment', $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->trackingName);
+        self::assertSame('order_fulfilment', $this->held($ecotone)[0]->partitionTrackingName);
     }
 
     public function test_the_attribute_on_a_class_holds_the_partition_key_for_all_its_handlers_together(): void
@@ -294,7 +294,7 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $this->consume($ecotone, 'partitionConfiguration.orders');
 
         self::assertSame(['b:tea'], $handler->handled);
-        self::assertSame('a:1', $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->partitionKey);
+        self::assertSame('a:1', $this->held($ecotone)[0]->partitionKey);
     }
 
     public function test_the_partition_key_is_calculated_by_an_expression_over_the_payload_of_a_dbal_channel(): void
@@ -322,7 +322,7 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $ecotone->run('partitionConfiguration.orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withHandledMessageLimit(10));
 
         self::assertSame(['2:tea'], $handler->placed);
-        self::assertSame('1', $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->partitionKey);
+        self::assertSame('1', $this->held($ecotone)[0]->partitionKey);
     }
 
     public function test_a_message_whose_partition_key_cannot_be_calculated_is_dead_lettered_without_holding_a_key_and_the_next_ones_are_handled(): void
@@ -346,7 +346,7 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
 
         self::assertSame(['2:tea'], $handler->shipped);
         self::assertSame(1, $ecotone->getGateway(DeadLetterGateway::class)->count());
-        self::assertSame([], $ecotone->getGateway(PartitionDeadLetterGateway::class)->list());
+        self::assertSame([], $this->held($ecotone));
     }
 
     public function test_replaying_a_later_message_of_a_held_partition_key_logs_the_message_its_key_is_started_from(): void
@@ -466,8 +466,8 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $ecotone->sendCommandWithRouting('partitionConfiguration.place', 'coffee', metadata: ['orderId' => '1', 'customerId' => '7']);
         $this->consume($ecotone, 'partitionConfiguration.orders');
 
-        $held = $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0];
-        self::assertSame(['order_placing', '1'], [$held->trackingName, $held->partitionKey]);
+        $held = $this->held($ecotone)[0];
+        self::assertSame(['order_placing', '1'], [$held->partitionTrackingName, $held->partitionKey]);
     }
 
     public function test_an_aggregate_and_the_listener_of_its_events_hold_their_partition_keys_under_their_own_tracking_names(): void
@@ -492,7 +492,7 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
 
         self::assertEqualsCanonicalizing(
             [$notifications::class, PartitionedOrder::class],
-            array_map(static fn (HeldPartition $held): string => $held->trackingName, $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()),
+            array_map(static fn (ErrorContext $held): string => $held->partitionTrackingName, $this->held($ecotone)),
         );
     }
 
@@ -569,7 +569,7 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $this->consume($ecotone, 'partitionConfiguration.ledger');
 
         self::assertSame(['2:20'], $ledger->recorded);
-        self::assertSame(PartitionedWallet::class . ':1', $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->partitionKey);
+        self::assertSame(PartitionedWallet::class . ':1', $this->held($ecotone)[0]->partitionKey);
     }
 
     public function test_the_partition_key_named_by_both_a_header_and_an_expression_is_refused(): void
@@ -718,16 +718,17 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $ecotone->run('partitionConfiguration.orders', ExecutionPollingMetadata::createWithTestingSetup());
     }
 
-    public function test_listing_the_held_partition_keys_of_a_dead_letter_table_created_by_ecotone_1x_is_refused_naming_how_to_add_the_partition_columns(): void
+    public function test_listing_the_dead_letters_of_a_table_created_by_ecotone_1x_is_refused_naming_how_to_add_the_partition_columns_once_partition_keys_are_held(): void
     {
         $this->createDeadLetterTableAsEcotone1xDid();
         $handler = $this->partitionedHandler();
         $ecotone = $this->bootstrap([$handler::class], [$handler], dbalConfiguration: DbalConfiguration::createWithDefaults()->withDeadLetter(true));
+        $ecotone->getGateway(DeadLetterGateway::class)->store(StaticMessageBuilder::withPayload('failed')->build());
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(self::HOW_TO_ADD_THE_PARTITION_COLUMNS);
 
-        $ecotone->getGateway(PartitionDeadLetterGateway::class)->list();
+        $ecotone->getGateway(DeadLetterGateway::class)->list(100, 0);
     }
 
     public function test_holding_partition_keys_is_refused_without_an_enterprise_licence(): void
@@ -831,6 +832,17 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
                 $this->logged[] = [$level, (string) $message];
             }
         };
+    }
+
+    /**
+     * @return list<ErrorContext>
+     */
+    private function held(FlowTestSupport $ecotone): array
+    {
+        return array_values(array_filter(
+            $ecotone->getGateway(DeadLetterGateway::class)->list(100, 0),
+            static fn (ErrorContext $errorContext): bool => $errorContext->partitionKey !== null,
+        ));
     }
 
     private function consume(FlowTestSupport $ecotone, string $channel): void

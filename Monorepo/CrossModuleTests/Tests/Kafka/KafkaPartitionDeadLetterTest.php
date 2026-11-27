@@ -13,7 +13,6 @@ use Ecotone\Api\Attribute\PartitionDeadLetter;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
-use Ecotone\Api\Dbal\Gateway\PartitionDeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -22,6 +21,7 @@ use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Modelling\WithEvents;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -74,13 +74,13 @@ final class KafkaPartitionDeadLetterTest extends TestCase
         $this->consume($ecotone, 2);
 
         $this->notifications->broken = false;
-        $held = $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0];
-        $ecotone->getGateway(PartitionDeadLetterGateway::class)->replay($held->trackingName, $held->partitionKey);
+        $held = $ecotone->getGateway(DeadLetterGateway::class)->list(100, 0);
+        usort($held, static fn (ErrorContext $first, ErrorContext $second): int => $second->partitionPosition <=> $first->partitionPosition);
+        $ecotone->getGateway(DeadLetterGateway::class)->replay($held[0]->getMessageId());
         $this->consume($ecotone, 2);
 
         self::assertSame(['broken-1 placed', 'broken-1 shipped'], $this->notifications->notified);
         self::assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
-        self::assertSame([], $ecotone->getGateway(PartitionDeadLetterGateway::class)->list());
     }
 
     private function consume(FlowTestSupport $ecotone, int $messages): void

@@ -167,7 +167,7 @@ final class DbalDeadLetterModule implements AnnotationModule
             }
         }
 
-        return [...$extensions, ...PartitionDeadLetterRegistration::pulseSections(annotationFinder: $this->annotationFinder, extensionObjects: $serviceExtensions, dbalConfiguration: $dbalConfiguration)];
+        return $extensions;
     }
 
     private function registerPulseActions(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, bool $isDeadLetterEnabled, string $serviceName): void

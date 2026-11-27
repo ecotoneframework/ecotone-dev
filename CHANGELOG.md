@@ -3,6 +3,29 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0-beta.11] - 2026-11-27
+
+## What's Changed
+* docs: pre-PR reviews check a change is safe on Swoole coroutines by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/776
+* docs: pre-PR reviews decide one review list, in Orca sessions that keep their context by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/777
+* feat: a flow test reads every step Ecotone ran, and a pull request shows how it changes the message flows by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/778
+* docs: pre-PR reviews require one path per component, with a differing flow routed where it starts by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/781
+* refactor: Duration is the only type for a length of time, TimeSpan is removed by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/780
+* feat: an asynchronous handler runs in the worker that sent its message, on OpenSwoole and Swoole coroutines by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/779
+* feat: split handler results into individual messages with a stacked #[Splitter] by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/782
+* feat(lite): a service passed to EcotoneLite is registered without listing its class by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/783
+* docs: the docs/ folder leaves the repository and is ignored by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/784
+* feat: a split command handler is gathered, and messages are collected, on coroutine message channels by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/785
+* feat(lite): an Ecotone Lite application runs as a console application with console() by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/786
+* docs: pre-PR reviewers stay open and are reused for the lifetime of the worktree by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/789
+* feat: asynchronous features are proven on consumer coroutines, or refused with the way out by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/788
+* docs(skills): pull request diagrams and Ecotone Pulse screenshots are attached as images by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/790
+* fix: a #[Polling] and a #[Streaming] projection are refused on coroutines for their own reason by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/791
+* fix(container): processes booting at once on a cold cache all get a working application by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/793
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/2.0.0-beta.10...2.0.0-beta.11
+
 ## [2.0.0-beta.10] - 2026-11-20
 
 ## What's Changed

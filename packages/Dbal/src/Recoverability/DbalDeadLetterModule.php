@@ -238,7 +238,7 @@ final class DbalDeadLetterModule implements AnnotationModule
             ]);
         $configuration->registerServiceDefinition(
             $storeReference,
-            $holdsPartitions ? PartitionDeadLetterRegistration::dividing($deadLetterStore, $storeReference, $configuration) : $deadLetterStore
+            $holdsPartitions ? PartitionDeadLetterRegistration::dividing(deadLetterStore: $deadLetterStore, storeReference: $storeReference, connectionFactoryReference: $connectionFactoryReference, isInMemory: $isInMemory, configuration: $configuration) : $deadLetterStore
         );
 
         $configuration

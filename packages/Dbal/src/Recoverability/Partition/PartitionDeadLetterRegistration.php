@@ -76,6 +76,7 @@ use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagato
 final class PartitionDeadLetterRegistration
 {
     public const UNDIVIDED_STORE_SUFFIX = '.undivided';
+    private const PARTITION_KEY_STORE_SUFFIX = '.partitionKeys';
 
     /**
      * @param object[] $extensionObjects
@@ -122,7 +123,7 @@ final class PartitionDeadLetterRegistration
         $configuration->registerServiceDefinition(
             HeldPartitions::class,
             $dbalConfiguration->deadLetterInMemory
-                ? new Definition(InMemoryHeldPartitions::class, [Reference::to(DbalDeadLetterBuilder::storeReferenceFor(DeadLetterGateway::class) . self::UNDIVIDED_STORE_SUFFIX)])
+                ? new Definition(InMemoryHeldPartitions::class)
                 : new Definition(DbalHeldPartitions::class, [
                     CachedConnectionFactory::registerIn($configuration, $connectionReference, DbalReconnectableConnectionFactory::definitionFor($connectionReference)),
                     Reference::to(DeadLetterTableManager::class),
@@ -249,12 +250,25 @@ final class PartitionDeadLetterRegistration
         return [new PulseSnapshotSectionRegistration(sectionName: PulseHeldPartitions::SECTION_NAME, serviceReference: PulseHeldPartitions::class, tenantScoped: true)];
     }
 
-    public static function dividing(Definition $deadLetterStore, string $storeReference, Configuration $configuration): Definition
+    public static function dividing(Definition $deadLetterStore, string $storeReference, string $connectionFactoryReference, bool $isInMemory, Configuration $configuration): Definition
     {
         $configuration->registerServiceDefinition($storeReference . self::UNDIVIDED_STORE_SUFFIX, $deadLetterStore);
+        $configuration->registerServiceDefinition(
+            $storeReference . self::PARTITION_KEY_STORE_SUFFIX,
+            $isInMemory
+                ? new Definition(InMemoryPartitionKeyDeadLetterStore::class, [
+                    Reference::to($storeReference . self::UNDIVIDED_STORE_SUFFIX),
+                    Reference::to(HeldPartitions::class),
+                ])
+                : new Definition(DbalPartitionKeyDeadLetterStore::class, [
+                    Reference::to($storeReference . self::UNDIVIDED_STORE_SUFFIX),
+                    CachedConnectionFactory::registerIn($configuration, $connectionFactoryReference, DbalReconnectableConnectionFactory::definitionFor($connectionFactoryReference)),
+                    Reference::to(DeadLetterTableManager::class),
+                ])
+        );
 
         return new Definition(PartitionDeadLetterStore::class, [
-            Reference::to($storeReference . self::UNDIVIDED_STORE_SUFFIX),
+            Reference::to($storeReference . self::PARTITION_KEY_STORE_SUFFIX),
             Reference::to(PartitionedHandlers::class),
             Reference::to(MessageBuilder::class),
         ]);

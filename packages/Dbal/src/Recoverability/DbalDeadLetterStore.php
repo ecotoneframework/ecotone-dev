@@ -40,11 +40,6 @@ final class DbalDeadLetterStore implements DeadLetterStore
         'payload' => Types::TEXT,
         'headers' => Types::TEXT,
     ];
-    private const PARTITION_TYPES = [
-        'partition_tracking_name' => Types::STRING,
-        'partition_key' => Types::STRING,
-        'partition_position' => Types::BIGINT,
-    ];
 
     public function __construct(
         private ConnectionFactory $connectionFactory,
@@ -58,17 +53,10 @@ final class DbalDeadLetterStore implements DeadLetterStore
 
     public function store(Message $message): string
     {
-        return $this->storeRetrying($message, fn (string $deadLetterId): int|string => $this->insert($deadLetterId, $message));
+        return $this->storeInsertedBy($message, fn (array $row, array $types): int|string => $this->getConnection()->insert(table: $this->getTableName(), data: $row, types: $types));
     }
 
-    public function storeUnderPartitionKey(Message $message, string $partitionTrackingName, string $partitionKey, ?int $partitionPosition): string
-    {
-        return $this->storeRetrying($message, fn (string $deadLetterId): int|string => $partitionPosition === null
-            ? $this->insertAfterTheLastOfPartitionKey($deadLetterId, $message, $partitionTrackingName, $partitionKey)
-            : $this->insertAtPositionOfPartitionKey($deadLetterId, $message, $partitionTrackingName, $partitionKey, $partitionPosition));
-    }
-
-    private function storeRetrying(Message $message, callable $insert): string
+    public function storeInsertedBy(Message $message, callable $insert): string
     {
         $retryStrategy = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(10, 3, 1000)
             ->maxRetries(3)
@@ -77,7 +65,7 @@ final class DbalDeadLetterStore implements DeadLetterStore
         $deadLetterId = '';
         $this->retryRunner->runWithRetry(function () use ($message, $insert, &$deadLetterId) {
             try {
-                $deadLetterId = $this->onTable(fn (): string => $this->insertHandledMessage((string) $message->getHeaders()->get(MessageHeaders::MESSAGE_ID), $insert));
+                $deadLetterId = $this->onTable(fn (): string => $this->insertHandledMessage(payload: $message->getPayload(), headers: $message->getHeaders()->headers(), insert: $insert));
             } catch (\Exception $exception) {
                 $this->getConnection()->close();
 
@@ -149,71 +137,32 @@ final class DbalDeadLetterStore implements DeadLetterStore
             ->executeStatement());
     }
 
-    private function insertHandledMessage(string $deadLetterId, callable $insert): string
+    private function insertHandledMessage(string $payload, array $headers, callable $insert): string
     {
+        $deadLetterId = (string) $headers[MessageHeaders::MESSAGE_ID];
         try {
-            $rowsAffected = $insert($deadLetterId);
+            $rowsAffected = $insert($this->rowOf(messageId: $deadLetterId, headers: $headers, payload: $payload), self::ROW_TYPES);
         } catch (UniqueConstraintViolationException) {
             $deadLetterId = Uuid::v7()->toRfc4122();
-            $rowsAffected = $insert($deadLetterId);
+            $rowsAffected = $insert($this->rowOf(messageId: $deadLetterId, headers: $headers, payload: $payload), self::ROW_TYPES);
         }
 
-        if (1 !== (int) $rowsAffected) {
+        if (1 !== $rowsAffected) {
             throw new Exception('There was a problem inserting exceptional message. Dbal did not confirm that the record is inserted.');
         }
 
         return $deadLetterId;
     }
 
-    private function insert(string $deadLetterId, Message $message): int|string
-    {
-        return $this->getConnection()->insert($this->getTableName(), $this->rowOf($deadLetterId, $message), self::ROW_TYPES);
-    }
-
-    private function insertAfterTheLastOfPartitionKey(string $deadLetterId, Message $message, string $partitionTrackingName, string $partitionKey): int|string
-    {
-        $table = $this->getTableName();
-
-        return $this->getConnection()->executeStatement(
-            "INSERT INTO {$table} (message_id, failed_at, payload, headers, partition_tracking_name, partition_key, partition_position) "
-            . 'SELECT :message_id, :failed_at, :payload, :headers, :partition_tracking_name, :partition_key, COALESCE(MAX(partition_position), 0) + 1 '
-            . "FROM {$table} WHERE partition_tracking_name = :partition_tracking_name AND partition_key = :partition_key",
-            $this->rowOf($deadLetterId, $message) + ['partition_tracking_name' => $partitionTrackingName, 'partition_key' => $partitionKey],
-            self::ROW_TYPES + self::PARTITION_TYPES,
-        );
-    }
-
-    private function insertAtPositionOfPartitionKey(string $deadLetterId, Message $message, string $partitionTrackingName, string $partitionKey, int $partitionPosition): int|string
-    {
-        $table = $this->getTableName();
-        $partition = ['partition_tracking_name' => $partitionTrackingName, 'partition_key' => $partitionKey, 'partition_position' => $partitionPosition];
-        $isPositionTaken = $this->getConnection()->fetchOne(
-            "SELECT 1 FROM {$table} WHERE partition_tracking_name = :partition_tracking_name AND partition_key = :partition_key AND partition_position = :partition_position",
-            $partition,
-            self::PARTITION_TYPES,
-        ) !== false;
-        if ($isPositionTaken) {
-            $this->getConnection()->executeStatement(
-                "UPDATE {$table} SET partition_position = partition_position + 1 WHERE partition_tracking_name = :partition_tracking_name AND partition_key = :partition_key AND partition_position >= :partition_position",
-                $partition,
-                self::PARTITION_TYPES,
-            );
-        }
-
-        return $this->getConnection()->insert($table, $this->rowOf($deadLetterId, $message) + $partition, self::ROW_TYPES + self::PARTITION_TYPES);
-    }
-
     /**
-     * @return array{message_id: string, failed_at: DateTime, payload: mixed, headers: string}
+     * @return array{message_id: string, failed_at: DateTime, payload: string, headers: string}
      */
-    private function rowOf(string $deadLetterId, Message $message): array
+    private function rowOf(string $messageId, array $headers, string $payload): array
     {
-        $headers = $message->getHeaders()->headers();
-
         return [
-            'message_id' => $deadLetterId,
+            'message_id' => $messageId,
             'failed_at' => new DateTime(date('Y-m-d H:i:s.u', $headers[MessageHeaders::TIMESTAMP])),
-            'payload' => $message->getPayload(),
+            'payload' => $payload,
             'headers' => json_encode($this->headerMapper->mapFromMessageHeaders($headers, $this->conversionService), JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_IGNORE),
         ];
     }

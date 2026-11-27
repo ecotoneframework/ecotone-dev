@@ -30,7 +30,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 final class PartitionDeadLetterStore implements DeadLetterStore
 {
     public function __construct(
-        private DeadLetterStore $deadLetterStore,
+        private PartitionKeyDeadLetterStore $deadLetterStore,
         private PartitionedHandlers $partitionedHandlers,
         private MessageBuilder $messageBuilder,
     ) {
@@ -44,20 +44,14 @@ final class PartitionDeadLetterStore implements DeadLetterStore
         }
 
         if (! $message->getHeaders()->containsKey(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE)) {
-            return $this->deadLetterStore->storeUnderPartitionKey($message, $partition->trackingName, $partition->partitionKey, null);
+            return $this->deadLetterStore->storeUnderPartitionKey(message: $message, partition: $partition, position: null);
         }
 
         return $this->deadLetterStore->storeUnderPartitionKey(
-            $this->messageBuilder->fromMessage($message)->removeHeader(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE)->build(),
-            $partition->trackingName,
-            $partition->partitionKey,
-            (int) $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE),
+            message: $this->messageBuilder->fromMessage($message)->removeHeader(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE)->build(),
+            partition: $partition,
+            position: (int) $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE),
         );
-    }
-
-    public function storeUnderPartitionKey(Message $message, string $partitionTrackingName, string $partitionKey, ?int $partitionPosition): string
-    {
-        return $this->deadLetterStore->storeUnderPartitionKey($message, $partitionTrackingName, $partitionKey, $partitionPosition);
     }
 
     public function list(int $limit, int $offset): array

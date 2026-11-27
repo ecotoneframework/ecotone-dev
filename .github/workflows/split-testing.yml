@@ -203,7 +203,20 @@ jobs:
             local dir="$1"
             local compose_up_cmd="$2"
 
-            _run_tests "Install composer dependencies ($dir)" "cd '${dir}' && ${compose_up_cmd}"
+            # A download from the package host can time out. Archives already downloaded stay in the Composer
+            # cache, so another attempt fetches only what is missing; a failure that is not the network's
+            # fails all three attempts and fails the job.
+            local attempt
+            for attempt in 1 2 3; do
+              if _run_tests "Install composer dependencies ($dir), attempt ${attempt} of 3" "cd '${dir}' && ${compose_up_cmd}"; then
+                return 0
+              fi
+              if [ "$attempt" -lt 3 ]; then
+                sleep $((attempt * 10))
+              fi
+            done
+
+            return 1
           }
 
           _run_pass() {

@@ -40,11 +40,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class ProjectionConsumerCoroutinesRefusedTest extends TestCase
 {
-    private const POLLING_PROJECTION_REFUSAL = 'Endpoint `orders_poller` is set to run on 3 coroutines, but it runs on a schedule instead of consuming a channel, so every coroutine would run each scheduled execution again. '
-        . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this endpoint. '
-        . 'To do its work on coroutines, let it send messages to an #[Asynchronous] handler and run that channel\'s consumer on coroutines.';
-    private const STREAMING_PROJECTION_REFUSAL = 'Consumer `orders` is set to consume on 3 coroutines, but it reads the stream `orders_stream_channel` (a Kafka topic, a RabbitMQ stream or an in-memory streaming channel, directly or through a dynamic channel; a dynamic channel with a custom receiving strategy counts as reading every stream channel of the application), where the position of the last handled message is what gets committed. '
-        . 'A coroutine finishing a later message would commit past an earlier message another coroutine is still handling, so that message is never handled when the process stops, and the messages are handled out of order.';
+    private const POLLING_PROJECTION_REFUSAL = 'Consumer `orders_poller` is set to consume on 3 coroutines, but it runs #[Polling] projection `orders`, which projects the events of its streams after the last position it committed: every coroutine would project the same events again at the same time. '
+        . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
+        . 'To handle more messages at once, replace #[Polling] on the projection with #[Asynchronous] on a queue channel and add #[Partitioned], so that different partitions are projected at once, and consume that channel on coroutines.';
+    private const STREAMING_PROJECTION_REFUSAL = 'Consumer `orders` is set to consume on 3 coroutines, but it runs #[Streaming] projection `orders`, which reads the stream `orders_stream_channel`, where the position of the last projected event is what gets committed: a coroutine finishing a later event would commit past an earlier event another coroutine is still projecting, so that event is never projected when the process stops, and the events are projected out of order. '
+        . 'Leave out the `coroutines` option of ecotone:run, ExecutionPollingMetadata::withCoroutines() and PollingMetadata::withCoroutines() for this consumer. '
+        . 'To handle more messages at once, replace #[Streaming] on the projection with #[Asynchronous] on a queue channel and add #[Partitioned], so that different partitions are projected at once, and consume that channel on coroutines.';
 
     public function test_polling_projection_is_refused_to_run_on_coroutines_passed_when_running_it(): void
     {
@@ -54,6 +55,16 @@ final class ProjectionConsumerCoroutinesRefusedTest extends TestCase
         $this->expectExceptionMessage(self::POLLING_PROJECTION_REFUSAL);
 
         $ecotone->run('orders_poller', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
+    }
+
+    public function test_polling_projection_is_refused_to_run_on_the_coroutines_option_of_the_console_command(): void
+    {
+        $ecotone = $this->bootstrap($this->pollingProjection());
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::POLLING_PROJECTION_REFUSAL);
+
+        $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => 'orders_poller', 'finishWhenNoMessages' => true, 'coroutines' => 3]);
     }
 
     public function test_polling_projection_with_coroutines_in_its_polling_metadata_is_refused_when_the_application_boots(): void
@@ -72,6 +83,16 @@ final class ProjectionConsumerCoroutinesRefusedTest extends TestCase
         $this->expectExceptionMessage(self::STREAMING_PROJECTION_REFUSAL);
 
         $ecotone->run('orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages()->withCoroutines(3));
+    }
+
+    public function test_streaming_projection_is_refused_to_consume_on_the_coroutines_option_of_the_console_command(): void
+    {
+        $ecotone = $this->bootstrap($this->streamingProjection());
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::STREAMING_PROJECTION_REFUSAL);
+
+        $ecotone->runConsoleCommand('ecotone:run', ['consumerName' => 'orders', 'finishWhenNoMessages' => true, 'coroutines' => 3]);
     }
 
     public function test_streaming_projection_with_coroutines_in_its_polling_metadata_is_refused_when_the_application_boots(): void

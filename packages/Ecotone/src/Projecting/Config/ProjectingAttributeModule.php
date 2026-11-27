@@ -266,6 +266,10 @@ final class ProjectingAttributeModule implements AnnotationModule
                     $interfaceToCallRegistry->getFor(PollingProjectionChannelAdapter::class, 'execute')
                 )
                     ->withEndpointId($endpointId)
+                    ->withHandlerHandlingOneMessageAtATime(
+                        reason: "it runs #[Polling] projection `{$projectionName}`, which projects the events of its streams after the last position it committed: every coroutine would project the same events again at the same time.",
+                        wayToHandleMoreAtOnce: self::wayToProjectMoreEventsAtOnce('#[Polling]'),
+                    )
             );
         }
 
@@ -295,6 +299,11 @@ final class ProjectingAttributeModule implements AnnotationModule
                 )
                     ->withEndpointId($config['endpointId'])
                     ->withInputChannelName($config['streamingChannelName'])
+            );
+            $messagingConfiguration->registerHandlerHandlingOneMessageAtATime(
+                consumerEndpointId: $config['endpointId'],
+                reason: "it runs #[Streaming] projection `{$projectionName}`, which reads the stream `{$config['streamingChannelName']}`, where the position of the last projected event is what gets committed: a coroutine finishing a later event would commit past an earlier event another coroutine is still projecting, so that event is never projected when the process stops, and the events are projected out of order.",
+                wayToHandleMoreAtOnce: self::wayToProjectMoreEventsAtOnce('#[Streaming]'),
             );
         }
     }
@@ -334,6 +343,11 @@ final class ProjectingAttributeModule implements AnnotationModule
             }
         }
         return null;
+    }
+
+    private static function wayToProjectMoreEventsAtOnce(string $attributeReplaced): string
+    {
+        return "replace {$attributeReplaced} on the projection with #[Asynchronous] on a queue channel and add #[Partitioned], so that different partitions are projected at once, and consume that channel on coroutines.";
     }
 
     private static function verifyCorrectApiUsage(bool $isPolling, ?string $asynchronousChannelName, Projection $projectionAttribute, bool $isEventStreaming, bool $isPartitioned, bool $isManualKickOff): void

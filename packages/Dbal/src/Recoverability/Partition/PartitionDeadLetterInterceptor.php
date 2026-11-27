@@ -9,6 +9,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 
 /**
@@ -38,6 +39,7 @@ final class PartitionDeadLetterInterceptor
         private ErrorChannelService $errorChannelService,
         private ChannelResolver $channelResolver,
         private MessageHeadersPropagatorInterceptor $headersPropagator,
+        private LoggingGateway $logger,
         private string $deadLetterChannelName,
     ) {
     }
@@ -64,11 +66,15 @@ final class PartitionDeadLetterInterceptor
             return $methodInvocation->proceed();
         }
 
-        $this->errorChannelService->handle(
+        $this->errorChannelService->forward(
             requestMessage: $message,
             cause: PartitionHeldInDeadLetter::since($partition, $holdingDeadLetterId),
             errorChannel: $this->channelResolver->resolve($this->deadLetterChannelName),
             relatedPolledChannelName: $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) ? $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME) : null,
+        );
+        $this->logger->info(
+            "Message `{$message->getHeaders()->getMessageId()}` follows partition key `{$partition->partitionKey}` of `{$partition->trackingName}` into the dead letter without being handled: the partition key is held there since message `{$holdingDeadLetterId}` failed.",
+            $message,
         );
 
         return null;

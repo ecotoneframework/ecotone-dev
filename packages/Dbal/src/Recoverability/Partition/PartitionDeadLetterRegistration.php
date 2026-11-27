@@ -154,6 +154,7 @@ final class PartitionDeadLetterRegistration
                 Reference::to(ErrorChannelService::class),
                 Reference::to(ChannelResolver::class),
                 Reference::to(MessageHeadersPropagatorInterceptor::class),
+                Reference::to(LoggingGateway::class),
                 DbalDeadLetterBuilder::STORE_CHANNEL,
             ])
         );

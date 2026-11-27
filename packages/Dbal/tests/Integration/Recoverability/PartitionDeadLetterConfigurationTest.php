@@ -349,6 +349,25 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         self::assertSame([], $this->held($ecotone));
     }
 
+    public function test_a_message_following_a_held_partition_key_is_logged_as_information_naming_the_key_and_the_message_holding_it(): void
+    {
+        $handler = $this->partitionedHandler(failing: true);
+        $logger = $this->collectingLogger();
+        $ecotone = $this->bootstrap([$handler::class], [$handler, 'logger' => $logger]);
+        $ecotone->sendCommandWithRouting('partitionConfiguration.place', 'coffee', metadata: ['orderId' => '1', 'id' => 'm-1']);
+        $ecotone->sendCommandWithRouting('partitionConfiguration.place', 'tea', metadata: ['orderId' => '1', 'id' => 'm-2']);
+        $this->consume($ecotone, 'partitionConfiguration.orders');
+
+        self::assertContains(
+            ['info', 'Message `m-2` follows partition key `1` of `' . $handler::class . '` into the dead letter without being handled: the partition key is held there since message `m-1` failed.'],
+            $logger->logged,
+        );
+        self::assertSame(
+            [['error', 'Error occurred during handling message. Sending Message to handle it in predefined Error Channel.']],
+            array_values(array_filter($logger->logged, static fn (array $logged): bool => $logged[0] === 'error')),
+        );
+    }
+
     public function test_replaying_a_later_message_of_a_held_partition_key_logs_the_message_its_key_is_started_from(): void
     {
         $handler = $this->partitionedHandler(failing: true);

@@ -42,6 +42,22 @@ final class ErrorChannelService
             ['exception' => $cause],
         );
 
+        $this->forward(requestMessage: $requestMessage, cause: $cause, errorChannel: $errorChannel, relatedPolledChannelName: $relatedPolledChannelName, routingSlip: $routingSlip);
+
+        $this->loggingGateway->info(
+            'Message was sent to Error Channel successfully.',
+            $requestMessage,
+            ['exception' => $cause],
+        );
+    }
+
+    public function forward(
+        Message $requestMessage,
+        Throwable $cause,
+        MessageChannel $errorChannel,
+        ?string $relatedPolledChannelName,
+        ?string $routingSlip = null,
+    ): void {
         $outboundMessage = $this->outboundMessageConverter->prepare($requestMessage, $this->conversionService);
         $messageBuilder = $this->messageBuilder->withPayload($outboundMessage->getPayload())
             ->setMultipleHeaders($outboundMessage->getHeaders());
@@ -62,12 +78,6 @@ final class ErrorChannelService
                 )
             ),
             $requestMessage,
-        );
-
-        $this->loggingGateway->info(
-            'Message was sent to Error Channel successfully.',
-            $requestMessage,
-            ['exception' => $cause],
         );
     }
 }

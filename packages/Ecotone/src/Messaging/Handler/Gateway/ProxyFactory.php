@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
+use Ecotone\Messaging\Support\AtomicFile;
 
 use function file_exists;
 use function str_replace;
@@ -56,7 +56,7 @@ class ProxyFactory
         $file = $this->getFilePathForProxy($proxyReference);
         if ($overwrite || ! file_exists($file)) {
             $code = $this->generateProxyCode($proxyReference);
-            $this->dumpFile($file, "<?php\n\n" . $code);
+            AtomicFile::write($file, "<?php\n\n" . $code);
         }
         return $file;
     }
@@ -101,31 +101,5 @@ class ProxyFactory
     private static function getFullClassNameFor(GatewayProxyReference $proxyReference): string
     {
         return self::PROXY_NAMESPACE . '\\' . self::getClassNameFor($proxyReference);
-    }
-
-    private function dumpFile(string $fileName, string $code): void
-    {
-        // Code adapted from doctrine/orm/src/Proxy/ProxyFactory.php
-        $parentDirectory = dirname($fileName);
-
-        // mkdir race condition https://github.com/kalessil/phpinspectionsea/blob/master/docs/probable-bugs.md#mkdir-race-condition
-        if (! is_dir($parentDirectory) && ! @mkdir($parentDirectory, 0775, true) && ! is_dir($parentDirectory)) {
-            throw ConfigurationException::create("Cannot create cache directory {$parentDirectory}");
-        }
-
-        if (! is_writable($parentDirectory)) {
-            throw ConfigurationException::create("Cache directory is not writable {$parentDirectory}");
-        }
-
-        $tmpFileName = $fileName . '.' . bin2hex(random_bytes(12));
-
-        if (file_put_contents($tmpFileName, $code) === false) {
-            throw ConfigurationException::create("Failed to write proxy cache file {$tmpFileName}");
-        }
-        @chmod($tmpFileName, 0664);
-        if (rename($tmpFileName, $fileName) === false) {
-            @unlink($tmpFileName);
-            throw ConfigurationException::create("Failed to rename proxy cache file from {$tmpFileName} to {$fileName}");
-        }
     }
 }

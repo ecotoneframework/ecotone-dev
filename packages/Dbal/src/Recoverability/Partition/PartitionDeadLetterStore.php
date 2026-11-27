@@ -54,7 +54,7 @@ final class PartitionDeadLetterStore implements DeadLetterStore
         $deadLetterId = $this->deadLetterStore->store(
             $this->messageBuilder->fromMessage($message)->removeHeader(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE)->build()
         );
-        $this->heldPartitions->holdAtPlace(partition: $partition, deadLetterId: $deadLetterId, place: (int) $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE));
+        $this->heldPartitions->holdAtPosition(partition: $partition, deadLetterId: $deadLetterId, position: (int) $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE));
 
         return $deadLetterId;
     }

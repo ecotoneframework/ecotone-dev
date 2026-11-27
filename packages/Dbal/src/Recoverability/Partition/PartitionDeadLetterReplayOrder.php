@@ -46,13 +46,13 @@ final class PartitionDeadLetterReplayOrder implements DeadLetterReplayOrder
 
     public function releasing(string $deadLetterId, Message $message): Message
     {
-        $place = $this->heldPartitions->placeOf($deadLetterId);
-        if ($place === null) {
+        $position = $this->heldPartitions->positionOf($deadLetterId);
+        if ($position === null) {
             return $message;
         }
 
         return $this->messageBuilder->fromMessage($message)
-            ->setHeader(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE, (string) $place)
+            ->setHeader(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE, (string) $position)
             ->build();
     }
 }

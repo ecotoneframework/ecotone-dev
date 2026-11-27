@@ -26,7 +26,7 @@ interface HeldPartitions
 {
     public function hold(DeadLetterPartition $partition, string $deadLetterId): void;
 
-    public function holdAtPlace(DeadLetterPartition $partition, string $deadLetterId, int $place): void;
+    public function holdAtPosition(DeadLetterPartition $partition, string $deadLetterId, int $position): void;
 
     public function forget(string $deadLetterId): void;
 
@@ -34,7 +34,7 @@ interface HeldPartitions
 
     public function partitionOf(string $deadLetterId): ?DeadLetterPartition;
 
-    public function placeOf(string $deadLetterId): ?int;
+    public function positionOf(string $deadLetterId): ?int;
 
     public function oldestOf(DeadLetterPartition $partition): ?string;
 

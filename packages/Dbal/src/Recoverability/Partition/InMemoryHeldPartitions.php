@@ -25,21 +25,21 @@ namespace Ecotone\Dbal\Recoverability\Partition;
 final class InMemoryHeldPartitions implements HeldPartitions
 {
     /**
-     * @var list<array{deadLetterId: string, trackingName: string, partitionKey: string, place: int, position: int}>
+     * @var list<array{deadLetterId: string, trackingName: string, partitionKey: string, position: int, sequence: int}>
      */
     private array $held = [];
-    private int $lastPosition = 0;
+    private int $lastSequence = 0;
 
     public function hold(DeadLetterPartition $partition, string $deadLetterId): void
     {
-        $position = ++$this->lastPosition;
-        $this->held[] = ['deadLetterId' => $deadLetterId, 'trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'place' => $position, 'position' => $position];
+        $sequence = ++$this->lastSequence;
+        $this->held[] = ['deadLetterId' => $deadLetterId, 'trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'position' => $sequence, 'sequence' => $sequence];
     }
 
-    public function holdAtPlace(DeadLetterPartition $partition, string $deadLetterId, int $place): void
+    public function holdAtPosition(DeadLetterPartition $partition, string $deadLetterId, int $position): void
     {
-        $this->held[] = ['deadLetterId' => $deadLetterId, 'trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'place' => $place, 'position' => ++$this->lastPosition];
-        usort($this->held, static fn (array $held, array $other): int => [$held['place'], $held['position']] <=> [$other['place'], $other['position']]);
+        $this->held[] = ['deadLetterId' => $deadLetterId, 'trackingName' => $partition->trackingName, 'partitionKey' => $partition->partitionKey, 'position' => $position, 'sequence' => ++$this->lastSequence];
+        usort($this->held, static fn (array $held, array $other): int => [$held['position'], $held['sequence']] <=> [$other['position'], $other['sequence']]);
     }
 
     public function forget(string $deadLetterId): void
@@ -59,9 +59,9 @@ final class InMemoryHeldPartitions implements HeldPartitions
         return $held === null ? null : new DeadLetterPartition(trackingName: $held['trackingName'], partitionKey: $held['partitionKey']);
     }
 
-    public function placeOf(string $deadLetterId): ?int
+    public function positionOf(string $deadLetterId): ?int
     {
-        return $this->heldAs($deadLetterId)['place'] ?? null;
+        return $this->heldAs($deadLetterId)['position'] ?? null;
     }
 
     public function oldestOf(DeadLetterPartition $partition): ?string
@@ -94,7 +94,7 @@ final class InMemoryHeldPartitions implements HeldPartitions
     }
 
     /**
-     * @return array{deadLetterId: string, trackingName: string, partitionKey: string, place: int, position: int}|null
+     * @return array{deadLetterId: string, trackingName: string, partitionKey: string, position: int, sequence: int}|null
      */
     private function heldAs(string $deadLetterId): ?array
     {

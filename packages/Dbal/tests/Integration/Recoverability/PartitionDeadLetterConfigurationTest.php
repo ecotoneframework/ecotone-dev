@@ -19,6 +19,7 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\PartitionDeadLetter;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\PartitionDeadLetterConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
@@ -235,6 +236,34 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
 
         self::assertSame(['b:tea'], $handler->handled);
         self::assertSame('a:1', $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->partitionKey);
+    }
+
+    public function test_the_partition_key_is_calculated_by_an_expression_over_the_payload_of_a_dbal_channel(): void
+    {
+        $handler = new class () {
+            public array $placed = [];
+
+            #[PartitionDeadLetter(expression: 'payload.orderId')]
+            #[Asynchronous('partitionConfiguration.orders')]
+            #[CommandHandler(endpointId: 'partitionConfiguration.place.endpoint')]
+            public function place(PartitionedPlaceOrder $command): void
+            {
+                if ($command->item === 'broken') {
+                    throw new RuntimeException('cannot place broken');
+                }
+
+                $this->placed[] = "{$command->orderId}:{$command->item}";
+            }
+        };
+        $ecotone = $this->bootstrapOnADbalChannel([$handler::class], [$handler], 'partitionConfiguration.orders');
+
+        $ecotone->sendCommand(new PartitionedPlaceOrder('1', 'broken'));
+        $ecotone->sendCommand(new PartitionedPlaceOrder('1', 'coffee'));
+        $ecotone->sendCommand(new PartitionedPlaceOrder('2', 'tea'));
+        $ecotone->run('partitionConfiguration.orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withHandledMessageLimit(10));
+
+        self::assertSame(['2:tea'], $handler->placed);
+        self::assertSame('1', $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->partitionKey);
     }
 
     public function test_a_replayed_message_that_passes_on_a_delayed_retry_lets_the_next_one_of_its_partition_key_follow(): void
@@ -707,6 +736,20 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
     /**
      * @param list<class-string> $classesToResolve
      * @param list<object> $services
+     */
+    private function bootstrapOnADbalChannel(array $classesToResolve, array $services, string $channel): FlowTestSupport
+    {
+        return $this->bootstrap(
+            classesToResolve: $classesToResolve,
+            services: $services,
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($channel)],
+            dbalConfiguration: DbalConfiguration::createWithDefaults()->withDeadLetter(true),
+        )->setupDatabaseTables();
+    }
+
+    /**
+     * @param list<class-string> $classesToResolve
+     * @param list<object> $services
      * @param list<object> $extensionObjects
      */
     private function bootstrap(
@@ -732,6 +775,13 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
             initialTime: $initialTime,
             licenceKey: $licenceKey,
         );
+    }
+}
+
+final class PartitionedPlaceOrder
+{
+    public function __construct(public readonly string $orderId, public readonly string $item)
+    {
     }
 }
 

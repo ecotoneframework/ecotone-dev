@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\ErrorChannel;
+use Ecotone\Api\Attribute\IgnorePayload;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\PartitionDeadLetter;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -29,15 +30,18 @@ use Ecotone\Dbal\Recoverability\AnyDeadLetterReplayOrder;
 use Ecotone\Dbal\Recoverability\DeadLetterHandler;
 use Ecotone\Dbal\Recoverability\DeadLetterReplayOrder;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncEndpointAnnotationContext;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -45,11 +49,15 @@ use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutorCompi
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
+use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadConverter;
 use Ecotone\Messaging\Handler\Recoverability\DeadLetterChannels;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
@@ -446,13 +454,17 @@ final class PartitionDeadLetterRegistration
             );
         }
         if ($hasExpression) {
+            $handledMethod = $interfaceToCallRegistry->getFor($handler->getClassName(), $handler->getMethodName());
+
             return new Definition(ExpressionPartitionKey::class, [
                 AttributeExpressionExecutorCompiler::compile(
                     attributeWithExpression: $attribute,
                     attributeDeclaration: new AttributeDeclaration(attributeClassName: PartitionDeadLetter::class, className: $handler->getClassName(), methodName: $isOnMethod ? $handler->getMethodName() : null),
-                    owner: $interfaceToCallRegistry->getFor($handler->getClassName(), $handler->getMethodName()),
+                    owner: $handledMethod,
                     targetParameterName: 'expression',
                 ),
+                self::handledPayloadOf($handledMethod),
+                Reference::to(MessageBuilder::class),
             ]);
         }
         if ($partitionHeaderName !== '') {
@@ -472,6 +484,32 @@ final class PartitionDeadLetterRegistration
             "#[PartitionDeadLetter] on {$placement} names no partition key for {$handler->getClassName()}::{$handler->getMethodName()}: it has neither partitionHeaderName nor expression, and the handler is neither a handler of an aggregate (held by the aggregate's identifier) nor an event handler (held by the aggregate that published the event), so no partition key would ever be held. "
             . "Name the header that carries the partition key with #[PartitionDeadLetter(partitionHeaderName: 'orderId')], calculate it with #[PartitionDeadLetter(expression: 'payload.orderId')], or remove #[PartitionDeadLetter]."
         );
+    }
+
+    private static function handledPayloadOf(InterfaceToCall $handledMethod): Definition
+    {
+        foreach (ParameterConverterAnnotationFactory::createParameterConverters($handledMethod) as $parameterConverter) {
+            if ($parameterConverter instanceof PayloadBuilder) {
+                return $parameterConverter->compile($handledMethod);
+            }
+        }
+
+        $takesThePayloadFirst = $handledMethod->hasFirstParameter()
+            && ! $handledMethod->hasMethodAnnotation(Type::object(IgnorePayload::class))
+            && ! $handledMethod->getFirstParameter()->isAnnotation()
+            && ! $handledMethod->getFirstParameter()->isMessage()
+            && ParameterConverterAnnotationFactory::getConverterFor($handledMethod->getFirstParameter(), $handledMethod) === null;
+        if ($takesThePayloadFirst) {
+            return PayloadBuilder::create($handledMethod->getFirstParameterName())->compile($handledMethod);
+        }
+
+        return new Definition(PayloadConverter::class, [
+            Reference::to(ConversionService::REFERENCE_NAME),
+            Reference::to(EventMapper::class),
+            $handledMethod->toString(),
+            'payload',
+            Type::anything(),
+        ]);
     }
 
     /**

@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Recoverability\Partition;
 
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
+use Ecotone\Messaging\Handler\ParameterConverter;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Enterprise
@@ -27,13 +30,21 @@ use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
  */
 final class ExpressionPartitionKey implements PartitionKey
 {
-    public function __construct(private AttributeExpressionExecutor $expression)
-    {
+    public function __construct(
+        private AttributeExpressionExecutor $expression,
+        private ParameterConverter $handledPayload,
+        private MessageBuilder $messageBuilder,
+    ) {
     }
 
     public function of(Message $message): ?string
     {
-        $partitionKey = $this->expression->execute($message);
+        $partitionKey = $this->expression->execute(
+            $this->messageBuilder->fromMessage($message)
+                ->setPayload($this->handledPayload->getArgumentFrom($message))
+                ->setContentType(MediaType::createApplicationXPHP())
+                ->build()
+        );
         if ($partitionKey === null) {
             return null;
         }

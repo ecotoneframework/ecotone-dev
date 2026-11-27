@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\ClosureInAttribute;
 
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\PartitionDeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -41,6 +42,30 @@ final class PartitionDeadLetterClosureTest extends DbalMessagingTestCase
         $ecotone->sendCommand(new ClosurePartitionedPlaceOrder('1', 'coffee'));
         $ecotone->sendCommand(new ClosurePartitionedPlaceOrder('2', 'tea'));
         $ecotone->run('closurePartition.orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false));
+
+        self::assertSame(['2:tea'], $handler->placed);
+        self::assertSame('1', $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->partitionKey);
+    }
+
+    public function test_the_partition_key_is_calculated_by_a_closure_over_the_command_of_a_dbal_channel(): void
+    {
+        $handler = new ClosurePartitionedHandler();
+        $ecotone = $this->bootstrapFlowTesting(
+            classesToResolve: [ClosurePartitionedHandler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory()],
+            extensionObjects: [
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'),
+                DbalConfiguration::createWithDefaults()->withDeadLetter(true),
+                DbalBackedMessageChannelBuilder::create('closurePartition.orders'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->setupDatabaseTables();
+
+        $ecotone->sendCommand(new ClosurePartitionedPlaceOrder('1', 'broken'));
+        $ecotone->sendCommand(new ClosurePartitionedPlaceOrder('1', 'coffee'));
+        $ecotone->sendCommand(new ClosurePartitionedPlaceOrder('2', 'tea'));
+        $ecotone->run('closurePartition.orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withHandledMessageLimit(10));
 
         self::assertSame(['2:tea'], $handler->placed);
         self::assertSame('1', $ecotone->getGateway(PartitionDeadLetterGateway::class)->list()[0]->partitionKey);

@@ -18,6 +18,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
@@ -265,6 +266,71 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
 
         self::assertSame([':broken'], $this->orders->placed);
         self::assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    #[DataProvider('implementations')]
+    public function test_the_console_lists_the_partition_key_and_position_of_held_messages(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $ecotone->sendCommandWithRouting('partitionDeadLetter.place', 'broken', metadata: ['id' => 'm-3']);
+        $this->consume($ecotone);
+
+        $listed = $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:deadletter:list', []);
+        $partitions = [];
+        foreach ($listed->rows as $row) {
+            $partitions[$row[0]] = array_slice($row, 3);
+        }
+        ksort($partitions);
+
+        self::assertSame(['Message Id', 'Failed At', 'Stacktrace', 'Partition Key', 'Partition Position', 'Partition Tracking Name'], $listed->columnHeaders);
+        self::assertSame(
+            ['m-1' => ['1', 1, PartitionedOrders::class], 'm-2' => ['1', 2, PartitionedOrders::class], 'm-3' => ['', '', '']],
+            $partitions,
+        );
+    }
+
+    #[DataProvider('implementations')]
+    public function test_the_console_lists_dead_letters_without_partition_columns_when_none_of_them_is_held(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $ecotone->sendCommandWithRouting('partitionDeadLetter.place', 'broken', metadata: ['id' => 'm-1']);
+        $this->consume($ecotone);
+
+        self::assertSame(
+            ['Message Id', 'Failed At', 'Stacktrace'],
+            $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:deadletter:list', [])->columnHeaders,
+        );
+    }
+
+    #[DataProvider('implementations')]
+    public function test_the_console_shows_the_partition_key_position_and_tracking_name_of_a_held_message(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->consume($ecotone);
+
+        $shown = array_column($ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:deadletter:show', ['messageId' => 'm-2'])->rows, 1, 0);
+
+        self::assertSame(
+            ['1', 2, PartitionedOrders::class],
+            [$shown['Partition Key'], $shown['Partition Position'], $shown['Partition Tracking Name']],
+        );
+    }
+
+    #[DataProvider('implementations')]
+    public function test_the_console_shows_a_message_that_is_not_held_without_partition_rows(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $ecotone->sendCommandWithRouting('partitionDeadLetter.place', 'broken', metadata: ['id' => 'm-1']);
+        $this->consume($ecotone);
+
+        self::assertSame(
+            ['Message Id', 'Failed At', 'Channel Name', 'Type', 'Stacktrace'],
+            array_column($ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:deadletter:show', ['messageId' => 'm-1'])->rows, 0),
+        );
     }
 
     #[DataProvider('implementations')]

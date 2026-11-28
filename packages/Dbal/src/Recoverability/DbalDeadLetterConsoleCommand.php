@@ -34,15 +34,24 @@ class DbalDeadLetterConsoleCommand
         $limit = self::PAGE_LIMIT;
         $offset = $page * self::PAGE_LIMIT;
 
+        $errorContexts = $deadLetterGateway->list($limit, $offset);
+        $rows = array_map(fn (ErrorContext $errorContext): array => [
+            $errorContext->getMessageId(),
+            $this->convertTimestampToReadableFormat($errorContext->failedTimestamp),
+            $this->getReadableStacktrace($errorContext->stackTrace, false),
+        ], $errorContexts);
+        $held = array_filter($errorContexts, static fn (ErrorContext $errorContext): bool => $errorContext->partitionKey !== null);
+        if ($held === []) {
+            return ConsoleCommandResultSet::create(['Message Id', 'Failed At', 'Stacktrace'], $rows);
+        }
+
         return ConsoleCommandResultSet::create(
-            ['Message Id', 'Failed At', 'Stacktrace'],
-            array_map(function (ErrorContext $errorContext) {
-                return [
-                    $errorContext->getMessageId(),
-                    $this->convertTimestampToReadableFormat($errorContext->failedTimestamp),
-                    $this->getReadableStacktrace($errorContext->stackTrace, false),
-                ];
-            }, $deadLetterGateway->list($limit, $offset))
+            ['Message Id', 'Failed At', 'Stacktrace', 'Partition Key', 'Partition Position', 'Partition Tracking Name'],
+            array_map(
+                static fn (array $row, ErrorContext $errorContext): array => [...$row, $errorContext->partitionKey ?? '', $errorContext->partitionPosition ?? '', $errorContext->partitionTrackingName ?? ''],
+                $rows,
+                $errorContexts,
+            ),
         );
     }
 
@@ -62,6 +71,11 @@ class DbalDeadLetterConsoleCommand
                         : 'Unknown')],
                 ['Type', $message->getHeaders()->containsKey(MessageHeaders::TYPE_ID) ? $message->getHeaders()->get(MessageHeaders::TYPE_ID) : 'Unknown'],
                 ['Stacktrace', $this->getReadableStacktrace($message->getHeaders()->get(ErrorContext::EXCEPTION_STACKTRACE), $fullDetails)],
+                ...($message->getHeaders()->containsKey(MessageHeaders::DEAD_LETTER_PARTITION_KEY) ? [
+                    ['Partition Key', $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_KEY)],
+                    ['Partition Position', $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_POSITION)],
+                    ['Partition Tracking Name', $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_TRACKING_NAME)],
+                ] : []),
             ]
         );
     }

@@ -55,17 +55,17 @@ class ErrorContext
     public static function fromHeaders(array $messageHeaders): self
     {
         return new self(
-            $messageHeaders[MessageHeaders::MESSAGE_ID],
-            $messageHeaders[MessageHeaders::TIMESTAMP],
-            $messageHeaders[self::EXCEPTION_CLASS] ?? '',
-            $messageHeaders[self::EXCEPTION_MESSAGE],
-            $messageHeaders[self::EXCEPTION_STACKTRACE],
-            $messageHeaders[self::EXCEPTION_CODE],
-            $messageHeaders[self::EXCEPTION_FILE],
-            $messageHeaders[self::EXCEPTION_LINE],
-            $messageHeaders[MessageHeaders::DEAD_LETTER_PARTITION_TRACKING_NAME] ?? null,
-            $messageHeaders[MessageHeaders::DEAD_LETTER_PARTITION_KEY] ?? null,
-            $messageHeaders[MessageHeaders::DEAD_LETTER_PARTITION_POSITION] ?? null,
+            messageId: $messageHeaders[MessageHeaders::MESSAGE_ID],
+            failedTimestamp: $messageHeaders[MessageHeaders::TIMESTAMP],
+            exceptionClass: $messageHeaders[self::EXCEPTION_CLASS] ?? '',
+            message: $messageHeaders[self::EXCEPTION_MESSAGE],
+            stackTrace: $messageHeaders[self::EXCEPTION_STACKTRACE],
+            code: $messageHeaders[self::EXCEPTION_CODE],
+            file: $messageHeaders[self::EXCEPTION_FILE],
+            line: $messageHeaders[self::EXCEPTION_LINE],
+            partitionTrackingName: $messageHeaders[MessageHeaders::DEAD_LETTER_PARTITION_TRACKING_NAME] ?? null,
+            partitionKey: $messageHeaders[MessageHeaders::DEAD_LETTER_PARTITION_KEY] ?? null,
+            partitionPosition: $messageHeaders[MessageHeaders::DEAD_LETTER_PARTITION_POSITION] ?? null,
         );
     }
 

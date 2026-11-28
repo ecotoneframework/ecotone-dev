@@ -4,6 +4,7 @@ namespace Ecotone\Api\Dbal\ExtensionObject;
 
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Recoverability\DeadLetterHandler;
+use Ecotone\Dbal\Recoverability\DeadLetterReplayOrder;
 use Ecotone\Dbal\Recoverability\DeadLetterStore;
 use Ecotone\Dbal\Tracing\FlowTrackingScope;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -30,6 +31,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
     public const LIMIT_HEADER  = 'ecotone_dbal_deadletter_limit';
     public const OFFSET_HEADER = 'ecotone_dbal_deadletter_offset';
     public const TARGET_CHANNEL_HEADER = 'ecotone_dbal_deadletter_target_channel';
+    public const IGNORE_PARTITION_ORDER_HEADER = 'ecotone_dbal_deadletter_ignore_partition_order';
 
     public const LIST_CHANNEL  = 'ecotone.dbal.deadletter.list';
     public const SHOW_CHANNEL       = 'ecotone.dbal.deadletter.show';
@@ -108,6 +110,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
                 PayloadBuilder::create('messageId'),
                 ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class),
                 HeaderBuilder::createOptional('targetChannel', self::TARGET_CHANNEL_HEADER),
+                HeaderBuilder::createOptional('ignorePartitionOrder', self::IGNORE_PARTITION_ORDER_HEADER),
             ]
         );
     }
@@ -170,6 +173,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
                 Reference::to(FlowTrackingScope::class),
                 Reference::to(ChannelResolver::class),
                 Reference::to(ReplayChannels::class),
+                Reference::to(DeadLetterReplayOrder::class),
             ]));
         }
 

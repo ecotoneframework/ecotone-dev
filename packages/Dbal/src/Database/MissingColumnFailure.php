@@ -31,29 +31,40 @@ use Throwable;
  */
 final class MissingColumnFailure
 {
-    private const OWN_COLUMNS = ['flow_type', 'flow_status'];
+    private const FLOW_COLUMNS = ['flow_type', 'flow_status'];
     private const SQLITE_MESSAGES = ['no such column', 'has no column named'];
 
     public static function explained(Throwable $failure, SpansTableManager $tableManager): Throwable
     {
+        return self::ofColumns(failure: $failure, columns: self::FLOW_COLUMNS, instructions: $tableManager->getMissingColumnsInstructions());
+    }
+
+    /**
+     * @param list<string> $columns
+     */
+    public static function ofColumns(Throwable $failure, array $columns, string $instructions): Throwable
+    {
         for ($cause = $failure; $cause !== null; $cause = $cause->getPrevious()) {
-            if (self::isAboutAFlowColumnMissing($cause)) {
-                return new ConfigurationException($tableManager->getMissingColumnsInstructions(), ConfigurationException::CONFIGURATION_EXCEPTION, $failure);
+            if (self::isAboutAColumnMissing($cause, $columns)) {
+                return new ConfigurationException($instructions, ConfigurationException::CONFIGURATION_EXCEPTION, $failure);
             }
         }
 
         return $failure;
     }
 
-    private static function isAboutAFlowColumnMissing(Throwable $cause): bool
+    /**
+     * @param list<string> $columns
+     */
+    private static function isAboutAColumnMissing(Throwable $cause, array $columns): bool
     {
         if (! $cause instanceof DriverException) {
             return false;
         }
 
-        $namesOneOfOurColumns = array_filter(self::OWN_COLUMNS, fn (string $column): bool => str_contains($cause->getMessage(), $column)) !== [];
+        $namesOneOfTheColumns = array_filter($columns, fn (string $column): bool => str_contains($cause->getMessage(), $column)) !== [];
         $isMissingColumn = $cause instanceof InvalidFieldNameException || array_filter(self::SQLITE_MESSAGES, fn (string $message): bool => str_contains($cause->getMessage(), $message)) !== [];
 
-        return $namesOneOfOurColumns && $isMissingColumn;
+        return $namesOneOfTheColumns && $isMissingColumn;
     }
 }

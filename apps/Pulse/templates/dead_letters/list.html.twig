@@ -84,6 +84,28 @@
                         </select>
                     </label>
                 </div>
+                {% if service.heldPartitions %}
+                <details class="group-messages held-partitions" data-held-partitions data-disclosure="dead-letters.{{ service.service }}.held-partitions" open>
+                    <summary>{{ page.plural(service.heldPartitions|length, 'partition key', 'partition keys') }} held · new messages of a held key wait here. Order is kept within one partition key: replaying a key handles its messages in the order they failed, and other failed messages are replayed in no particular order</summary>
+                    <table>
+                        <thead><tr><th scope="col">Partition key</th><th scope="col">Tracking name</th><th scope="col">Messages</th><th scope="col">Actions</th></tr></thead>
+                        <tbody>
+                        {% for held in service.heldPartitions %}
+                            {% set partitionValue = [service.service, held.trackingName, held.partitionKey]|json_encode %}
+                            <tr data-held-partition data-service="{{ service.service }}" data-partition-key="{{ held.partitionKey }}" data-partition-tracking-name="{{ held.trackingName }}">
+                                <td><code>{{ held.partitionKey }}</code></td>
+                                <td><code>{{ held.trackingName }}</code></td>
+                                <td data-held-messages>{{ held.waitingMessages }} waiting</td>
+                                <td>
+                                        <button type="submit" form="selection" name="replayPartition" value="{{ partitionValue }}" data-held-replay data-await>Replay {{ page.plural(held.waitingMessages, 'message', 'messages') }} of this key in order</button>
+                                        <button type="submit" form="selection" name="deletePartition" value="{{ partitionValue }}" class="danger" data-held-delete>Delete {{ page.plural(held.waitingMessages, 'failed message', 'failed messages') }}</button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </details>
+                {% endif %}
                 <div class="dl-groups">
                 {% for group in service.shownGroups %}
                     {% set rows = group.entries %}
@@ -114,16 +136,21 @@
                             <span data-group-replay><button type="submit" form="selection" name="failure" value="{{ failureValue }}" data-await>Replay {{ page.plural(group.count, 'message', 'messages') }}</button></span>
                             <button type="submit" form="selection" name="deleteFailure" value="{{ failureValue }}" class="danger" data-group-delete>Delete {{ page.plural(group.count, 'failed message', 'failed messages') }}</button>
                         </p>
+                        {% set heldRows = rows|filter(row => row.heldPartition is defined)|length %}
+                        {% if heldRows %}
+                            <p class="muted" data-group-held-note>{{ rows|length == 1 ? 'The listed message belongs' : heldRows == rows|length ? 'All ' ~ heldRows ~ ' listed messages belong' : heldRows ~ ' of the ' ~ rows|length ~ ' listed messages ' ~ (heldRows == 1 ? 'belongs' : 'belong') }} to a held partition key: a replay starts each key with its oldest message, and the rest follow in order.</p>
+                        {% endif %}
                         {% if rows %}
                         <details class="group-messages" data-group-messages data-disclosure="dead-letters.{{ service.service }}.{{ group.failureId }}.messages"{% if filter.failureId or filter.narrowsEntries %} open{% endif %}>
                             <summary>Messages in this failure group · {{ rows|length }} of {{ group.count }} listed</summary>
                             <table>
-                                <thead><tr><th scope="col"><span class="visually-hidden">Select</span></th><th scope="col">Message</th><th scope="col">Failed at (UTC)</th></tr></thead>
+                                <thead><tr><th scope="col"><span class="visually-hidden">Select</span></th><th scope="col">Message</th>{% if service.heldPartitions %}<th scope="col">Partition key</th>{% endif %}<th scope="col">Failed at (UTC)</th></tr></thead>
                                 <tbody>
                                 {% for entry in rows %}
                                     <tr data-dead-letter data-service="{{ service.service }}" data-message-id="{{ entry.messageId }}" data-message-name="{{ entry.messageName }}">
                                         <td><input type="checkbox" form="selection" name="selected[{{ service.service }}][]" value="{{ entry.messageId }}" aria-label="Select {{ entry.messageName ?: '(unnamed)' }} {{ entry.messageId }}"></td>
                                         <td><a href="{{ path('dead_letter', {service: service.service, messageId: entry.messageId, listFilter: filter.toQuery|url_encode}) }}" title="{{ entry.messageName }}">{{ entry.messageName ?: '(unnamed)' }}</a><br><span class="muted mono">{{ entry.messageId }}</span>{% if entry.exceptionMessage is defined and entry.exceptionMessage != group.exceptionMessage %}<br><span class="muted" data-entry-message>{{ entry.exceptionMessage|length > 140 ? (entry.exceptionMessage|slice(0, 140)|split(' ')|slice(0, -1)|join(' ')) ~ '…' : entry.exceptionMessage }}</span>{% endif %}</td>
+                                        {% if service.heldPartitions %}<td>{% if entry.heldPartition is defined %}<span data-entry-partition title="Tracking name: {{ entry.heldPartition.trackingName }}"><code>{{ entry.heldPartition.partitionKey }}</code> · {{ entry.heldPartition.position }} of {{ entry.heldPartition.of }}, {{ entry.heldPartition.position == 1 ? 'replayed first' : 'follows the first' }}</span>{% else %}<span class="muted">none</span>{% endif %}</td>{% endif %}
                                         <td>{{ entry.failedAt|date('Y-m-d H:i:s', 'UTC') }}{% if entry.traceId is defined and entry.traceId %} <a data-view-trace href="{{ path('trace_detail', {traceId: entry.traceId}) }}">View trace</a>{% set externalTrace = pulse.traceUrl.of(entry.traceId) %}{% if externalTrace %} <a data-external-trace href="{{ externalTrace }}" target="_blank" rel="noopener">Open in tracing UI</a>{% endif %}{% endif %}</td>
                                     </tr>
                                 {% endfor %}

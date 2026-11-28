@@ -104,6 +104,23 @@ final class PulseDeadLetterEntry
     }
 
     /**
+     * @return array{trackingName: string, partitionKey: string, position: int}|null
+     */
+    public function heldPartition(): ?array
+    {
+        $partitionKey = $this->header(MessageHeaders::DEAD_LETTER_PARTITION_KEY);
+        if ($partitionKey === null) {
+            return null;
+        }
+
+        return [
+            'trackingName' => $this->header(MessageHeaders::DEAD_LETTER_PARTITION_TRACKING_NAME) ?? '',
+            'partitionKey' => $partitionKey,
+            'position' => (int) $this->header(MessageHeaders::DEAD_LETTER_PARTITION_POSITION),
+        ];
+    }
+
+    /**
      * @return array{messageId: string, failureId: string, messageName: string, failedAt: string, exceptionClass: string, exceptionFile: string, exceptionLine: int, exceptionMessage: string, stackTrace: string, payload: string, contentType: string|null, channel: string|null, traceId: string|null, headers: array<string, string>}
      */
     public function toArray(): array

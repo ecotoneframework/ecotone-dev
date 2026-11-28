@@ -6,6 +6,7 @@ namespace App\Tests\Services;
 
 use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
+use Doctrine\DBAL\DriverManager;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -173,6 +174,36 @@ final class PeriodicRefreshTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/services');
         self::assertCount(1, $crawler->filter('[data-service="orders"] [data-request-error]'));
+    }
+
+    public function test_a_tick_that_finds_the_internal_database_locked_by_another_process_does_not_stop_the_ticks(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseClient();
+        $anotherProcess = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'path' => $_SERVER['PULSE_INTERNAL_DATABASE_PATH']]);
+
+        $anotherProcess->executeStatement('BEGIN IMMEDIATE');
+        $this->refreshTick($client);
+        $anotherProcess->executeStatement('ROLLBACK');
+        $anotherProcess->close();
+        $this->refreshTick($client);
+
+        $client->request('GET', '/readyz');
+        self::assertTrue($this->readinessCheck($client, 'periodic refresh')['ok']);
+    }
+
+    /**
+     * @return array{name: string, ok: bool, message: string}
+     */
+    private function readinessCheck(KernelBrowser $client, string $name): array
+    {
+        foreach (json_decode($client->getResponse()->getContent(), true)['checks'] as $check) {
+            if ($check['name'] === $name) {
+                return $check;
+            }
+        }
+
+        self::fail();
     }
 
     private function refreshTick(KernelBrowser $client, int $ticks = 1): void

@@ -21,6 +21,8 @@ final readonly class DeadLetterNotice
     public const TARGET_PER_SERVICE = 'target_per_service';
     public const SEARCH_NOT_STORED = 'search_not_stored';
 
+    private const TRACE_ID_PATTERN = '/^[0-9a-f]{32}$/D';
+
     private const CODES = [
         self::ACTION_SENT, self::SEND_FAILED, self::NOTHING_SELECTED, self::NO_FILTER_CONDITION, self::UNKNOWN_SERVICE,
         self::NOT_CONFIGURED, self::NO_DEAD_LETTERS_ANYWHERE, self::INVALID_DATE, self::UNKNOWN_CHANNEL, self::TARGET_NEEDS_SERVICE, self::TARGET_PER_SERVICE, self::SEARCH_NOT_STORED,
@@ -38,9 +40,9 @@ final readonly class DeadLetterNotice
     /**
      * @param list<string> $services
      */
-    public static function actionSent(string $action, array $services, ?int $affected, string $failure): self
+    public static function actionSent(string $action, array $services, ?int $affected, string $failure, string $replayTrace, string $replayNotTracedBy): self
     {
-        return new self(self::ACTION_SENT, ['action' => $action, 'services' => implode(',', $services)] + ($affected === null ? [] : ['affected' => (string) $affected]) + ($failure === '' ? [] : ['failure' => $failure]));
+        return new self(self::ACTION_SENT, ['action' => $action, 'services' => implode(',', $services)] + ($affected === null ? [] : ['affected' => (string) $affected]) + ($failure === '' ? [] : ['failure' => $failure]) + ($replayTrace === '' ? [] : ['replayTrace' => $replayTrace]) + ($replayNotTracedBy === '' ? [] : ['replayNotTracedBy' => $replayNotTracedBy]));
     }
 
     /**
@@ -119,7 +121,14 @@ final readonly class DeadLetterNotice
         $channel = (string) $query->get('channel', '');
 
         return match ($code) {
-            self::ACTION_SENT => in_array($action, ['replay', 'delete'], true) && $services !== [] ? self::actionSent($action, $services, ctype_digit((string) $query->get('affected', '')) ? (int) $query->get('affected') : null, mb_substr((string) $query->get('failure', ''), 0, 300)) : null,
+            self::ACTION_SENT => in_array($action, ['replay', 'delete'], true) && $services !== [] ? self::actionSent(
+                action: $action,
+                services: $services,
+                affected: ctype_digit((string) $query->get('affected', '')) ? (int) $query->get('affected') : null,
+                failure: mb_substr((string) $query->get('failure', ''), 0, 300),
+                replayTrace: $action === 'replay' && preg_match(self::TRACE_ID_PATTERN, (string) $query->get('replayTrace', '')) === 1 ? (string) $query->get('replayTrace') : '',
+                replayNotTracedBy: $action === 'replay' && in_array((string) $query->get('replayNotTracedBy', ''), $services, true) ? (string) $query->get('replayNotTracedBy') : '',
+            ) : null,
             self::SEND_FAILED => $services !== [] ? self::sendFailed($services) : null,
             self::NOT_CONFIGURED => in_array($service, $configuredServices, true) ? self::notConfigured($service) : null,
             self::UNKNOWN_CHANNEL => in_array($service, $configuredServices, true) && $channel !== '' ? self::unknownChannel($service, $channel) : null,

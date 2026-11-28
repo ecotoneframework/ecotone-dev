@@ -292,7 +292,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     {
         $this->bootstrap($implementation);
 
-        self::assertSame(['total' => 0, 'groups' => [], 'recent' => []], $this->requestSnapshot()['deadLetters']);
+        self::assertSame(['total' => 0, 'heldPartitions' => ['total' => 0, 'partitions' => []], 'groups' => [], 'recent' => []], $this->requestSnapshot()['deadLetters']);
     }
 
     #[DataProvider('implementations')]

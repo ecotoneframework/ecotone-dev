@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Api\Attribute\AsynchronousEndpointAttribute;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
@@ -92,6 +93,8 @@ interface Configuration extends CompilerPass
      * and ensures the Channel is not used as execution or output channel.
      */
     public function registerBatchForwardingSourceChannel(string $channelName): Configuration;
+
+    public function registerAsynchronousExecutionAttribute(string $handlerEndpointId, AsynchronousEndpointAttribute $attribute): Configuration;
 
     public function registerHandlerHandlingOneMessageAtATime(string $consumerEndpointId, string $reason, string $wayToHandleMoreAtOnce): Configuration;
 

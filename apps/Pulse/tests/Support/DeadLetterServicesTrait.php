@@ -44,7 +44,11 @@ trait DeadLetterServicesTrait
      */
     private array $services = [];
 
-    private function serviceWithDeadLetters(string $service, bool $deadLettersEnabled = true): FlowTestSupport
+    /**
+     * @param list<object> $additionalHandlers
+     * @param list<object> $additionalExtensionObjects
+     */
+    private function serviceWithDeadLetters(string $service, bool $deadLettersEnabled = true, array $additionalHandlers = [], array $additionalExtensionObjects = []): FlowTestSupport
     {
         $work = new class () {
             public bool $failing = true;
@@ -109,8 +113,8 @@ trait DeadLetterServicesTrait
         }
 
         $application = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$work::class],
-            containerOrAvailableServices: [$work, DbalConnectionFactory::class => OpenedConnections::factory($_SERVER['PULSE_TRANSPORT_DSN'])],
+            classesToResolve: [$work::class, ...array_map(static fn (object $handler): string => $handler::class, $additionalHandlers)],
+            containerOrAvailableServices: [$work, ...$additionalHandlers, DbalConnectionFactory::class => OpenedConnections::factory($_SERVER['PULSE_TRANSPORT_DSN'])],
             extensionObjects: [
                 DbalBackedMessageChannelBuilder::create($this->serviceChannels[$service])->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create(self::WORK_CHANNEL)->withReceiveTimeout(1),
@@ -120,6 +124,7 @@ trait DeadLetterServicesTrait
                 ServiceConfiguration::createWithDefaults()->withServiceName($service)->withDefaultErrorChannel('dbal_dead_letter'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
                 DbalConfiguration::createWithDefaults()->withDeadLetter($deadLettersEnabled),
+                ...$additionalExtensionObjects,
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,

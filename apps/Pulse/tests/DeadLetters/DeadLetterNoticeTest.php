@@ -49,6 +49,55 @@ final class DeadLetterNoticeTest extends ReleasingWebTestCase
         self::assertStringContainsString('Action sent: delete to orders', $crawler->filter('[data-notice]')->text());
     }
 
+    public function test_a_replay_trace_in_the_query_string_that_is_not_a_trace_id_is_not_rendered_as_a_link(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = static::createClient();
+        $this->setUpPulseInternalStorage($client->getKernel());
+
+        $crawler = $client->request('GET', '/dead-letters?notice=action_sent&action=replay&services=orders&replayTrace=..%2F..%2Fsettings');
+
+        self::assertCount(1, $crawler->filter('[data-notice]'));
+        self::assertCount(0, $crawler->filter('a[data-replay-trace]'));
+    }
+
+    public function test_a_delete_notice_carries_no_replay_trace_link(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = static::createClient();
+        $this->setUpPulseInternalStorage($client->getKernel());
+
+        $crawler = $client->request('GET', '/dead-letters?notice=action_sent&action=delete&services=orders&replayTrace=5d7501860754beda3f3d35857d1891d5');
+
+        self::assertCount(1, $crawler->filter('[data-notice]'));
+        self::assertCount(0, $crawler->filter('a[data-replay-trace]'));
+        self::assertCount(0, $crawler->filter('[data-notice-stays]'));
+    }
+
+    public function test_a_replay_notice_does_not_say_a_service_records_no_traces_when_the_query_string_names_a_service_the_replay_was_not_sent_to(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing');
+        $client = static::createClient();
+        $this->setUpPulseInternalStorage($client->getKernel());
+
+        $crawler = $client->request('GET', '/dead-letters?notice=action_sent&action=replay&services=orders&replayNotTracedBy=billing');
+
+        self::assertCount(1, $crawler->filter('[data-notice]'));
+        self::assertCount(0, $crawler->filter('[data-replay-not-traced]'));
+    }
+
+    public function test_a_delete_notice_does_not_say_a_service_records_no_traces(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = static::createClient();
+        $this->setUpPulseInternalStorage($client->getKernel());
+
+        $crawler = $client->request('GET', '/dead-letters?notice=action_sent&action=delete&services=orders&replayNotTracedBy=orders');
+
+        self::assertCount(1, $crawler->filter('[data-notice]'));
+        self::assertCount(0, $crawler->filter('[data-replay-not-traced]'));
+    }
+
     public function test_the_date_filters_are_labelled_as_utc_with_second_precision(): void
     {
         $this->configurePulseWithServices('orders');

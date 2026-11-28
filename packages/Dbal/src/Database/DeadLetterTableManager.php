@@ -110,8 +110,18 @@ class DeadLetterTableManager implements DbalTableManager
         $table->addColumn('payload', Types::TEXT);
         $table->addColumn('headers', Types::TEXT);
 
+        $table->addColumn('partition_tracking_name', Types::STRING, ['length' => 255, 'notnull' => false]);
+        $table->addColumn('partition_key', Types::STRING, ['length' => 255, 'notnull' => false]);
+        $table->addColumn('partition_position', Types::BIGINT, ['notnull' => false]);
+
         $table->setPrimaryKey(['message_id']);
         $table->addIndex(['failed_at']);
+        $table->addIndex(['partition_tracking_name', 'partition_key', 'partition_position'], $this->getPartitionIndexName());
         return $table;
+    }
+
+    public function getPartitionIndexName(): string
+    {
+        return $this->tableName . '_partition_idx';
     }
 }

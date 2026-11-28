@@ -178,6 +178,14 @@ stores the failed attempt in its own short transaction on the connection (and te
 failure of that write is logged, never thrown, because the message itself is already taken care of. A failure that
 propagates to the consumer still stores nothing.
 
+A second one, by the maintainer's decision (2026-11-25): releasing the next message of a partition key held in the
+dead letter. Once a message replayed from a held partition key succeeded, the next oldest one is taken out of the
+dead letter and sent, by an interceptor placed just inside the error channel interceptor, so after the handler's
+transaction committed and before the message is acknowledged. It cannot be inside the transaction: the release
+must see the handler's work as decided, or two workers race on the same partition key. A release that fails is
+thrown, not logged: the message goes through the error channel and is retried, deduplication skips the handler that
+already committed, and the release runs again (`PartitionDeadLetterInterceptor`).
+
 Evidence: stored traces wrote the root span and claimed completion after the commit, and an outage at that moment
 threw the missing-table refusal out of the consumer (`FlowTrackingConformanceTest`, the outage tests); an asynchronous
 projection wrote its spans after its own batch committed (`FlowTrackingProjectionTest`).

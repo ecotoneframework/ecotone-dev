@@ -402,6 +402,7 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
         $enrolment = new class () {
             private int $enrolledAtOnce = 0;
             private int $mostEnrolledAtOnce = 0;
+            private ?Coroutine\Channel $threeMembersAreBeingEnrolled = null;
 
             #[Asynchronous('enrolments')]
             #[CommandHandler('member.enrol', endpointId: 'member.enrol.endpoint')]
@@ -411,7 +412,12 @@ final class CoroutineExecutionsTest extends DbalMessagingTestCase
                 $this->mostEnrolledAtOnce = max($this->mostEnrolledAtOnce, $this->enrolledAtOnce);
                 try {
                     $memberRegister->register($command['memberId'], $command['name']);
-                    usleep(50_000);
+                    $this->threeMembersAreBeingEnrolled ??= new Coroutine\Channel();
+                    if ($this->enrolledAtOnce < 3) {
+                        $this->threeMembersAreBeingEnrolled->pop(5);
+                    } else {
+                        $this->threeMembersAreBeingEnrolled->close();
+                    }
                     if ($command['name'] === 'refused') {
                         throw new RuntimeException('Enrolment was refused');
                     }

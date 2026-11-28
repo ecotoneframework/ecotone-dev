@@ -339,7 +339,7 @@ final class ProjectingModule implements AnnotationModule
         return ModulePackageList::CORE_PACKAGE;
     }
 
-    private static function endpointIdForProjection(string $projectionName): string
+    public static function endpointIdForProjection(string $projectionName): string
     {
         return 'projecting_manager_endpoint:' . $projectionName;
     }

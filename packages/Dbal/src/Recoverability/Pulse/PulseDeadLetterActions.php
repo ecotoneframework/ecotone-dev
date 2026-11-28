@@ -48,7 +48,7 @@ final class PulseDeadLetterActions
 
         $this->deadLetterHandler->assertTargetChannelExists($selection->targetChannel);
         $affected = 0;
-        foreach ($this->existing($selection) as $messageId) {
+        foreach ($this->existing($selection, $this->deadLetterHandler->startsOf($selection->messageIds($this->store))) as $messageId) {
             $this->deadLetterHandler->replay($messageId, $messagingEntrypoint, $selection->targetChannel);
             $affected++;
         }
@@ -66,7 +66,7 @@ final class PulseDeadLetterActions
         $selection = PulseDeadLetterSelection::forDelete($payload);
 
         $affected = 0;
-        foreach ($this->existing($selection) as $messageId) {
+        foreach ($this->existing($selection, $selection->messageIds($this->store)) as $messageId) {
             $this->deadLetterHandler->delete($messageId);
             $affected++;
         }
@@ -75,11 +75,12 @@ final class PulseDeadLetterActions
     }
 
     /**
+     * @param list<string> $messageIds
      * @return iterable<string>
      */
-    private function existing(PulseDeadLetterSelection $selection): iterable
+    private function existing(PulseDeadLetterSelection $selection, array $messageIds): iterable
     {
-        foreach ($selection->messageIds($this->store) as $messageId) {
+        foreach ($messageIds as $messageId) {
             if ($selection->selectsByFilter() && $this->store->find($messageId) === null) {
                 continue;
             }

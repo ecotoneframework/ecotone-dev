@@ -22,7 +22,7 @@ class DbalDeadLetterConsoleCommand
             [
                 [DbalDeadLetterModule::LIST_COMMAND_NAME . ' {page:int}', 'List all dead messages'],
                 [DbalDeadLetterModule::SHOW_COMMAND_NAME . ' {messageId:string} {fullDetails:bool}', 'Show more details about specific message'],
-                [DbalDeadLetterModule::REPLAY_COMMAND_NAME . ' {messageId:string} {--targetChannel=}', 'Replay chosen dead message, to its source channel or to the target channel'],
+                [DbalDeadLetterModule::REPLAY_COMMAND_NAME . ' {messageId:string} {--targetChannel=} {--ignorePartitionOrder}', 'Replay chosen dead message, to its source channel or to the target channel. A message of a held partition key starts its key from the oldest message, unless the partition order is ignored'],
                 [DbalDeadLetterModule::REPLAY_ALL_COMMAND_NAME . ' {--targetChannel=}', 'Replay ALL dead messages, to their source channels or to the target channel'],
                 [DbalDeadLetterModule::DELETE_COMMAND_NAME . ' {messageId:string}', 'Delete chosen dead message'],
             ]
@@ -34,15 +34,24 @@ class DbalDeadLetterConsoleCommand
         $limit = self::PAGE_LIMIT;
         $offset = $page * self::PAGE_LIMIT;
 
+        $errorContexts = $deadLetterGateway->list($limit, $offset);
+        $rows = array_map(fn (ErrorContext $errorContext): array => [
+            $errorContext->getMessageId(),
+            $this->convertTimestampToReadableFormat($errorContext->failedTimestamp),
+            $this->getReadableStacktrace($errorContext->stackTrace, false),
+        ], $errorContexts);
+        $held = array_filter($errorContexts, static fn (ErrorContext $errorContext): bool => $errorContext->partitionKey !== null);
+        if ($held === []) {
+            return ConsoleCommandResultSet::create(['Message Id', 'Failed At', 'Stacktrace'], $rows);
+        }
+
         return ConsoleCommandResultSet::create(
-            ['Message Id', 'Failed At', 'Stacktrace'],
-            array_map(function (ErrorContext $errorContext) {
-                return [
-                    $errorContext->getMessageId(),
-                    $this->convertTimestampToReadableFormat($errorContext->failedTimestamp),
-                    $this->getReadableStacktrace($errorContext->stackTrace, false),
-                ];
-            }, $deadLetterGateway->list($limit, $offset))
+            ['Message Id', 'Failed At', 'Stacktrace', 'Partition Key', 'Partition Position', 'Partition Tracking Name'],
+            array_map(
+                static fn (array $row, ErrorContext $errorContext): array => [...$row, $errorContext->partitionKey ?? '', $errorContext->partitionPosition ?? '', $errorContext->partitionTrackingName ?? ''],
+                $rows,
+                $errorContexts,
+            ),
         );
     }
 
@@ -62,13 +71,18 @@ class DbalDeadLetterConsoleCommand
                         : 'Unknown')],
                 ['Type', $message->getHeaders()->containsKey(MessageHeaders::TYPE_ID) ? $message->getHeaders()->get(MessageHeaders::TYPE_ID) : 'Unknown'],
                 ['Stacktrace', $this->getReadableStacktrace($message->getHeaders()->get(ErrorContext::EXCEPTION_STACKTRACE), $fullDetails)],
+                ...($message->getHeaders()->containsKey(MessageHeaders::DEAD_LETTER_PARTITION_KEY) ? [
+                    ['Partition Key', $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_KEY)],
+                    ['Partition Position', $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_POSITION)],
+                    ['Partition Tracking Name', $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_TRACKING_NAME)],
+                ] : []),
             ]
         );
     }
 
-    public function replay(DeadLetterGateway $deadLetterGateway, string $messageId, #[ConsoleParameterOption] ?string $targetChannel = null): void
+    public function replay(DeadLetterGateway $deadLetterGateway, string $messageId, #[ConsoleParameterOption] ?string $targetChannel = null, #[ConsoleParameterOption] bool $ignorePartitionOrder = false): void
     {
-        $deadLetterGateway->replay($messageId, $targetChannel);
+        $deadLetterGateway->replay(messageId: $messageId, targetChannel: $targetChannel, ignorePartitionOrder: $ignorePartitionOrder);
     }
 
     public function delete(DeadLetterGateway $deadLetterGateway, string $messageId): void

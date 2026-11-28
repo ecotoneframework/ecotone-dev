@@ -35,7 +35,13 @@ final class DeadLetterActionController extends AbstractController
         $failure = (string) $request->request->get('failure', '');
         $deleteFailure = (string) $request->request->get('deleteFailure', '');
         $byFailure = $failure !== '' || $deleteFailure !== '';
-        $replay = $byFailure ? $failure !== '' : $request->request->get('action') === 'replay';
+        $replayPartition = (string) $request->request->get('replayPartition', '');
+        $deletePartition = (string) $request->request->get('deletePartition', '');
+        $byPartition = $replayPartition !== '' || $deletePartition !== '';
+        $selected = $byPartition
+            ? $this->selectionOfPartition($replayPartition !== '' ? $replayPartition : $deletePartition, onlyTheOldest: $replayPartition !== '')
+            : $request->request->all('selected');
+        $replay = $byFailure ? $failure !== '' : ($byPartition ? $replayPartition !== '' : $request->request->get('action') === 'replay');
         $filter = DeadLetterFilter::fromInput($request->request);
         $byFilter = $request->request->get('scope') === 'filter';
         if (($invalidDate = $filter->invalidDateField()) !== null) {
@@ -46,7 +52,7 @@ final class DeadLetterActionController extends AbstractController
             ? $this->actionsForFailure($replay ? $failure : $deleteFailure, $replay, $request->request->all()['targetChannel'] ?? [])
             : ($byFilter
             ? $this->actionsForFilter($filter, $replay, $replay ? trim((string) $request->request->get('targetChannel', '')) : '')
-            : $this->actionsForSelection($request->request->all('selected'), $replay, $replay ? $request->request->all()['targetChannel'] ?? [] : []));
+            : $this->actionsForSelection($selected, $replay, $replay ? $request->request->all()['targetChannel'] ?? [] : []));
         if ($actions instanceof DeadLetterNotice) {
             return $this->back($filter, $actions);
         }
@@ -54,7 +60,7 @@ final class DeadLetterActionController extends AbstractController
             return $this->render('dead_letters/confirm_delete.html.twig', [
                 'filter' => $filter,
                 'services' => array_keys($actions),
-                'selection' => $byFilter || $byFailure ? [] : $this->selectedIds($request->request->all('selected')),
+                'selection' => $byFilter || $byFailure ? [] : $this->selectedIds($selected),
                 'deleteFailure' => $byFailure ? $deleteFailure : '',
                 'failure' => $byFailure ? $this->failureOf($deleteFailure) : null,
                 'matchingCount' => $byFilter ? DeadLetterOverview::matchingCount($this->snapshots->scopes(), $filter) : null,
@@ -63,11 +69,17 @@ final class DeadLetterActionController extends AbstractController
         }
 
         $failureLabel = $byFailure ? DeadLetterOverview::failureLabel($this->failureOf($failure !== '' ? $failure : $deleteFailure)) : '';
+        $replayTrace = '';
+        $replayNotTracedBy = '';
         $failed = [];
         $results = [];
         foreach ($actions as $service => $action) {
             $result = $this->requester->send(ServiceScope::fromKey($service), $action);
             $results[] = $result;
+            if ($replayPartition !== '' && $result->tracingId !== null) {
+                $replayTrace = $this->storesTraces($service) ? $result->tracingId : '';
+                $replayNotTracedBy = $replayTrace === '' ? $service : '';
+            }
             if ($result->failed) {
                 $failed[] = $service;
             }
@@ -75,8 +87,37 @@ final class DeadLetterActionController extends AbstractController
         $this->awaiter->await($results);
 
         return $this->back($filter, $failed === []
-            ? DeadLetterNotice::actionSent($replay ? 'replay' : 'delete', array_keys($actions), $this->affectedBy(array_keys($actions)), $failureLabel)
+            ? DeadLetterNotice::actionSent(action: $replay ? 'replay' : 'delete', services: array_keys($actions), affected: $this->affectedBy(array_keys($actions)), failure: $failureLabel, replayTrace: $replayTrace, replayNotTracedBy: $replayNotTracedBy)
             : DeadLetterNotice::sendFailed($failed));
+    }
+
+    private function storesTraces(string $service): bool
+    {
+        foreach ($this->snapshots->scopes() as $snapshot) {
+            if ($snapshot->scope() === $service) {
+                return is_array($snapshot->snapshot['tracing'] ?? null);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    private function selectionOfPartition(string $partition, bool $onlyTheOldest): array
+    {
+        $decoded = json_decode($partition, true);
+        if (! is_array($decoded) || count($decoded) !== 3 || ! array_is_list($decoded) || array_filter($decoded, is_string(...)) !== $decoded) {
+            return [];
+        }
+        [$service, $trackingName, $partitionKey] = $decoded;
+        $heldPartition = DeadLetterOverview::heldPartition($this->snapshots->scopes(), $service, $trackingName, $partitionKey);
+        if ($heldPartition === null) {
+            return [];
+        }
+
+        return [$service => $onlyTheOldest ? [$heldPartition['oldestMessageId']] : $heldPartition['messageIds']];
     }
 
     /**

@@ -12,7 +12,7 @@ use Ecotone\Api\Messaging\Message;
  */
 interface DeadLetterStore
 {
-    public function store(Message $message): void;
+    public function store(Message $message): string;
 
     /**
      * @return ErrorContext[]

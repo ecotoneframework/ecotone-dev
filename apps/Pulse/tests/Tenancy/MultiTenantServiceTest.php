@@ -6,6 +6,11 @@ namespace App\Tests\Tenancy;
 
 use App\Tests\Support\MultiTenantServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\PartitionDeadLetter;
+use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\DomCrawler\Crawler;
@@ -101,6 +106,50 @@ final class MultiTenantServiceTest extends ReleasingWebTestCase
         self::assertSame('tenant_a', $list->filter('[data-detail="tenant"]')->text());
         self::assertSame('2 spans', $this->spansOf($trace, 'orders@tenant_b'));
         self::assertSame('answered', $trace->filter('[data-service-state="orders@tenant_a"]')->attr('data-state'));
+        self::assertStringNotContainsString('spans', $trace->filter('[data-service-state="orders@tenant_a"]')->text());
+    }
+
+    public function test_the_notice_of_a_partition_key_replayed_for_one_tenant_links_to_the_trace_found_in_that_tenant(): void
+    {
+        $shipments = new class () {
+            public bool $failing = true;
+
+            /**
+             * @var list<string>
+             */
+            public array $handled = [];
+
+            #[PartitionDeadLetter(partitionHeaderName: 'heldBy')]
+            #[Asynchronous('pulse_tenant_work')]
+            #[CommandHandler('order.dispatch', endpointId: 'pulse.tenant.order.dispatch.endpoint')]
+            public function dispatch(array $order, #[Header('tenant')] string $tenant): void
+            {
+                if ($this->failing) {
+                    throw new RuntimeException('dispatch failed for order ' . $order['orderId']);
+                }
+
+                $this->handled[] = $tenant . ':' . $order['orderId'];
+            }
+        };
+        $this->additionalTenantHandlers = [$shipments];
+        $client = $this->pulseWithTenants();
+        foreach ([1, 3] as $orderId) {
+            $this->services['orders']->sendCommandWithRouting('order.dispatch', ['orderId' => $orderId], metadata: ['tenant' => 'tenant_b', 'heldBy' => 'o-1']);
+            $this->consumeTenantWork($this->services['orders']);
+        }
+        $list = $this->refreshedView($client, '/dead-letters');
+        $shipments->failing = false;
+
+        $client->request('POST', '/dead-letters/actions', ['scope' => 'ids', 'replayPartition' => $list->filter('[data-held-partition][data-service="orders@tenant_b"][data-partition-key="o-1"] [data-held-replay]')->attr('value')]);
+        $traceOfTheReplay = $client->followRedirect()->filter('[data-notice] a[data-replay-trace]')->attr('href');
+        $this->deliver($client);
+        $this->consumeTenantWork($this->services['orders']);
+        $client->request('GET', $traceOfTheReplay);
+        $this->deliver($client);
+        $trace = $client->request('GET', $traceOfTheReplay);
+
+        self::assertSame(['tenant_b:1', 'tenant_b:3'], $shipments->handled);
+        self::assertSame('5 spans', $this->spansOf($trace, 'orders@tenant_b'));
         self::assertStringNotContainsString('spans', $trace->filter('[data-service-state="orders@tenant_a"]')->text());
     }
 

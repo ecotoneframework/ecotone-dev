@@ -30,6 +30,7 @@ final class DeadLetterHandler
         private FlowTrackingScope $flowTracking,
         private ChannelResolver $channelResolver,
         private ReplayChannels $replayChannels,
+        private DeadLetterReplayOrder $replayOrder,
     ) {
     }
 
@@ -67,12 +68,12 @@ final class DeadLetterHandler
         return $this->deadLetterStore->count();
     }
 
-    public function replay(string|array $messageId, MessagingEntrypointService $messagingEntrypoint, ?string $targetChannel = null): void
+    public function replay(string|array $messageId, MessagingEntrypointService $messagingEntrypoint, ?string $targetChannel = null, bool $ignorePartitionOrder = false): void
     {
         $this->assertTargetChannelExists($targetChannel);
 
-        foreach ((array) $messageId as $id) {
-            $this->replayMessage($id, $messagingEntrypoint, $targetChannel);
+        foreach ($ignorePartitionOrder ? (array) $messageId : $this->startsOf((array) $messageId) as $id) {
+            $this->replayMessage(messageId: $id, messagingEntrypoint: $messagingEntrypoint, targetChannel: $targetChannel, ignorePartitionOrder: $ignorePartitionOrder);
         }
     }
 
@@ -80,9 +81,18 @@ final class DeadLetterHandler
     {
         $this->assertTargetChannelExists($targetChannel);
 
-        foreach ($this->storedMessageIds() as $messageId) {
-            $this->replayMessage($messageId, $messagingEntrypoint, $targetChannel);
+        foreach ($this->replayOrder->replayableOf($this->storedMessageIds()) as $messageId) {
+            $this->replayMessage(messageId: $messageId, messagingEntrypoint: $messagingEntrypoint, targetChannel: $targetChannel, ignorePartitionOrder: false);
         }
+    }
+
+    /**
+     * @param list<string> $messageIds
+     * @return list<string>
+     */
+    public function startsOf(array $messageIds): array
+    {
+        return array_values(array_unique(array_map($this->replayOrder->startOf(...), $messageIds)));
     }
 
     /**
@@ -130,9 +140,11 @@ final class DeadLetterHandler
         }
     }
 
-    private function replayMessage(string $messageId, MessagingEntrypointService $messagingEntrypoint, ?string $targetChannel): void
+    private function replayMessage(string $messageId, MessagingEntrypointService $messagingEntrypoint, ?string $targetChannel, bool $ignorePartitionOrder): void
     {
-        $message = $this->show($messageId);
+        $message = $ignorePartitionOrder
+            ? $this->replayOrder->ignoringPartitionOrder($messageId, $this->show($messageId))
+            : $this->replayOrder->releasing($messageId, $this->show($messageId));
         $hasPolledChannel = $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME);
         $hasInboundRequestChannel = $message->getHeaders()->containsKey(MessageHeaders::INBOUND_REQUEST_CHANNEL);
         $hasRoutingSlip = $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP);

@@ -34,6 +34,12 @@ use Throwable;
 final class DbalDeadLetterStore implements DeadLetterStore
 {
     public const DEFAULT_DEAD_LETTER_TABLE = 'ecotone_error_messages';
+    private const ROW_TYPES = [
+        'message_id' => Types::STRING,
+        'failed_at' => Types::DATETIME_MUTABLE,
+        'payload' => Types::TEXT,
+        'headers' => Types::TEXT,
+    ];
 
     public function __construct(
         private ConnectionFactory $connectionFactory,
@@ -45,21 +51,29 @@ final class DbalDeadLetterStore implements DeadLetterStore
     ) {
     }
 
-    public function store(Message $message): void
+    public function store(Message $message): string
+    {
+        return $this->storeInsertedBy($message, fn (array $row, array $types): int|string => $this->getConnection()->insert(table: $this->getTableName(), data: $row, types: $types));
+    }
+
+    public function storeInsertedBy(Message $message, callable $insert): string
     {
         $retryStrategy = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(10, 3, 1000)
             ->maxRetries(3)
             ->build();
 
-        $this->retryRunner->runWithRetry(function () use ($message) {
+        $deadLetterId = '';
+        $this->retryRunner->runWithRetry(function () use ($message, $insert, &$deadLetterId) {
             try {
-                $this->onTable(fn () => $this->insertHandledMessage($message->getPayload(), $message->getHeaders()->headers()));
+                $deadLetterId = $this->onTable(fn (): string => $this->insertHandledMessage(payload: $message->getPayload(), headers: $message->getHeaders()->headers(), insert: $insert));
             } catch (\Exception $exception) {
                 $this->getConnection()->close();
 
                 throw $exception;
             }
         }, $retryStrategy, $message, \Exception::class, 'Storing Error Message in dead letter failed. Trying to self-heal and retry.');
+
+        return $deadLetterId;
     }
 
     public function list(int $limit, int $offset): array
@@ -123,36 +137,34 @@ final class DbalDeadLetterStore implements DeadLetterStore
             ->executeStatement());
     }
 
-    private function insertHandledMessage(string $payload, array $headers): void
+    private function insertHandledMessage(string $payload, array $headers, callable $insert): string
     {
+        $deadLetterId = (string) $headers[MessageHeaders::MESSAGE_ID];
         try {
-            $rowsAffected = $this->storeInDatabase($headers[MessageHeaders::MESSAGE_ID], $headers, $payload);
+            $rowsAffected = $insert($this->rowOf(messageId: $deadLetterId, headers: $headers, payload: $payload), self::ROW_TYPES);
         } catch (UniqueConstraintViolationException) {
-            $rowsAffected = $this->storeInDatabase(Uuid::v7()->toRfc4122(), $headers, $payload);
+            $deadLetterId = Uuid::v7()->toRfc4122();
+            $rowsAffected = $insert($this->rowOf(messageId: $deadLetterId, headers: $headers, payload: $payload), self::ROW_TYPES);
         }
 
         if (1 !== $rowsAffected) {
             throw new Exception('There was a problem inserting exceptional message. Dbal did not confirm that the record is inserted.');
         }
+
+        return $deadLetterId;
     }
 
-    private function storeInDatabase(mixed $messageId, array $headers, string $payload): string|int
+    /**
+     * @return array{message_id: string, failed_at: DateTime, payload: string, headers: string}
+     */
+    private function rowOf(string $messageId, array $headers, string $payload): array
     {
-        return $this->getConnection()->insert(
-            $this->getTableName(),
-            [
-                'message_id' => $messageId,
-                'failed_at' => new DateTime(date('Y-m-d H:i:s.u', $headers[MessageHeaders::TIMESTAMP])),
-                'payload' => $payload,
-                'headers' => json_encode($this->headerMapper->mapFromMessageHeaders($headers, $this->conversionService), JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_IGNORE),
-            ],
-            [
-                'message_id' => Types::STRING,
-                'failed_at' => Types::DATETIME_MUTABLE,
-                'payload' => Types::TEXT,
-                'headers' => Types::TEXT,
-            ]
-        );
+        return [
+            'message_id' => $messageId,
+            'failed_at' => new DateTime(date('Y-m-d H:i:s.u', $headers[MessageHeaders::TIMESTAMP])),
+            'payload' => $payload,
+            'headers' => json_encode($this->headerMapper->mapFromMessageHeaders($headers, $this->conversionService), JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_IGNORE),
+        ];
     }
 
     private function page(int $limit, int $offset): array

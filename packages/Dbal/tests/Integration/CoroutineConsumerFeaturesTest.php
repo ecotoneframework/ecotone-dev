@@ -86,15 +86,22 @@ final class CoroutineConsumerFeaturesTest extends DbalMessagingTestCase
             private array $placed = [];
             private int $placedAtOnce = 0;
             private int $mostPlacedAtOnce = 0;
+            private ?Coroutine\Channel $everyOrderIsBeingPlaced = null;
 
             #[Delayed(seconds: 60)]
             #[Asynchronous('orders')]
             #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
             public function place(string $orderNumber): void
             {
+                $this->everyOrderIsBeingPlaced ??= new Coroutine\Channel(2);
                 $this->placedAtOnce++;
                 $this->mostPlacedAtOnce = max($this->mostPlacedAtOnce, $this->placedAtOnce);
-                usleep(50_000);
+                if ($this->placedAtOnce < 3) {
+                    $this->everyOrderIsBeingPlaced->pop(5);
+                } else {
+                    $this->everyOrderIsBeingPlaced->push(true);
+                    $this->everyOrderIsBeingPlaced->push(true);
+                }
                 $this->placed[] = $orderNumber;
                 $this->placedAtOnce--;
             }

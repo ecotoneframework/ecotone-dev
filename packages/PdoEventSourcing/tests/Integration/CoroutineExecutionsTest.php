@@ -81,6 +81,7 @@ final class CoroutineExecutionsTest extends TestCase
         $projection = new #[Projection('coroutine_account_names'), Partitioned, Asynchronous('projections'), FromAggregateStream(CoroutineAccount::class)] class () {
             private int $projectedAtOnce = 0;
             private int $mostProjectedAtOnce = 0;
+            private ?Coroutine\Channel $threePartitionsAreBeingProjected = null;
 
             #[EventHandler]
             public function whenOpened(CoroutineAccountOpened $event, #[CurrentConnection] Connection $connection): void
@@ -89,7 +90,12 @@ final class CoroutineExecutionsTest extends TestCase
                 $this->mostProjectedAtOnce = max($this->mostProjectedAtOnce, $this->projectedAtOnce);
                 try {
                     $connection->executeStatement('INSERT INTO coroutine_account_names VALUES (?, ?)', [$event->accountId, $event->name]);
-                    usleep(50_000);
+                    $this->threePartitionsAreBeingProjected ??= new Coroutine\Channel();
+                    if ($this->projectedAtOnce < 3) {
+                        $this->threePartitionsAreBeingProjected->pop(5);
+                    } else {
+                        $this->threePartitionsAreBeingProjected->close();
+                    }
                 } finally {
                     $this->projectedAtOnce--;
                 }
@@ -147,6 +153,7 @@ final class CoroutineExecutionsTest extends TestCase
         $projection = new #[Projection('coroutine_account_names'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild', batchCompletionChannelName: 'rebuild_reports'), FromAggregateStream(CoroutineAccount::class)] class () {
             private int $resetAtOnce = 0;
             private int $mostResetAtOnce = 0;
+            private ?Coroutine\Channel $threeBatchesAreBeingReset = null;
 
             #[EventHandler]
             public function whenOpened(CoroutineAccountOpened $event, #[CurrentConnection] Connection $connection): void
@@ -161,7 +168,12 @@ final class CoroutineExecutionsTest extends TestCase
                 $this->mostResetAtOnce = max($this->mostResetAtOnce, $this->resetAtOnce);
                 try {
                     $connection->executeStatement('DELETE FROM coroutine_account_names WHERE account_id = ?', [$accountId]);
-                    usleep(50_000);
+                    $this->threeBatchesAreBeingReset ??= new Coroutine\Channel();
+                    if ($this->resetAtOnce < 3) {
+                        $this->threeBatchesAreBeingReset->pop(5);
+                    } else {
+                        $this->threeBatchesAreBeingReset->close();
+                    }
                 } finally {
                     $this->resetAtOnce--;
                 }
@@ -222,6 +234,7 @@ final class CoroutineExecutionsTest extends TestCase
             public array $deposits = [];
             private int $projectedAtOnce = 0;
             public int $mostProjectedAtOnce = 0;
+            private ?Coroutine\Channel $bothTriggersAreBeingProjected = null;
 
             #[EventHandler]
             public function whenOpened(CoroutineAccountOpened $event, #[CurrentConnection] Connection $connection): void
@@ -229,7 +242,12 @@ final class CoroutineExecutionsTest extends TestCase
                 $this->projectedAtOnce++;
                 $this->mostProjectedAtOnce = max($this->mostProjectedAtOnce, $this->projectedAtOnce);
                 try {
-                    usleep(50_000);
+                    $this->bothTriggersAreBeingProjected ??= new Coroutine\Channel();
+                    if ($this->projectedAtOnce < 2) {
+                        $this->bothTriggersAreBeingProjected->pop(5);
+                    } else {
+                        $this->bothTriggersAreBeingProjected->close();
+                    }
                     if ($this->broken) {
                         throw new RuntimeException('account names are down');
                     }

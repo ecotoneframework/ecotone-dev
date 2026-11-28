@@ -340,13 +340,37 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         };
         $ecotone = $this->bootstrapOnADbalChannel([$handler::class], [$handler], 'partitionConfiguration.orders');
 
-        $ecotone->sendCommand(new PartitionedShipOrder('', 'coffee'));
+        $ecotone->sendCommand(new PartitionedShipOrder('', 'coffee'), metadata: ['id' => 'm-1']);
         $ecotone->sendCommand(new PartitionedShipOrder('2', 'tea'));
         $ecotone->run('partitionConfiguration.orders', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withHandledMessageLimit(10));
 
         self::assertSame(['2:tea'], $handler->shipped);
         self::assertSame(1, $ecotone->getGateway(DeadLetterGateway::class)->count());
         self::assertSame([], $this->held($ecotone));
+    }
+
+    public function test_a_message_whose_partition_key_cannot_be_calculated_names_the_cause_and_how_to_replay_it(): void
+    {
+        $handler = new class () {
+            #[PartitionDeadLetter(expression: 'payload.partitionKey()')]
+            #[Asynchronous('partitionConfiguration.orders')]
+            #[CommandHandler(endpointId: 'partitionConfiguration.ship.endpoint')]
+            public function ship(PartitionedShipOrder $command): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$handler::class], [$handler]);
+
+        $ecotone->sendCommand(new PartitionedShipOrder('', 'coffee'), metadata: ['id' => 'm-1']);
+        $this->consume($ecotone, 'partitionConfiguration.orders');
+        $error = $ecotone->getGateway(DeadLetterGateway::class)->show('m-1')->getHeaders()->get(ErrorContext::EXCEPTION_MESSAGE);
+
+        self::assertStringStartsWith(
+            'The partition key of message `m-1` could not be calculated for `' . $handler::class . '`, so the message was not handled and is stored in the dead letter without holding a partition key. '
+            . 'Correct what #[PartitionDeadLetter] takes the partition key from (its expression or partitionHeaderName) or the message, then replay it with DeadLetterGateway::replay(\'m-1\'). Cause: ',
+            $error,
+        );
+        self::assertStringContainsString('the order to ship has no id', $error);
     }
 
     public function test_a_message_following_a_held_partition_key_is_logged_as_information_naming_the_key_and_the_message_holding_it(): void

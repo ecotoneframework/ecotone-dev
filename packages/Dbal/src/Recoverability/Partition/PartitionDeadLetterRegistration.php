@@ -13,7 +13,6 @@ use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\ErrorChannel;
 use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\IgnorePayload;
 use Ecotone\Api\Attribute\PartitionDeadLetter;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
@@ -356,19 +355,10 @@ final class PartitionDeadLetterRegistration
 
     private static function handledPayloadOf(InterfaceToCall $handledMethod): Definition
     {
-        foreach (ParameterConverterAnnotationFactory::createParameterConverters($handledMethod) as $parameterConverter) {
+        foreach (ParameterConverterAnnotationFactory::createParameterWithDefaults($handledMethod) as $parameterConverter) {
             if ($parameterConverter instanceof PayloadBuilder) {
                 return $parameterConverter->compile($handledMethod);
             }
-        }
-
-        $takesThePayloadFirst = $handledMethod->hasFirstParameter()
-            && ! $handledMethod->hasMethodAnnotation(Type::object(IgnorePayload::class))
-            && ! $handledMethod->getFirstParameter()->isAnnotation()
-            && ! $handledMethod->getFirstParameter()->isMessage()
-            && ParameterConverterAnnotationFactory::getConverterFor($handledMethod->getFirstParameter(), $handledMethod) === null;
-        if ($takesThePayloadFirst) {
-            return PayloadBuilder::create($handledMethod->getFirstParameterName())->compile($handledMethod);
         }
 
         return new Definition(PayloadConverter::class, [

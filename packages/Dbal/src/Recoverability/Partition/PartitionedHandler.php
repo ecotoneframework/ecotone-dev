@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Recoverability\Partition;
 
 use Ecotone\Api\Messaging\Message;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -34,7 +35,11 @@ final class PartitionedHandler
 
     public function partitionOf(Message $message): ?DeadLetterPartition
     {
-        $partitionKey = $this->partitionKey->of($message);
+        try {
+            $partitionKey = $this->partitionKey->of($message);
+        } catch (Throwable $cause) {
+            throw PartitionKeyNotCalculated::of(messageId: (string) $message->getHeaders()->getMessageId(), trackingName: $this->trackingName, cause: $cause);
+        }
 
         return $partitionKey === null || $partitionKey === '' ? null : new DeadLetterPartition(trackingName: $this->trackingName, partitionKey: $partitionKey);
     }

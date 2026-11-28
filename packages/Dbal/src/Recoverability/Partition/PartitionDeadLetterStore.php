@@ -9,7 +9,6 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Recoverability\DeadLetterStore;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Throwable;
 
 /**
  * licence Enterprise
@@ -63,7 +62,7 @@ final class PartitionDeadLetterStore implements DeadLetterStore
     {
         try {
             return $this->partitionedHandlers->partitionOf($message);
-        } catch (Throwable) {
+        } catch (PartitionKeyNotCalculated) {
             return null;
         }
     }

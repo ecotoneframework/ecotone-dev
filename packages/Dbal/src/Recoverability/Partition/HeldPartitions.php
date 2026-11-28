@@ -30,6 +30,8 @@ interface HeldPartitions
 
     public function oldestOf(DeadLetterPartition $partition): ?string;
 
+    public function oldestBefore(DeadLetterPartition $partition, int $position): ?string;
+
     /**
      * @param list<string> $deadLetterIds
      * @return array<string, array{trackingName: string, partitionKey: string, position: int}>

@@ -86,6 +86,17 @@ final class InMemoryHeldPartitions implements HeldPartitions
         return null;
     }
 
+    public function oldestBefore(DeadLetterPartition $partition, int $position): ?string
+    {
+        foreach ($this->held as $held) {
+            if ($held['trackingName'] === $partition->trackingName && $held['partitionKey'] === $partition->partitionKey && $held['position'] < $position) {
+                return $held['deadLetterId'];
+            }
+        }
+
+        return null;
+    }
+
     public function heldAmong(array $deadLetterIds): array
     {
         $heldAmong = [];

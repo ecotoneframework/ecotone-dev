@@ -55,6 +55,14 @@ final class PartitionDeadLetterInterceptor
             return $methodInvocation->proceed();
         }
         if ($message->getHeaders()->containsKey(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE)) {
+            $position = (int) $message->getHeaders()->get(MessageHeaders::DEAD_LETTER_PARTITION_RELEASE);
+            $olderDeadLetterId = $this->headersPropagator->storeHeaders(fn (): ?string => $this->heldPartitions->oldestBefore($partition, $position), $message);
+            if ($olderDeadLetterId !== null) {
+                $this->follow(message: $message, partition: $partition, holdingDeadLetterId: $olderDeadLetterId);
+
+                return null;
+            }
+
             $result = $methodInvocation->proceed();
             $this->headersPropagator->storeHeaders(fn (): bool => $this->partitionReplay->continueWith($partition), $message);
 
@@ -66,6 +74,13 @@ final class PartitionDeadLetterInterceptor
             return $methodInvocation->proceed();
         }
 
+        $this->follow(message: $message, partition: $partition, holdingDeadLetterId: $holdingDeadLetterId);
+
+        return null;
+    }
+
+    private function follow(Message $message, DeadLetterPartition $partition, string $holdingDeadLetterId): void
+    {
         $this->errorChannelService->forward(
             requestMessage: $message,
             cause: PartitionHeldInDeadLetter::since($partition, $holdingDeadLetterId),
@@ -76,7 +91,5 @@ final class PartitionDeadLetterInterceptor
             "Message `{$message->getHeaders()->getMessageId()}` follows partition key `{$partition->partitionKey}` of `{$partition->trackingName}` into the dead letter without being handled: the partition key is held there since message `{$holdingDeadLetterId}` failed.",
             $message,
         );
-
-        return null;
     }
 }

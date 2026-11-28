@@ -64,6 +64,18 @@ final class DbalHeldPartitions implements HeldPartitions
         return $deadLetterId === false ? null : (string) $deadLetterId;
     }
 
+    public function oldestBefore(DeadLetterPartition $partition, int $position): ?string
+    {
+        $deadLetterId = $this->onTable(fn () => $this->deadLetterIdsOf($partition)
+            ->andWhere('partition_position < :position')
+            ->setParameter('position', $position, Types::BIGINT)
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchOne());
+
+        return $deadLetterId === false ? null : (string) $deadLetterId;
+    }
+
     public function heldAmong(array $deadLetterIds): array
     {
         if ($deadLetterIds === []) {

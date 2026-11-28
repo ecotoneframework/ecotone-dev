@@ -299,6 +299,52 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_replaying_all_twice_while_the_oldest_message_of_a_partition_key_is_on_its_way_back_keeps_the_key_in_order_when_that_message_fails_again(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->consume($ecotone);
+
+        $ecotone->getGateway(DeadLetterGateway::class)->replayAll();
+        $ecotone->getGateway(DeadLetterGateway::class)->replayAll();
+        $this->consume($ecotone);
+
+        self::assertSame([], $this->orders->placed);
+        self::assertSame(['1' => ['m-1', 'm-2']], $this->heldMessageIdsByPartitionKey($ecotone));
+
+        $this->orders->broken = [];
+        $ecotone->getGateway(DeadLetterGateway::class)->replayAll();
+        $this->consume($ecotone);
+
+        self::assertSame(['1:broken', '1:coffee'], $this->orders->placed);
+        self::assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_two_messages_of_a_partition_key_one_after_another_keeps_the_key_in_order_when_the_older_one_fails_again(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation);
+        $this->place($ecotone, 'broken', orderId: '1', messageId: 'm-1');
+        $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
+        $this->consume($ecotone);
+
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-1');
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2');
+        $this->consume($ecotone);
+
+        self::assertSame([], $this->orders->placed);
+        self::assertSame(['1' => ['m-1', 'm-2']], $this->heldMessageIdsByPartitionKey($ecotone));
+
+        $this->orders->broken = [];
+        $ecotone->getGateway(DeadLetterGateway::class)->replay('m-2');
+        $this->consume($ecotone);
+
+        self::assertSame(['1:broken', '1:coffee'], $this->orders->placed);
+        self::assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    #[DataProvider('implementations')]
     public function test_a_message_is_replayed_while_an_older_one_of_its_partition_key_is_on_its_way_back(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation);

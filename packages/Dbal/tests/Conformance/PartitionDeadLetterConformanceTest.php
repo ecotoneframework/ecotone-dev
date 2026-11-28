@@ -18,7 +18,6 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
@@ -277,7 +276,7 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
         $ecotone->sendCommandWithRouting('partitionDeadLetter.place', 'broken', metadata: ['id' => 'm-3']);
         $this->consume($ecotone);
 
-        $listed = $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:deadletter:list', []);
+        $listed = $ecotone->resultOfConsoleCommand('ecotone:deadletter:list');
         $partitions = [];
         foreach ($listed->rows as $row) {
             $partitions[$row[0]] = array_slice($row, 3);
@@ -300,7 +299,7 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
 
         self::assertSame(
             ['Message Id', 'Failed At', 'Stacktrace'],
-            $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:deadletter:list', [])->columnHeaders,
+            $ecotone->resultOfConsoleCommand('ecotone:deadletter:list')->columnHeaders,
         );
     }
 
@@ -312,7 +311,7 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
         $this->place($ecotone, 'coffee', orderId: '1', messageId: 'm-2');
         $this->consume($ecotone);
 
-        $shown = array_column($ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:deadletter:show', ['messageId' => 'm-2'])->rows, 1, 0);
+        $shown = array_column($ecotone->resultOfConsoleCommand('ecotone:deadletter:show', ['messageId' => 'm-2'])->rows, 1, 0);
 
         self::assertSame(
             ['1', 2, PartitionedOrders::class],
@@ -329,7 +328,7 @@ final class PartitionDeadLetterConformanceTest extends DbalMessagingTestCase
 
         self::assertSame(
             ['Message Id', 'Failed At', 'Channel Name', 'Type', 'Stacktrace'],
-            array_column($ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:deadletter:show', ['messageId' => 'm-1'])->rows, 0),
+            array_column($ecotone->resultOfConsoleCommand('ecotone:deadletter:show', ['messageId' => 'm-1'])->rows, 0),
         );
     }
 

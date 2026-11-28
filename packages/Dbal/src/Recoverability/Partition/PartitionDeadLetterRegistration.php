@@ -14,13 +14,17 @@ use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\ErrorChannel;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\PartitionDeadLetter;
+use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Api\Projecting\FromTaggedStream;
+use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Recoverability\AnyDeadLetterReplayOrder;
@@ -53,6 +57,7 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
+use Ecotone\Projecting\Config\ProjectingModule;
 
 /**
  * licence Enterprise
@@ -199,10 +204,10 @@ final class PartitionDeadLetterRegistration
     private static function partitionedHandlers(Configuration $configuration, AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry, array $extensionObjects): array
     {
         $handlers = self::handlers($annotationFinder);
+        $partitionedHandlers = self::partitionedProjections(configuration: $configuration, annotationFinder: $annotationFinder, extensionObjects: $extensionObjects);
 
         self::assertEveryAttributeIsOnAnAsynchronousHandler($annotationFinder, $handlers);
 
-        $partitionedHandlers = [];
         $firstHandlerUnderDefaultTrackingName = [];
         foreach ($handlers as $handler) {
             $partitionedHandler = self::partitionedHandlerOf(handler: $handler, interfaceToCallRegistry: $interfaceToCallRegistry);
@@ -216,7 +221,14 @@ final class PartitionDeadLetterRegistration
 
             /** @var EndpointAnnotation $endpointAnnotation */
             $endpointAnnotation = $handler->getAnnotationForMethod();
-            self::assertFailuresReachTheDbalDeadLetter(handler: $handler, asynchronousChannel: self::asynchronousChannelsOf($handler)[0], extensionObjects: $extensionObjects);
+            $asynchronousChannel = self::asynchronousChannelsOf($handler)[0];
+            self::assertFailuresReachTheDbalDeadLetter(
+                handlerName: "{$handler->getClassName()}::{$handler->getMethodName()}",
+                asynchronous: self::asynchronousOf($handler),
+                asynchronousChannel: $asynchronousChannel,
+                extensionObjects: $extensionObjects,
+                waysOutOnTheHandler: "or on the handler with #[Asynchronous('{$asynchronousChannel}', asynchronousExecution: [new ErrorChannel('" . DbalDeadLetterBuilder::STORE_CHANNEL . "')])]; or remove #[PartitionDeadLetter] from this handler and its class.",
+            );
             $configuration->registerAsynchronousExecutionAttribute($endpointAnnotation->getEndpointId(), new PartitionedEndpoint($endpointAnnotation->getEndpointId()));
             $partitionedHandlers[$endpointAnnotation->getEndpointId()] = $partitionedHandler;
         }
@@ -260,9 +272,15 @@ final class PartitionDeadLetterRegistration
             return null;
         }
         if ($handler->hasClassAnnotation(Projection::class)) {
+            if (self::firstOf($handler->getMethodAnnotations(), PartitionDeadLetter::class) === null) {
+                return null;
+            }
+
+            /** @var Projection $projection */
+            $projection = self::firstOf($handler->getClassAnnotations(), Projection::class);
             throw ConfigurationException::create(
-                "#[PartitionDeadLetter] is placed on projection {$handler->getClassName()}, yet a projection is not held by partition key: it reads its stream from its own position and stops there when an event fails. "
-                . 'Remove #[PartitionDeadLetter] from the projection; to keep a failing aggregate from stopping the others, partition the projection itself with #[Partitioned].'
+                "#[PartitionDeadLetter] is placed on {$handler->getClassName()}::{$handler->getMethodName()}, an event handler of projection `{$projection->name}`, yet a projection is held as a whole: one trigger runs every event handler of it from the position of its partition. "
+                . 'Place #[PartitionDeadLetter] on the projection class, or remove it from the method.'
             );
         }
 
@@ -270,6 +288,103 @@ final class PartitionDeadLetterRegistration
             $attribute->trackingName ?? $handler->getClassName(),
             self::partitionKeyOf(handler: $handler, attribute: $attribute, interfaceToCallRegistry: $interfaceToCallRegistry),
         ]);
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     * @return array<string, Definition>
+     */
+    private static function partitionedProjections(Configuration $configuration, AnnotationFinder $annotationFinder, array $extensionObjects): array
+    {
+        $partitionedProjections = [];
+        foreach ($annotationFinder->findAnnotatedClasses(Projection::class) as $projectionClassName) {
+            /** @var PartitionDeadLetter|null $attribute */
+            $attribute = $annotationFinder->findAttributeForClass($projectionClassName, PartitionDeadLetter::class);
+            if ($attribute === null) {
+                continue;
+            }
+
+            /** @var Projection $projection */
+            $projection = $annotationFinder->getAttributeForClass($projectionClassName, Projection::class);
+            /** @var Partitioned|null $partitioned */
+            $partitioned = $annotationFinder->findAttributeForClass($projectionClassName, Partitioned::class);
+            /** @var Asynchronous|null $asynchronous */
+            $asynchronous = $annotationFinder->findAttributeForClass($projectionClassName, Asynchronous::class);
+            $placement = "projection `{$projection->name}` ({$projectionClassName})";
+            self::assertProjectionIsPartitionedAndAsynchronous(placement: $placement, partitioned: $partitioned, asynchronous: $asynchronous, replacedAttribute: self::pollingOrStreamingOf($annotationFinder, $projectionClassName));
+            self::assertNoPartitionKeyIsNamedOnProjection(placement: $placement, attribute: $attribute);
+            self::assertProjectionDoesNotReadATaggedStream(placement: $placement, taggedStreams: $annotationFinder->getAnnotationsForClass($projectionClassName, FromTaggedStream::class));
+
+            $asynchronousChannel = array_values($asynchronous->getChannelName())[0];
+            self::assertFailuresReachTheDbalDeadLetter(
+                handlerName: ucfirst($placement),
+                asynchronous: $asynchronous,
+                asynchronousChannel: $asynchronousChannel,
+                extensionObjects: $extensionObjects,
+                waysOutOnTheHandler: "or on the projection with #[Asynchronous('{$asynchronousChannel}', asynchronousExecution: [new ErrorChannel('" . DbalDeadLetterBuilder::STORE_CHANNEL . "')])]; or remove #[PartitionDeadLetter] from the projection.",
+            );
+            $triggerEndpointId = ProjectingModule::endpointIdForProjection($projection->name);
+            $configuration->registerAsynchronousExecutionAttribute($triggerEndpointId, new PartitionedEndpoint($triggerEndpointId));
+            $partitionedProjections[$triggerEndpointId] = new Definition(PartitionedHandler::class, [
+                $attribute->trackingName ?? $projectionClassName,
+                $partitioned->partitionHeaderName === null
+                    ? new Definition(ProjectedAggregatePartitionKey::class)
+                    : new Definition(HeaderPartitionKey::class, [$partitioned->partitionHeaderName]),
+            ]);
+        }
+
+        return $partitionedProjections;
+    }
+
+    private static function pollingOrStreamingOf(AnnotationFinder $annotationFinder, string $projectionClassName): ?string
+    {
+        return match (true) {
+            $annotationFinder->findAttributeForClass($projectionClassName, Polling::class) !== null => '#[Polling]',
+            $annotationFinder->findAttributeForClass($projectionClassName, Streaming::class) !== null => '#[Streaming]',
+            default => null,
+        };
+    }
+
+    private static function assertProjectionIsPartitionedAndAsynchronous(string $placement, ?Partitioned $partitioned, ?Asynchronous $asynchronous, ?string $replacedAttribute): void
+    {
+        if ($partitioned !== null && $asynchronous !== null) {
+            return;
+        }
+
+        $missing = implode(' and ', [...($partitioned === null ? ['#[Partitioned]'] : []), ...($asynchronous === null ? ['#[Asynchronous]'] : [])]);
+        $toAdd = implode(' and ', [...($partitioned === null ? ['#[Partitioned]'] : []), ...($asynchronous === null ? ["#[Asynchronous('channel_name')]"] : [])]);
+        throw ConfigurationException::create(
+            "#[PartitionDeadLetter] is placed on {$placement}, which has no {$missing}, yet a projection is held by partition key only when it is #[Partitioned] and #[Asynchronous]: the key held is the partition the projection reads, held on the triggers the projection consumes from its message channel. "
+            . 'Without #[Partitioned] a projection reads its stream from one position and stops there when an event fails; without #[Asynchronous] it consumes no trigger that could wait in the dead letter. '
+            . ($replacedAttribute === null ? "Add {$toAdd} to the projection" : "Replace {$replacedAttribute} with {$toAdd} on the projection") . ', or remove #[PartitionDeadLetter] from it.'
+        );
+    }
+
+    private static function assertNoPartitionKeyIsNamedOnProjection(string $placement, PartitionDeadLetter $attribute): void
+    {
+        if ($attribute->partitionHeaderName === '' && ($attribute->getExpression() === null || $attribute->getExpression() === '')) {
+            return;
+        }
+
+        throw ConfigurationException::create(
+            "#[PartitionDeadLetter] on {$placement} names a partition key with partitionHeaderName or expression, yet a projection is held by the partition it reads, so the key cannot come from anywhere else. "
+            . "Remove partitionHeaderName and expression from #[PartitionDeadLetter]; to partition the projection by a header, name it with #[Partitioned('header_name')]."
+        );
+    }
+
+    /**
+     * @param FromTaggedStream[] $taggedStreams
+     */
+    private static function assertProjectionDoesNotReadATaggedStream(string $placement, array $taggedStreams): void
+    {
+        if ($taggedStreams === []) {
+            return;
+        }
+
+        throw ConfigurationException::create(
+            "#[PartitionDeadLetter] is placed on {$placement}, which reads #[FromTaggedStream('{$taggedStreams[0]->tag}')], yet one event may carry several values of the tag and trigger several partitions at once, while a message waits in the dead letter for one partition key only. "
+            . 'Read the events with #[FromAggregateStream] or #[FromStream] to partition the projection by aggregate or by a header, or remove #[PartitionDeadLetter] from it.'
+        );
     }
 
     private static function attributeOf(AnnotatedFinding $handler): ?PartitionDeadLetter
@@ -373,29 +488,27 @@ final class PartitionDeadLetterRegistration
     /**
      * @param object[] $extensionObjects
      */
-    private static function assertFailuresReachTheDbalDeadLetter(AnnotatedFinding $handler, string $asynchronousChannel, array $extensionObjects): void
+    private static function assertFailuresReachTheDbalDeadLetter(string $handlerName, Asynchronous $asynchronous, string $asynchronousChannel, array $extensionObjects, string $waysOutOnTheHandler): void
     {
-        $deadLetterChannel = self::deadLetterChannelOf(handler: $handler, asynchronousChannel: $asynchronousChannel, extensionObjects: $extensionObjects);
+        $deadLetterChannel = self::deadLetterChannelOf(asynchronous: $asynchronous, asynchronousChannel: $asynchronousChannel, extensionObjects: $extensionObjects);
         if ($deadLetterChannel === DbalDeadLetterBuilder::STORE_CHANNEL) {
             return;
         }
 
         $storeChannel = DbalDeadLetterBuilder::STORE_CHANNEL;
         throw ConfigurationException::create(
-            "{$handler->getClassName()}::{$handler->getMethodName()} holds failed partition keys in the dead letter, yet its failed messages " . ($deadLetterChannel === null ? 'are sent to no error channel' : "end in `{$deadLetterChannel}`")
+            "{$handlerName} holds failed partition keys in the dead letter, yet its failed messages " . ($deadLetterChannel === null ? 'are sent to no error channel' : "end in `{$deadLetterChannel}`")
             . ", not in the Dbal dead letter `{$storeChannel}`, so a failed partition key would never be held. "
             . "Send them there with ServiceConfiguration::withDefaultErrorChannel('{$storeChannel}'), with ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', \$retries, '{$storeChannel}') as the default error channel's handler, "
-            . "or on the handler with #[Asynchronous('{$asynchronousChannel}', asynchronousExecution: [new ErrorChannel('{$storeChannel}')])]; or remove #[PartitionDeadLetter] from this handler and its class."
+            . $waysOutOnTheHandler
         );
     }
 
     /**
      * @param object[] $extensionObjects
      */
-    private static function deadLetterChannelOf(AnnotatedFinding $handler, string $asynchronousChannel, array $extensionObjects): ?string
+    private static function deadLetterChannelOf(Asynchronous $asynchronous, string $asynchronousChannel, array $extensionObjects): ?string
     {
-        /** @var Asynchronous $asynchronous */
-        $asynchronous = self::firstOf($handler->getMethodAnnotations(), Asynchronous::class) ?? self::firstOf($handler->getClassAnnotations(), Asynchronous::class);
         $delayedRetry = self::firstOf($asynchronous->asynchronousExecution, DelayedRetry::class);
         if ($delayedRetry !== null) {
             return $delayedRetry->deadLetterChannel;
@@ -435,6 +548,11 @@ final class PartitionDeadLetterRegistration
         $asynchronous = self::firstOf($handler->getMethodAnnotations(), Asynchronous::class) ?? self::firstOf($handler->getClassAnnotations(), Asynchronous::class);
 
         return $asynchronous === null ? [] : array_values($asynchronous->getChannelName());
+    }
+
+    private static function asynchronousOf(AnnotatedFinding $handler): ?Asynchronous
+    {
+        return self::firstOf($handler->getMethodAnnotations(), Asynchronous::class) ?? self::firstOf($handler->getClassAnnotations(), Asynchronous::class);
     }
 
     /**

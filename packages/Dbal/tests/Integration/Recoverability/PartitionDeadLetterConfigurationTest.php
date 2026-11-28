@@ -13,15 +13,19 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\PartitionDeadLetter;
+use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
@@ -35,10 +39,16 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Modelling\WithEvents;
 use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\FromTaggedStream;
+use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\Streaming;
+use Ecotone\Api\Projecting\StreamSource as StreamSourceAttribute;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Projecting\StreamPage;
+use Ecotone\Projecting\StreamSource;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StaticMessageBuilder;
 use InvalidArgumentException;
@@ -730,7 +740,64 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
         $this->bootstrap([$handlers::class], [$handlers]);
     }
 
-    public function test_the_attribute_is_refused_on_a_projection(): void
+    public function test_a_projection_partitioned_by_a_header_holds_the_triggers_carrying_the_header_value_of_the_failed_one(): void
+    {
+        $orderChanges = new #[StreamSourceAttribute] class () implements StreamSource {
+            public array $changesByOrder = [];
+
+            public function canHandle(string $projectionName): bool
+            {
+                return true;
+            }
+
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            {
+                $changes = array_slice($this->changesByOrder[$partitionKey] ?? [], offset: (int) $lastPosition, length: $count);
+
+                return new StreamPage($changes, (string) ((int) $lastPosition + count($changes)));
+            }
+        };
+        $projection = new #[Projection('partitioned_order_changes'), FromStream('partitioned_orders_stream'), Partitioned('orderId'), Asynchronous('partitionConfiguration.projections'), PartitionDeadLetter] class () {
+            public array $projected = [];
+            public bool $refusesLostOrders = true;
+
+            #[EventHandler]
+            public function whenChanged(PartitionedOrderChanged $event): void
+            {
+                if ($this->refusesLostOrders && $event->change === 'lost') {
+                    throw new RuntimeException('a lost order cannot be projected');
+                }
+
+                $this->projected[] = "{$event->orderId} {$event->change}";
+            }
+        };
+        $ecotone = $this->bootstrap([$projection::class, $orderChanges::class], [$projection, $orderChanges]);
+        $change = static function (string $orderId, string $change) use ($ecotone, $orderChanges): void {
+            $orderChanges->changesByOrder[$orderId][] = Event::create(new PartitionedOrderChanged($orderId, $change));
+            $ecotone->publishEvent(new PartitionedOrderChanged($orderId, $change), metadata: ['orderId' => $orderId]);
+        };
+        $change('1', 'lost');
+        $this->consume($ecotone, 'partitionConfiguration.projections');
+
+        $projection->refusesLostOrders = false;
+        $change('1', 'found');
+        $change('2', 'placed');
+        $this->consume($ecotone, 'partitionConfiguration.projections');
+        self::assertSame(['2 placed'], $projection->projected);
+        $held = $this->held($ecotone);
+        self::assertSame(
+            [[$projection::class, '1', 1], [$projection::class, '1', 2]],
+            array_map(static fn (ErrorContext $held): array => [$held->partitionTrackingName, $held->partitionKey, $held->partitionPosition], $held),
+        );
+
+        $ecotone->getGateway(DeadLetterGateway::class)->replay($held[1]->getMessageId());
+        $this->consume($ecotone, 'partitionConfiguration.projections');
+
+        self::assertSame(['2 placed', '1 lost', '1 found'], $projection->projected);
+        self::assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    public function test_the_attribute_is_refused_on_a_projection_that_is_not_partitioned(): void
     {
         $projection = new #[Projection('partitioned_orders'), FromStream('partitioned_orders_stream'), Asynchronous('partitionConfiguration.projections'), PartitionDeadLetter] class () {
             #[EventHandler]
@@ -741,11 +808,161 @@ final class PartitionDeadLetterConfigurationTest extends DbalMessagingTestCase
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
-            'yet a projection is not held by partition key: it reads its stream from its own position and stops there when an event fails. '
-            . 'Remove #[PartitionDeadLetter] from the projection; to keep a failing aggregate from stopping the others, partition the projection itself with #[Partitioned].'
+            '), which has no #[Partitioned], yet a projection is held by partition key only when it is #[Partitioned] and #[Asynchronous]: the key held is the partition the projection reads, held on the triggers the projection consumes from its message channel. '
+            . 'Without #[Partitioned] a projection reads its stream from one position and stops there when an event fails; without #[Asynchronous] it consumes no trigger that could wait in the dead letter. '
+            . 'Add #[Partitioned] to the projection, or remove #[PartitionDeadLetter] from it.'
         );
 
         $this->bootstrap([$projection::class], [$projection]);
+    }
+
+    public function test_the_attribute_is_refused_on_a_partitioned_projection_that_is_not_asynchronous(): void
+    {
+        $projection = new #[Projection('partitioned_orders'), FromStream('partitioned_orders_stream'), Partitioned('orderId'), PartitionDeadLetter] class () {
+            #[EventHandler]
+            public function whenChanged(PartitionedOrderChanged $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            '), which has no #[Asynchronous], yet a projection is held by partition key only when it is #[Partitioned] and #[Asynchronous]: the key held is the partition the projection reads, held on the triggers the projection consumes from its message channel. '
+            . 'Without #[Partitioned] a projection reads its stream from one position and stops there when an event fails; without #[Asynchronous] it consumes no trigger that could wait in the dead letter. '
+            . "Add #[Asynchronous('channel_name')] to the projection, or remove #[PartitionDeadLetter] from it."
+        );
+
+        $this->bootstrap([$projection::class], [$projection]);
+    }
+
+    public function test_the_attribute_is_refused_on_a_polling_projection(): void
+    {
+        $projection = new #[Projection('partitioned_orders'), FromStream('partitioned_orders_stream'), Polling('partitioned_orders_poller'), PartitionDeadLetter] class () {
+            #[EventHandler]
+            public function whenChanged(PartitionedOrderChanged $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            '), which has no #[Partitioned] and #[Asynchronous], yet a projection is held by partition key only when it is #[Partitioned] and #[Asynchronous]: the key held is the partition the projection reads, held on the triggers the projection consumes from its message channel. '
+            . 'Without #[Partitioned] a projection reads its stream from one position and stops there when an event fails; without #[Asynchronous] it consumes no trigger that could wait in the dead letter. '
+            . "Replace #[Polling] with #[Partitioned] and #[Asynchronous('channel_name')] on the projection, or remove #[PartitionDeadLetter] from it."
+        );
+
+        $this->bootstrap([$projection::class], [$projection]);
+    }
+
+    public function test_the_attribute_is_refused_on_a_streaming_projection(): void
+    {
+        $projection = new #[Projection('partitioned_orders'), Streaming('partitionConfiguration.orders_feed'), PartitionDeadLetter] class () {
+            #[EventHandler]
+            public function whenChanged(PartitionedOrderChanged $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            '), which has no #[Partitioned] and #[Asynchronous], yet a projection is held by partition key only when it is #[Partitioned] and #[Asynchronous]: the key held is the partition the projection reads, held on the triggers the projection consumes from its message channel. '
+            . 'Without #[Partitioned] a projection reads its stream from one position and stops there when an event fails; without #[Asynchronous] it consumes no trigger that could wait in the dead letter. '
+            . "Replace #[Streaming] with #[Partitioned] and #[Asynchronous('channel_name')] on the projection, or remove #[PartitionDeadLetter] from it."
+        );
+
+        $this->bootstrap([$projection::class], [$projection]);
+    }
+
+    public function test_a_partition_key_named_on_the_attribute_of_a_projection_is_refused(): void
+    {
+        $projection = new #[Projection('partitioned_orders'), FromStream('partitioned_orders_stream'), Partitioned('orderId'), Asynchronous('partitionConfiguration.projections'), PartitionDeadLetter(partitionHeaderName: 'tenant')] class () {
+            #[EventHandler]
+            public function whenChanged(PartitionedOrderChanged $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            ') names a partition key with partitionHeaderName or expression, yet a projection is held by the partition it reads, so the key cannot come from anywhere else. '
+            . "Remove partitionHeaderName and expression from #[PartitionDeadLetter]; to partition the projection by a header, name it with #[Partitioned('header_name')]."
+        );
+
+        $this->bootstrap([$projection::class], [$projection]);
+    }
+
+    public function test_a_partition_key_calculated_on_the_attribute_of_a_projection_is_refused(): void
+    {
+        $projection = new #[Projection('partitioned_orders'), FromStream('partitioned_orders_stream'), Partitioned('orderId'), Asynchronous('partitionConfiguration.projections'), PartitionDeadLetter(expression: "headers['tenant']")] class () {
+            #[EventHandler]
+            public function whenChanged(PartitionedOrderChanged $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            ') names a partition key with partitionHeaderName or expression, yet a projection is held by the partition it reads, so the key cannot come from anywhere else. '
+            . "Remove partitionHeaderName and expression from #[PartitionDeadLetter]; to partition the projection by a header, name it with #[Partitioned('header_name')]."
+        );
+
+        $this->bootstrap([$projection::class], [$projection]);
+    }
+
+    public function test_the_attribute_on_an_event_handler_of_a_projection_is_refused(): void
+    {
+        $projection = new #[Projection('partitioned_orders'), FromStream('partitioned_orders_stream'), Partitioned('orderId'), Asynchronous('partitionConfiguration.projections')] class () {
+            #[PartitionDeadLetter]
+            #[EventHandler]
+            public function whenChanged(PartitionedOrderChanged $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            '::whenChanged, an event handler of projection `partitioned_orders`, yet a projection is held as a whole: one trigger runs every event handler of it from the position of its partition. '
+            . 'Place #[PartitionDeadLetter] on the projection class, or remove it from the method.'
+        );
+
+        $this->bootstrap([$projection::class], [$projection]);
+    }
+
+    public function test_the_attribute_is_refused_on_a_projection_partitioned_by_a_tag(): void
+    {
+        $projection = new #[Projection('concert_seats'), FromTaggedStream('concert'), Partitioned, Asynchronous('partitionConfiguration.projections'), PartitionDeadLetter] class () {
+            #[EventHandler]
+            public function whenReserved(PartitionedSeatReserved $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            "), which reads #[FromTaggedStream('concert')], yet one event may carry several values of the tag and trigger several partitions at once, while a message waits in the dead letter for one partition key only. "
+            . 'Read the events with #[FromAggregateStream] or #[FromStream] to partition the projection by aggregate or by a header, or remove #[PartitionDeadLetter] from it.'
+        );
+
+        $this->bootstrap([$projection::class, PartitionedSeatReserved::class], [$projection], extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()]);
+    }
+
+    public function test_a_projection_whose_failed_triggers_do_not_end_in_the_dbal_dead_letter_is_refused(): void
+    {
+        $projection = new #[Projection('partitioned_orders'), FromStream('partitioned_orders_stream'), Partitioned('orderId'), Asynchronous('partitionConfiguration.projections'), PartitionDeadLetter] class () {
+            #[EventHandler]
+            public function whenChanged(PartitionedOrderChanged $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            ') holds failed partition keys in the dead letter, yet its failed messages end in `partitionConfiguration.errors`, not in the Dbal dead letter `dbal_dead_letter`, so a failed partition key would never be held. '
+            . "Send them there with ServiceConfiguration::withDefaultErrorChannel('dbal_dead_letter'), with ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', \$retries, 'dbal_dead_letter') as the default error channel's handler, "
+            . "or on the projection with #[Asynchronous('partitionConfiguration.projections', asynchronousExecution: [new ErrorChannel('dbal_dead_letter')])]; or remove #[PartitionDeadLetter] from the projection."
+        );
+
+        $this->bootstrap([$projection::class], [$projection], errorChannel: 'partitionConfiguration.errors');
     }
 
     public function test_holding_a_partition_key_in_a_dead_letter_table_created_by_ecotone_1x_is_refused_naming_how_to_add_the_partition_columns(): void
@@ -964,6 +1181,13 @@ final class PartitionedShipOrder
 final class PartitionedOrderChanged
 {
     public function __construct(public readonly string $orderId, public readonly string $change)
+    {
+    }
+}
+
+final class PartitionedSeatReserved
+{
+    public function __construct(#[EventTag('concert')] public readonly string $concertId)
     {
     }
 }

@@ -528,6 +528,14 @@ final class FlowTestSupport
         return $this;
     }
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
+    public function resultOfConsoleCommand(string $name, array $parameters = []): mixed
+    {
+        return $this->configuredMessagingSystem->runConsoleCommand($name, $parameters);
+    }
+
     public function console(): int
     {
         return $this->configuredMessagingSystem->console();

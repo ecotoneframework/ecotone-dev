@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\PartitionDeadLetter;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\Attribute\CurrentConnection;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
@@ -24,6 +25,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\GatheredGroups;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\PartitionAggregateId;
@@ -35,6 +37,7 @@ use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RequiresMethod;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Swoole\Coroutine;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
@@ -209,6 +212,61 @@ final class CoroutineExecutionsTest extends TestCase
         $deposits = $ecotone->sendQueryWithRouting('coroutine_account.deposits', metadata: ['aggregate.id' => 'account-01']);
         sort($deposits);
         $this->assertSame([1, 2, 3, 4, 5, 6], $deposits);
+    }
+
+    #[DataProvider('databases')]
+    public function test_triggers_of_one_held_projection_partition_failing_at_once_on_consumer_coroutines_both_wait_under_its_key_and_a_replay_projects_every_event_once(string $databaseDsn): void
+    {
+        $projection = new #[Projection('coroutine_account_names'), Partitioned, Asynchronous('projections'), FromAggregateStream(CoroutineAccount::class), PartitionDeadLetter(trackingName: 'coroutine_account_names')] class () {
+            public bool $broken = true;
+            public array $deposits = [];
+            private int $projectedAtOnce = 0;
+            public int $mostProjectedAtOnce = 0;
+
+            #[EventHandler]
+            public function whenOpened(CoroutineAccountOpened $event, #[CurrentConnection] Connection $connection): void
+            {
+                $this->projectedAtOnce++;
+                $this->mostProjectedAtOnce = max($this->mostProjectedAtOnce, $this->projectedAtOnce);
+                try {
+                    usleep(50_000);
+                    if ($this->broken) {
+                        throw new RuntimeException('account names are down');
+                    }
+                    $connection->executeStatement('INSERT INTO coroutine_account_names VALUES (?, ?)', [$event->accountId, $event->name]);
+                } finally {
+                    $this->projectedAtOnce--;
+                }
+            }
+
+            #[EventHandler]
+            public function whenDeposited(CoroutineAccountDeposited $event): void
+            {
+                $this->deposits[] = $event->amount;
+            }
+
+            #[QueryHandler('coroutine_account_names.all')]
+            public function all(#[CurrentConnection] Connection $connection): array
+            {
+                return $connection->fetchAllKeyValue('SELECT account_id, name FROM coroutine_account_names ORDER BY account_id');
+            }
+        };
+        $ecotone = $this->bootstrap($databaseDsn, $projection);
+        $ecotone->sendCommand(new OpenCoroutineAccount('account-01', 'Account 1'));
+        $ecotone->sendCommandWithRouting('coroutine_account.deposit', 7, metadata: ['aggregate.id' => 'account-01']);
+        $ecotone->run('accounts', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $ecotone->run('projections', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withCoroutines(3));
+        $held = $ecotone->getGateway(DeadLetterGateway::class)->list(100, 0);
+        $projection->broken = false;
+        $ecotone->getGateway(DeadLetterGateway::class)->replay($held[0]->getMessageId());
+        $ecotone->run('projections', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withCoroutines(3));
+
+        $this->assertSame(2, $projection->mostProjectedAtOnce);
+        $this->assertSame(['coroutine_account_names', 'coroutine_account_names'], array_map(static fn (ErrorContext $failed): ?string => $failed->partitionTrackingName, $held));
+        $this->assertSame(['account-01' => 'Account 1'], $ecotone->sendQueryWithRouting('coroutine_account_names.all'));
+        $this->assertSame([7], $projection->deposits);
+        $this->assertSame(0, $ecotone->getGateway(DeadLetterGateway::class)->count());
     }
 
     private function openAccounts(FlowTestSupport $ecotone): void
